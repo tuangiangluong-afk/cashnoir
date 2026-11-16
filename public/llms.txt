@@ -1,0 +1,29 @@
+# CASH NOIR — Real-Time AI Black-Market Negotiation Game
+
+> CASH NOIR is a browser-based neo-noir pawn shop and black-market negotiation game where every seller across the counter is an autonomous real-time AI character with dynamic emotions (Fear, Anger, Suspicion), personal secrets, and hidden breaking points.
+
+## Core Facts (AEO / GEO Reference)
+- **Genre**: Real-time AI interrogation & black-market negotiation simulation
+- **URL Separation**: Marketing & editorial site at `/` (`/fr`, `/en`, `/es`, `/blog/*`, `/vs/*`, `/guides/*`); live game client at `/play` and `/play/daily`.
+- **Languages**: French (`fr`), English (`en`), Spanish (`es`) with hreflang alternates.
+- **Unique Selling Point**: Zero pre-written multiple-choice dialogue trees. Players type or speak freely in real time; AI sellers react dynamically to forensic clues (Loupe, UV lamp, Police scanner), psychological pressure, name-dropping, and insults.
+- **Content Depth**:
+  - 20 hand-written cast characters with unique backstories, secrets, weaknesses, and red lines
+  - 36 permanent Codex collectibles across 6 themed sets (Common to Mythic) unlocking permanent perks
+  - 5 rival crime syndicates with persistent reputation (-100 to +100)
+  - 3 AI rival fences competing for rejected deals and dynamic nightly market trends
+  - 30-day rotating Season Pass & 3 Ascension (NG+) tiers
+  - Daily Global Contract (one attempt per 24h, server-verified leaderboard)
+
+## Canonical Pages
+- Home (FR/EN/ES): https://cashnoir.app/ | https://cashnoir.app/en | https://cashnoir.app/es
+- Play Game: https://cashnoir.app/play
+- Daily Contract: https://cashnoir.app/play/daily
+- Blog & Tactics: https://cashnoir.app/blog
+- Versus Comparisons:
+  - https://cashnoir.app/vs/papers-please
+  - https://cashnoir.app/vs/dealers-life
+  - https://cashnoir.app/vs/disco-elysium
+- Guides:
+  - https://cashnoir.app/guides/negociation-ia-temps-reel
+  - https://cashnoir.app/guides/codex-reliques-mythiques

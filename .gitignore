@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env*
+*.pem
+*.key
+server/data/
+.freebuff/
+.DS_Store
+*.tsbuildinfo
+*.log
+scene-*.png
+.claude/
+
+
