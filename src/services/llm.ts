@@ -128,7 +128,7 @@ function parseNPCJson(
     ),
   };
 
-  const dynamicFloor = computeDynamicFloor(initialPrice, floorPrice, jauges.peur);
+  let dynamicFloor = computeDynamicFloor(initialPrice, floorPrice, jauges.peur);
   let nextPrice = Math.min(
     currentPrice,
     Math.max(floorPrice, Math.round(Number(parsed.prix_actuel_demande ?? currentPrice))),
@@ -141,8 +141,10 @@ function parseNPCJson(
     .map((m) => Number(m[1].replace(/[\s\u202f\u00a0]/g, '')))
     .filter((n) => Number.isFinite(n) && n >= floorPrice && n <= initialPrice);
   const mentionedPrice = dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
-  if (mentionedPrice && mentionedPrice < nextPrice) {
-    nextPrice = Math.max(dynamicFloor, Math.round(mentionedPrice / 50) * 50);
+  const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice < currentPrice);
+  if (hasConcededInDialogue && mentionedPrice) {
+    nextPrice = Math.min(nextPrice, Math.max(floorPrice, Math.round(mentionedPrice / 50) * 50));
+    dynamicFloor = Math.min(dynamicFloor, nextPrice);
   }
 
   // Empêche le modèle d'augmenter son prix s'il a plus peur qu'avant,
@@ -162,9 +164,10 @@ function parseNPCJson(
     );
   }
 
-  // Anti-capitulation : quand le vendeur n'est pas terrifié (peur < 55), il ne baisse pas
-  // de plus de 25 % d'un coup. S'il a la trouille (peur >= 55), il peut craquer jusqu'au plancher.
-  if (jauges.peur < 55) {
+  // Anti-capitulation : quand le vendeur n'est pas terrifié (peur < 55) ET n'a pas spontanément
+  // concédé un prix inférieur dans son dialogue, il ne baisse pas de plus de 25 % d'un coup.
+  // S'il a la trouille (peur >= 55) ou a lui-même proposé ce prix, il peut craquer jusqu'au plancher.
+  if (jauges.peur < 55 && !hasConcededInDialogue) {
     nextPrice = Math.max(nextPrice, Math.max(floorPrice, Math.round((currentPrice * (fearCap < 25 ? 0.95 : 0.75)) / 50) * 50));
   } else {
     nextPrice = Math.max(dynamicFloor, nextPrice);
@@ -212,6 +215,14 @@ function parseNPCJson(
   }
 
   let dialogue = sanitizeText(parsed.dialogue, '...');
+  // Nettoie l'inversion de rôle linguistique (vendeur disant par erreur 'je vous en donne X $' au lieu de 'je vous le cède à X $')
+  if (locale === 'fr') {
+    dialogue = dialogue.replace(/\bje\s+(?:vous|t['’]en)\s+(?:donne|lâche)\s+(\d+)/gi, 'je vous le cède à $1');
+  } else if (locale === 'en') {
+    dialogue = dialogue.replace(/\bI(?:'ll)?\s+give\s+you\s+\$?(\d+)/gi, "I'll let you have it for $$$1");
+  } else if (locale === 'es') {
+    dialogue = dialogue.replace(/\bte\s+doy\s+(\d+)/gi, 'te lo dejo en $1');
+  }
   let tell = sanitizeText(
     parsed.indice_comportemental,
     locale === 'en'
@@ -321,6 +332,7 @@ ACCEPTABLE FLOOR THRESHOLD: $${dynamicFloor} (if player offers at least $${dynam
         ? `\nPLAYER'S CASH OFFER THIS TURN: $${playerOffer} (take this exact cash amount: $${playerOffer}, do not invent another number).`
         : ''
     }
+MANDATORY COMMERCIAL ROLE: YOU ARE THE SELLER demanding cash. The player is the BUYER. You NEVER give cash to the player. NEVER say "I give you $X". Say "I'll let you have it for $X", "give me $X and I walk", or "deal for $X".
 MANDATORY LANGUAGE: Respond 100% in gritty spoken English.`
     : locale === 'es'
       ? `ESTADO ACTUAL DE LAS BARRAS: miedo=${currentGauges.peur}, ira=${currentGauges.colere}, desconfianza=${currentGauges.mefiance}.
@@ -330,6 +342,7 @@ UMBRAL MÍNIMO ACEPTABLE: ${dynamicFloor} $ (si el jugador ofrece al menos ${dyn
           ? `\nOFERTA EN EFECTIVO DEL JUGADOR ESTE TURNO: ${playerOffer} $ (toma este monto exacto: ${playerOffer} $).`
           : ''
       }
+ROL COMERCIAL OBLIGATORIO: ERES EL VENDEDOR pidiendo efectivo. El jugador es el COMPRADOR. NUNCA le das dinero al jugador. NUNCA digas "te doy X $". Di "te lo dejo en X $", "dame X $ y me voy", o "trato hecho por X $".
 IDIOMA OBLIGATORIO: Responde 100% en español callejero.`
       : `ÉTAT ACTUEL DES JAUGES : peur=${currentGauges.peur}, colere=${currentGauges.colere}, mefiance=${currentGauges.mefiance}.
 PRIX ACTUEL DEMANDÉ : ${currentPrice} $ (RÈGLE ABSOLUE : ne demande JAMAIS plus que ${currentPrice} $, le prix ne peut que baisser ou rester à ${currentPrice} $).
@@ -337,7 +350,8 @@ SEUIL ACCEPTABLE ACTUEL : ${dynamicFloor} $ (si le joueur propose au moins ${dyn
         playerOffer !== undefined
           ? `\nOFFRE CHIFFRÉE DU JOUEUR CE TOUR : ${playerOffer} $ (lis bien ce montant exact : ${playerOffer} $, ne le transforme pas en un autre nombre).`
           : ''
-      }`;
+      }
+RÔLE COMMERCIAL OBLIGATOIRE : TU ES LE VENDEUR qui réclame du liquide. Le joueur est l'ACHETEUR. Tu ne donnes JAMAIS d'argent au joueur. Ne dis JAMAIS "je vous en donne X $" ni "je vous donne X $". Dis "je vous le cède pour X $", "laissez-moi partir avec X $", ou "donnez-moi X $ et je disparais".`;
 
   const fullSystem = `${systemPrompt}
 

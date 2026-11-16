@@ -319,8 +319,8 @@ function buildProceduralRoster(): CastCharacter[] {
     }),
   );
 
-  // Visages disponibles (les 20 portraits existants) : chaque personnage généré en reçoit un du même genre,
-  // le moins utilisé, dont l'âge colle au métier. L'âge affiché suit alors le visage (plus de pilote de 23 ans).
+  // Visages disponibles : les 30 premiers personnages ont chacun leur portrait dédié (/assets/portraits/cast/cNNN.webp).
+  // Les personnages suivants (c031+) piochent dans ce vivier de 30 portraits compatibles (même genre, âge cohérent).
   const faces: Record<'m' | 'f', { id: string; age: number }[]> = { m: [], f: [] };
   const faceUse: Record<string, number> = {};
   for (const c of handCrafted) {
@@ -350,14 +350,26 @@ function buildProceduralRoster(): CastCharacter[] {
       ? EXTRA_JOBS_F[i % EXTRA_JOBS_F.length]
       : EXTRA_JOBS_M[i % EXTRA_JOBS_M.length];
     const [minAge, maxAge] = jobAgeRange(job);
-    const pool = faces[gender].filter((f) => f.age + 3 >= minAge && f.age - 2 <= maxAge);
-    const candidates = pool.length ? pool : faces[gender];
-    const leastUsed = Math.min(...candidates.map((f) => faceUse[f.id] ?? 0));
-    const ties = candidates.filter((f) => (faceUse[f.id] ?? 0) === leastUsed);
-    const face = ties[i % ties.length];
-    faceUse[face.id] = (faceUse[face.id] ?? 0) + 1;
-    PORTRAIT_OF[id] = face.id;
-    const age = Math.min(maxAge, Math.max(minAge, face.age + ((i * 5) % 6) - 2));
+
+    let chosenAge: number;
+
+    // c021 à c030 ont chacun leur portrait dédié généré sur mesure !
+    if (idx <= 30) {
+      chosenAge = Math.min(maxAge, Math.max(minAge, 28 + ((i * 7) % 25)));
+      PORTRAIT_OF[id] = id;
+      faceUse[id] = 1;
+      faces[gender].push({ id, age: chosenAge });
+    } else {
+      const pool = faces[gender].filter((f) => f.age + 4 >= minAge && f.age - 3 <= maxAge);
+      const candidates = pool.length ? pool : faces[gender];
+      const leastUsed = Math.min(...candidates.map((f) => faceUse[f.id] ?? 0));
+      const ties = candidates.filter((f) => (faceUse[f.id] ?? 0) === leastUsed);
+      const face = ties[i % ties.length];
+      faceUse[face.id] = (faceUse[face.id] ?? 0) + 1;
+      PORTRAIT_OF[id] = face.id;
+      chosenAge = Math.min(maxAge, Math.max(minAge, face.age + ((i * 5) % 6) - 2));
+    }
+    const age = chosenAge;
     const faction = FACTIONS_CYCLE[i % FACTIONS_CYCLE.length];
     const profileId = PROFILES_CYCLE[i % PROFILES_CYCLE.length];
     const secret = SECRETS_POOL[i % SECRETS_POOL.length];

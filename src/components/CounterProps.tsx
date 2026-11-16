@@ -275,10 +275,10 @@ export function CounterItemProp({
         {streetValue ? (
           <span className="block text-center font-semibold text-emerald-400 sm:ml-1.5 sm:inline">
             {locale === 'en'
-              ? `(Est. Resale ~$${streetValue.toLocaleString('en-US')})`
+              ? `(Street Value: ~$${streetValue.toLocaleString('en-US')})`
               : locale === 'es'
-                ? `(Reventa est. ~${streetValue.toLocaleString('es-ES')} $)`
-                : `(Revente rue est. ~${streetValue.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} $)`}
+                ? `(Valor reventa calle: ~${streetValue.toLocaleString('es-ES')} $)`
+                : `(Valeur revente rue : ~${streetValue.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} $)`}
           </span>
         ) : null}
       </div>

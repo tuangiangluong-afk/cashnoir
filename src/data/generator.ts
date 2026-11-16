@@ -840,18 +840,18 @@ export function generateBossCase(
 
   if (locale === 'en') {
     openingLine = spec.bossKind === 'collector'
-      ? `The Syndicate sent me to test your counter. Take ${localizedBossItem} for $${formatted} cash and prove you have the spine.`
+      ? `The Syndicate sent me to test your counter. Take this ${localizedBossItem} for $${formatted} cash and prove you have the spine.`
       : spec.bossKind === 'phantom'
-        ? `Nobody in this town has the nerve to touch ${localizedBossItem} tonight. $${formatted} cash, take it or leave it before dawn.`
-        : `I've got 20 minutes to vanish from this city. ${localizedBossItem} is worth a fortune — drop $${formatted} right now or I torch the file.`;
+        ? `Nobody in this town has the nerve to touch this ${localizedBossItem} tonight. $${formatted} cash, take it or leave it before dawn.`
+        : `I've got 20 minutes to vanish from this city. This ${localizedBossItem} is worth a fortune — drop $${formatted} right now or I torch the file.`;
     openingTell = 'He rests both palms flat on the counter and does not blink.';
     policeRadioBrief = `[BOSS ALERT · NIGHT ${day}] « High-priority syndicate target spotted near your sector (${spec.bossTitle}). High stakes. »`;
   } else if (locale === 'es') {
     openingLine = spec.bossKind === 'collector'
-      ? `El Sindicato me envía a probar tu mostrador. Toma ${localizedBossItem} por ${formatted} $ en efectivo y demuestra tu temple.`
+      ? `El Sindicato me envía a probar tu mostrador. Toma ${formatItemInSpeech(localizedBossItem, 'es')} por ${formatted} $ en efectivo y demuestra tu temple.`
       : spec.bossKind === 'phantom'
-        ? `Nadie en esta ciudad tiene agallas para tocar ${localizedBossItem} esta noche. ${formatted} $ en efectivo, última palabra antes del alba.`
-        : `Tengo 20 minutos para salir de la ciudad. ${localizedBossItem} vale una fortuna: suelta ${formatted} $ ahora mismo o quemo el expediente.`;
+        ? `Nadie en esta ciudad tiene agallas para tocar ${formatItemInSpeech(localizedBossItem, 'es')} esta noche. ${formatted} $ en efectivo, última palabra antes del alba.`
+        : `Tengo 20 minutos para salir de la ciudad. ${formatItemInSpeech(localizedBossItem, 'es')} vale una fortuna: suelta ${formatted} $ ahora mismo o quemo el expediente.`;
     openingTell = 'Apoya ambas manos planas en el mostrador y no parpadea.';
     policeRadioBrief = `[ALERTA JEFE · NOCHE ${day}] « Objetivo prioritario detectado cerca de tu sector (${spec.bossTitle}). Mucho en juego. »`;
   }

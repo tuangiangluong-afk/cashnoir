@@ -1264,16 +1264,38 @@ export default function App() {
       }
       const playerTurnsSoFar = history.filter((h) => h.role === 'player').length;
       const repeated = history.some((h) => h.role === 'player' && h.content.trim().toLowerCase() === text.toLowerCase());
-      const noScore = isClueMacro || repeated;
-      const psycho = noScore
-        ? { fearDelta: 0, angerDelta: 0, mefianceDelta: 0, isPromptInjection: false, hitName: false, hitWeak: false, hitLabel: undefined }
-        : evaluatePsychoTriggers(
-        text,
-        currentCase.archetype,
-        currentCase.name,
-        day,
-        usedPsychoRef.current,
-      );
+      let psycho: ReturnType<typeof evaluatePsychoTriggers>;
+      if (repeated) {
+        psycho = {
+          fearDelta: 0,
+          angerDelta: 12,
+          mefianceDelta: 8,
+          isPromptInjection: false,
+          hitName: false,
+          hitWeak: false,
+          hitLabel: 'Répétition',
+        };
+      } else if (isClueMacro) {
+        const isRadio = /fréquence|scanner|police|radio|escáner/i.test(text);
+        const isUv = /UV|ultraviolet|fluorescent/i.test(text);
+        psycho = {
+          fearDelta: isRadio ? 22 : isUv ? 18 : 14,
+          angerDelta: 4,
+          mefianceDelta: isRadio ? 12 : isUv ? 10 : 6,
+          isPromptInjection: false,
+          hitName: false,
+          hitWeak: true,
+          hitLabel: isRadio ? 'Scanner Police' : isUv ? 'Marquage UV' : 'Indice Loupe',
+        };
+      } else {
+        psycho = evaluatePsychoTriggers(
+          text,
+          currentCase.archetype,
+          currentCase.name,
+          day,
+          usedPsychoRef.current,
+        );
+      }
       if (psycho.isPromptInjection) {
         const nextColere = Math.min(100, gauges.colere + psycho.angerDelta);
         const nextMefiance = Math.min(100, gauges.mefiance + psycho.mefianceDelta);
@@ -1310,8 +1332,7 @@ export default function App() {
         gameLocale,
         currentCase.isDailyContract ? (dailyRunRef.current ?? undefined) : undefined,
         currentCase.gender,
-        // Un indice matériel seul : peur +8 max et prix -5 % max (voir parseNPCJson) : il faut parler pour craquer.
-        noScore ? 8 : Math.max(10, 25 - 5 * playerTurnsSoFar),
+        isClueMacro ? 25 : repeated ? 5 : Math.max(10, 25 - 5 * playerTurnsSoFar),
       );
 
       const nextGauges: Gauges = {
@@ -1556,7 +1577,7 @@ export default function App() {
         ? `(You set the ${useUv ? 'UV lamp' : 'magnifier'} down firmly and stare into their eyes.) Explain this: ${clue}. And don't bullshit me about ${currentCase.faction}.`
         : gameLocale === 'es'
           ? `(Apoyas la ${useUv ? 'lámpara UV' : 'lupa'} en el mostrador y no desvías la mirada.) Explícame esto: ${clue}. Y no me mientas sobre ${currentCase.faction}.`
-          : `(Tu poses ${useUv ? 'la lampe UV' : 'la loupe'} sur le comptoir et tu le fixes.) Explique-moi ça : ${clue}. Et ne me mens pas sur ${currentCase.faction}.`;
+          : `(Tu poses ${useUv ? 'la lampe UV' : 'la loupe'} sur le comptoir et tu ${currentCase.gender === 'f' ? 'la' : 'le'} fixes.) Explique-moi ça : ${clue}. Et ne me mens pas sur ${currentCase.faction}.`;
     setGrilled((g) => ({ ...g, [useUv ? 'uv' : 'loupe']: true }));
     void sendMessage(confrontMsg, undefined, true);
   };
@@ -1637,6 +1658,15 @@ export default function App() {
     );
   };
 
+  const getFastSellPayout = (target: BoughtItem): number => {
+    const catCount = target.category ? soldCategories[target.category] || 0 : 0;
+    const catMult = catCount >= 2 ? 0.75 : catCount === 1 ? 0.88 : 1;
+    const blindBoost = jokerIds.includes('a-l-aveugle') ? 1.6 : 1;
+    const trendMult = target.category ? marketTrends[target.category] ?? 1 : 1;
+    const seasonFastMult = seasonState.level >= 3 ? 1.05 : 1;
+    return Math.round(target.streetValue * 0.62 * catMult * blindBoost * trendMult * seasonFastMult);
+  };
+
   const sellItem = (itemId: string, mode: 'fast' | 'auction') => {
     const target = inventory.find((i) => i.id === itemId);
     if (!target) return;
@@ -1655,11 +1685,10 @@ export default function App() {
     const trendMult = target.category ? marketTrends[target.category] ?? 1 : 1;
     const codexAuctionMult = activeCodexPerks.includes('Clientèle Aristocratique') ? 1.18 : 1;
     const seasonAuctionMult = seasonState.level >= 20 ? 1.1 : 1;
-    const seasonFastMult = seasonState.level >= 3 ? 1.05 : 1;
     const facAuctionBonus = 1 + getFactionRank(factionRep[resolveFactionId(target.faction)] ?? 0).auctionBonus;
     const salePrice =
       mode === 'fast'
-        ? Math.round(target.streetValue * 0.62 * catMult * blindBoost * trendMult * seasonFastMult)
+        ? getFastSellPayout(target)
         : Math.round(
             target.streetValue *
               baseAuctionMult *
@@ -1848,7 +1877,13 @@ export default function App() {
 
   const takeSyndicateLoan = () => {
     if (debt > 0) {
-      setError(`Tu dois déjà ${formatMoney(debt, gameLocale)} $ au Syndicat.`);
+      setError(
+        gameLocale === 'en'
+          ? `You already owe $${formatMoney(debt, gameLocale)} to the Syndicate.`
+          : gameLocale === 'es'
+            ? `Ya debes ${formatMoney(debt, gameLocale)} $ al Sindicato.`
+            : `Tu dois déjà ${formatMoney(debt, gameLocale)} $ au Syndicat.`,
+      );
       return;
     }
     sound.playCashSlap();
@@ -3717,7 +3752,7 @@ export default function App() {
                               className="border border-emerald-400/60 bg-emerald-950/60 px-3 py-2 font-mono text-xs font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80"
                             >
                               {t.quickSellDirect(
-                                formatMoney(Math.round(inventory[inventory.length - 1].streetValue * 0.75), gameLocale),
+                                formatMoney(getFastSellPayout(inventory[inventory.length - 1]), gameLocale),
                               )}
                             </button>
                           )}
