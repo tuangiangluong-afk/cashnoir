@@ -226,6 +226,11 @@ export const FEMALE_CAST_PORTRAITS = [
   'c014',
   'c016',
   'c018',
+  'c022',
+  'c024',
+  'c026',
+  'c028',
+  'c030',
 ] as const;
 
 export const MALE_CAST_PORTRAITS = [
@@ -240,7 +245,46 @@ export const MALE_CAST_PORTRAITS = [
   'c017',
   'c019',
   'c020',
+  'c021',
+  'c023',
+  'c025',
+  'c027',
+  'c029',
 ] as const;
+
+/** Âge physique visible pour chaque visage du cast */
+export const PORTRAIT_PHYSICAL_AGE: Record<string, number> = {
+  c001: 36,
+  c002: 52,
+  c003: 44,
+  c004: 29,
+  c005: 48,
+  c006: 24,
+  c007: 63,
+  c008: 31,
+  c009: 39,
+  c010: 58,
+  c011: 34,
+  c012: 27,
+  c013: 46,
+  c014: 33,
+  c015: 25,
+  c016: 41,
+  c017: 61,
+  c018: 38,
+  c019: 55,
+  c020: 23,
+  c021: 50,
+  c022: 47,
+  c023: 65,
+  c024: 30,
+  c025: 46,
+  c026: 37,
+  c027: 30,
+  c028: 27,
+  c029: 36,
+  c030: 42,
+};
 
 export function resolveCastPortrait(
   castId?: string,
@@ -251,7 +295,7 @@ export function resolveCastPortrait(
   if (castId && PORTRAIT_OF[castId]) return `cast/${PORTRAIT_OF[castId]}`;
   if (castId) {
     const num = parseInt(castId.replace(/\D/g, ''), 10);
-    if (!Number.isNaN(num) && num >= 1 && num <= 20) {
+    if (!Number.isNaN(num) && num >= 1 && num <= 30) {
       return `cast/${castId}`;
     }
   }

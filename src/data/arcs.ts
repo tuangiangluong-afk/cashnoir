@@ -16,6 +16,8 @@ export interface StoryArc {
   itemKey: string;
   clueNote: string;
   step1: {
+    castId?: string;
+    gender?: 'm' | 'f';
     name: string;
     age: number;
     faction: string;
@@ -35,6 +37,8 @@ export interface StoryArc {
     storyContext: string;
   };
   step2: {
+    castId?: string;
+    gender?: 'm' | 'f';
     name: string;
     age: number;
     faction: string;
@@ -67,8 +71,10 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Téléphone chiffré de Député : contact "M. Vane" cherche à le racheter avant 6h. Garde-le au coffre.',
     step1: {
+      castId: 'c020',
+      gender: 'm',
       name: 'Yanis',
-      age: 26,
+      age: 23,
       faction: 'Mairie & Promoteurs',
       archetype: 'Accro aux paris en panique (03h du mat’)',
       itemName: 'Téléphone chiffré de Député',
@@ -88,6 +94,8 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu as trouvé ce téléphone dans un taxi près de la Mairie. Un certain M. Vane menace l’ancien propriétaire par SMS.',
     },
     step2: {
+      castId: 'c005',
+      gender: 'm',
       name: 'Vane',
       age: 48,
       faction: 'Mairie & Promoteurs',
@@ -122,6 +130,8 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Mallette réfrigérée Saint-Luc : une chirurgienne clandestine (Dr. Kour) paiera fort pour le greffon intact.',
     step1: {
+      castId: 'c011',
+      gender: 'm',
       name: 'Driss',
       age: 34,
       faction: 'Clinique Privée Saint-Luc',
@@ -143,10 +153,12 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu as détourné cette mallette de la clinique pour éponger une dette. Tu sais qu’un médecin la cherche.',
     },
     step2: {
+      castId: 'c016',
+      gender: 'f',
       name: 'Dr. Kour',
-      age: 42,
+      age: 41,
       faction: 'Clinique Privée Saint-Luc',
-      archetype: 'Courtier de nuit, froid et pressé',
+      archetype: 'Chirurgienne clandestine, froide et pressée',
       itemName: 'Mallette réfrigérée scellée',
       category: 'Métaux',
       surfaceDesc: 'Carnet de chèques au porteur et badge de bloc opératoire.',
@@ -177,8 +189,10 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Rolex Daytona gravée "J.M." : la sœur du témoin disparu ou les Docks la veulent pour le micro-traceur.',
     step1: {
+      castId: 'c009',
+      gender: 'm',
       name: 'Rico',
-      age: 31,
+      age: 39,
       faction: 'Docks du Nord',
       archetype: 'Fils à papa ruiné, arrogant',
       itemName: 'Rolex Daytona en Or Rose',
@@ -198,10 +212,12 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu as récupéré cette Rolex sur les docks sans comprendre pourquoi un traceur y est collé.',
     },
     step2: {
+      castId: 'c014',
+      gender: 'f',
       name: 'Inès',
       age: 33,
       faction: 'Docks du Nord',
-      archetype: 'Flic ou indic trop propre sur lui',
+      archetype: 'Enquêtrice obstinée, regard d’acier',
       itemName: 'Rolex Daytona en Or Rose',
       category: 'Horlogerie',
       surfaceDesc: 'Dossier photo d’un homme portant exactement cette montre.',
@@ -232,8 +248,10 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Revolver .357 à deux douilles percutées : le Cercle des Jeux paie 5 800 $ pour récupérer l’arme avant les flics.',
     step1: {
+      castId: 'c029',
+      gender: 'm',
       name: 'Milo',
-      age: 29,
+      age: 36,
       faction: 'Cercle des Jeux',
       archetype: 'Accro aux paris en panique (03h du mat’)',
       itemName: 'Revolver .357 de Collection',
@@ -253,10 +271,12 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu sors d’une fusillade derrière le Cercle des Jeux et veux te débarrasser de l’arme.',
     },
     step2: {
+      castId: 'c018',
+      gender: 'f',
       name: 'Olga',
-      age: 44,
+      age: 38,
       faction: 'Cercle des Jeux',
-      archetype: 'Courtier de nuit, froid et pressé',
+      archetype: 'Courtière de nuit, froide et pressée',
       itemName: 'Revolver .357 de Collection',
       category: 'Armement',
       surfaceDesc: 'Valise en cuir contenant des liasses attachées.',
@@ -287,8 +307,10 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Toile roulée au tampon d’assurance : un receleur d’art suisse offre 8 200 $ pour la toile intacte.',
     step1: {
+      castId: 'c023',
+      gender: 'm',
       name: 'Benoît',
-      age: 51,
+      age: 65,
       faction: 'Brigade Financière',
       archetype: 'Cadre sup’ en sueur, costard froissé',
       itemName: 'Toile roulée sans châssis',
@@ -308,10 +330,12 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu as découpé une toile de ta propre collection avant la saisie de tes biens.',
     },
     step2: {
+      castId: 'c008',
+      gender: 'f',
       name: 'Sonia',
-      age: 37,
+      age: 31,
       faction: 'Mairie & Promoteurs',
-      archetype: 'Courtier de nuit, froid et pressé',
+      archetype: 'Courtière d’art privée, élégante et exigeante',
       itemName: 'Toile roulée sans châssis',
       category: 'Art',
       surfaceDesc: 'Tube de transport blindé et certificat vierge.',
@@ -342,8 +366,10 @@ export const STORY_ARCS: StoryArc[] = [
     clueNote:
       'Liasse à numéros suivis : un faussaire du Port échange les billets marqués contre 7 000 $ propres.',
     step1: {
+      castId: 'c004',
+      gender: 'm',
       name: 'Tarik',
-      age: 30,
+      age: 29,
       faction: 'Brigade Financière',
       archetype: 'Accro aux paris en panique (03h du mat’)',
       itemName: 'Liasse de 20 000 € en coupures neuves',
@@ -363,8 +389,10 @@ export const STORY_ARCS: StoryArc[] = [
         'Tu as récupéré cette liasse chaude et tu cherches à t’en débarrasser avant le contrôle.',
     },
     step2: {
+      castId: 'c021',
+      gender: 'm',
       name: 'Marek',
-      age: 54,
+      age: 50,
       faction: 'Docks du Nord',
       archetype: 'Courtier de nuit, froid et pressé',
       itemName: 'Liasse de 20 000 € en coupures neuves',
@@ -405,7 +433,8 @@ export function buildArcStep1Case(
 
   return {
     id: `arc-${arc.id}-1-${Date.now()}`,
-    gender: getGenderFromName(s.name),
+    castId: s.castId,
+    gender: s.gender ?? getGenderFromName(s.name),
     isTrap: false,
     name: s.name,
     age: s.age,
@@ -456,7 +485,8 @@ export function buildArcStep2Case(
 
   return {
     id: `arc-${arc.id}-2-${Date.now()}`,
-    gender: getGenderFromName(s.name),
+    castId: s.castId,
+    gender: s.gender ?? getGenderFromName(s.name),
     isTrap: false,
     name: s.name,
     age: s.age,

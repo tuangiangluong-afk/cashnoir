@@ -620,6 +620,7 @@ export default function App() {
   const [countdown, setCountdown] = useState<number>(getSecondsUntilMidnight);
   const [clientsServedToday, setClientsServedToday] = useState(0);
   const dailyRunRef = useRef<{ runId: string; ticket: string } | null>(null);
+  const lastArcStep2DayRef = useRef<number>(-1);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [showBrief, setShowBrief] = useState<boolean>(false);
 
@@ -1084,9 +1085,11 @@ export default function App() {
       return generateBossCase(day, cityHeat, currentDistrict.multiplier, gameLocale);
     }
     const activeNote = arcNotes.find((n) => !n.resolved);
-    if (activeNote && (isLastClient || Math.random() < 0.55)) {
+    // Étape 2 d'un arc : au maximum UNE fois par jour ingame pour éviter de spammer le joueur
+    if (activeNote && lastArcStep2DayRef.current !== day && (isLastClient || Math.random() < 0.45)) {
       const arc = STORY_ARCS.find((a) => a.id === activeNote.arcId);
       if (arc) {
+        lastArcStep2DayRef.current = day;
         const hasItem = inventory.some((i) => i.arcItemKey === arc.itemKey);
         return buildArcStep2Case(arc, hasItem, currentDistrict.multiplier, gameLocale);
       }
@@ -1109,6 +1112,16 @@ export default function App() {
 
   const nextProceduralClient = () => {
     if (policeCheckIfHot()) return;
+
+    // Si le joueur passe sans livrer la pièce requise à l'étape 2, la piste est morte et ne réapparaît plus
+    if (currentCase.arcStep === 2) {
+      const hasItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
+      if (!hasItem) {
+        setArcNotes((prev) =>
+          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+        );
+      }
+    }
 
     const nextServed = clientsServedToday + 1;
     if (nextServed >= maxClientsPerDay) {
@@ -1928,6 +1941,14 @@ export default function App() {
 
   const passClient = () => {
     if (outcome !== 'active') return;
+    if (currentCase.arcStep === 2) {
+      const hasItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
+      if (!hasItem) {
+        setArcNotes((prev) =>
+          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+        );
+      }
+    }
     setTell('Tu déclines l’offre. Le client remballe sa pièce sans faire d’histoire.');
     setHistory((prev) => [
       ...prev,
@@ -1942,6 +1963,14 @@ export default function App() {
 
   const rejectTrap = () => {
     if (outcome !== 'active') return;
+    if (currentCase.arcStep === 2) {
+      const hasItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
+      if (!hasItem) {
+        setArcNotes((prev) =>
+          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+        );
+      }
+    }
     if (currentCase.isTrap) {
       sound.playDealSuccess();
       const trapBonus = seasonState.level >= 6 ? 500 : 350;
@@ -3745,17 +3774,26 @@ export default function App() {
                           !currentCase.isTrap &&
                           currentCase.arcStep !== 2 &&
                           inventory.length > 0 &&
-                          inventory[inventory.length - 1]?.name === currentCase.item.name && (
-                            <button
-                              type="button"
-                              onClick={() => sellItem(inventory[inventory.length - 1].id, 'fast')}
-                              className="border border-emerald-400/60 bg-emerald-950/60 px-3 py-2 font-mono text-xs font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80"
-                            >
-                              {t.quickSellDirect(
-                                formatMoney(getFastSellPayout(inventory[inventory.length - 1]), gameLocale),
-                              )}
-                            </button>
-                          )}
+                          inventory[inventory.length - 1]?.name === currentCase.item.name && (() => {
+                            const lastItem = inventory[inventory.length - 1];
+                            const payout = getFastSellPayout(lastItem);
+                            const hasBlind = jokerIds.includes('a-l-aveugle');
+                            const trend = lastItem.category ? marketTrends[lastItem.category] ?? 1 : 1;
+                            const hasTrend = trend > 1;
+                            const bonusTags: string[] = [];
+                            if (hasBlind) bonusTags.push('Joker ×1.6');
+                            if (hasTrend) bonusTags.push(`Marché +${Math.round((trend - 1) * 100)}%`);
+                            const tagStr = bonusTags.length > 0 ? ` [${bonusTags.join(' · ')}]` : '';
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => sellItem(lastItem.id, 'fast')}
+                                className="border border-emerald-400/60 bg-emerald-950/60 px-3 py-2 font-mono text-xs font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80"
+                              >
+                                {t.quickSellDirect(formatMoney(payout, gameLocale))}{tagStr}
+                              </button>
+                            );
+                          })()}
                         {(outcome === 'sort_son_arme' ||
                           (outcome === 'deal_accepte' &&
                             !currentCase.isTrap &&

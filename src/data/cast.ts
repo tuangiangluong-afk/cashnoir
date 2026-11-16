@@ -355,19 +355,32 @@ function buildProceduralRoster(): CastCharacter[] {
 
     // c021 à c030 ont chacun leur portrait dédié généré sur mesure !
     if (idx <= 30) {
-      chosenAge = Math.min(maxAge, Math.max(minAge, 28 + ((i * 7) % 25)));
+      const fixedPhysicalAges: Record<number, number> = {
+        21: 50, // Marek
+        22: 47, // Nora
+        23: 65, // Benoît
+        24: 30, // Chloé
+        25: 46, // Vance
+        26: 37, // Zara
+        27: 30, // Tarik
+        28: 27, // Elena
+        29: 36, // Milo
+        30: 42, // Marina
+      };
+      chosenAge = fixedPhysicalAges[idx] ?? 35;
       PORTRAIT_OF[id] = id;
       faceUse[id] = 1;
       faces[gender].push({ id, age: chosenAge });
     } else {
-      const pool = faces[gender].filter((f) => f.age + 4 >= minAge && f.age - 3 <= maxAge);
+      const pool = faces[gender].filter((f) => f.age + 3 >= minAge && f.age - 3 <= maxAge);
       const candidates = pool.length ? pool : faces[gender];
       const leastUsed = Math.min(...candidates.map((f) => faceUse[f.id] ?? 0));
       const ties = candidates.filter((f) => (faceUse[f.id] ?? 0) === leastUsed);
       const face = ties[i % ties.length];
       faceUse[face.id] = (faceUse[face.id] ?? 0) + 1;
       PORTRAIT_OF[id] = face.id;
-      chosenAge = Math.min(maxAge, Math.max(minAge, face.age + ((i * 5) % 6) - 2));
+      // Âge strictement calé sur l'âge physique du portrait (écart max de 1 an)
+      chosenAge = Math.min(maxAge, Math.max(minAge, face.age + ((i % 3) - 1)));
     }
     const age = chosenAge;
     const faction = FACTIONS_CYCLE[i % FACTIONS_CYCLE.length];
