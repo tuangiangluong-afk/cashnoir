@@ -18,6 +18,16 @@ import {
   MicOff,
   Loader2,
   User,
+  MessageSquare,
+  Package,
+  Building2,
+  Trophy,
+  Ellipsis,
+  Shuffle,
+  CircleHelp,
+  BookOpen,
+  UserX,
+  Skull,
 } from 'lucide-react';
 import {
   generateProceduralCase,
@@ -101,6 +111,21 @@ import {
   type LLMConfig,
   type LLMProvider,
 } from './services/llm';
+
+const ActionRow = ({ icon, label, hint, onClick, disabled, tone }: { icon: React.ReactNode; label: string; hint?: string; onClick: () => void; disabled?: boolean; tone?: 'danger' }) => (
+  <button
+    type="button"
+    disabled={disabled}
+    onClick={onClick}
+    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left active:bg-white/10 disabled:opacity-40 ${tone === 'danger' ? 'text-red-300' : 'text-zinc-100'}`}
+  >
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">{icon}</span>
+    <span className="min-w-0 flex-1">
+      <span className="block truncate text-[15px] font-medium">{label}</span>
+      {hint && <span className="block truncate text-xs text-zinc-500">{hint}</span>}
+    </span>
+  </button>
+);
 
 interface BoughtItem {
   id: string;
@@ -793,6 +818,7 @@ export default function App() {
   const [showItemSheet, setShowItemSheet] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showClientSheet, setShowClientSheet] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   // Prix demandé à l'acheteur (-1 = valeur de rue par défaut).
   const [buyerAsk, setBuyerAsk] = useState<number>(-1);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
@@ -2931,6 +2957,93 @@ export default function App() {
     }
   };
 
+  // Actions du comptoir : partagées par les boutons desktop et le menu d'actions mobile.
+  const doLoupe = () => {
+                            if (weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract) return;
+                            if (jokerIds.includes('a-l-aveugle')) {
+                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
+                              return;
+                            }
+                            setInspected(true);
+                            if (jokerIds.includes('radar')) {
+                              setUvScanned(true);
+                            }
+                            setMobileNotebookOpen(true);
+                            sound.playInspect();
+  };
+  const doUv = () => {
+                            if (nightEvent?.disableUv && !currentCase.isDailyContract) return;
+                            if (jokerIds.includes('a-l-aveugle')) {
+                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
+                              return;
+                            }
+                            setUvScanned(true);
+                            setMobileNotebookOpen(true);
+                            sound.playInspect();
+  };
+  const doRadio = () => {
+                            const next = !radioOpen;
+                            setRadioOpen(next);
+                            if (next) {
+                              setMobileNotebookOpen(true);
+                              sound.playInspect();
+                              ambience.crackle();
+                            }
+  };
+  const goCounter = () => {
+                setTab('counter');
+                if (currentCase.isDailyContract && !restoreCounterSession()) {
+                  startNewCase(
+                    generateProceduralCase(
+                      day,
+                      cityHeat,
+                      lastMemory || undefined,
+                      currentDistrict.multiplier,
+                      gameLocale,
+                    ),
+                  );
+                }
+  };
+  const loupeOff = Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract);
+  const uvOff = Boolean(nightEvent?.disableUv && !currentCase.isDailyContract);
+
+  // Répliques rapides (desktop : puces ; mobile : menu d'actions).
+  const quickReplies = (): { key: string; label: string; tone: 'amber' | 'red' | 'plain'; run: () => void }[] => {
+    const out: { key: string; label: string; tone: 'amber' | 'red' | 'plain'; run: () => void }[] = [];
+    const undercut = Math.max(100, Math.round((askedPrice * 0.8) / 50) * 50);
+    const unlockedFaille = history.length >= FLAW_REVEAL_TURNS;
+    const castForChip = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
+    const profile = findProfileForArchetype(castForChip?.profileId ?? currentCase.archetype);
+    if (undercut <= cash && undercut < askedPrice) {
+      out.push({ key: 'c20', label: t.chip20(formatMoney(undercut, gameLocale)), tone: 'amber', run: () => { triggerHaptic(15); sendMessage(t.chip20Msg(formatMoney(undercut, gameLocale)), undercut); } });
+    }
+    const deepCut = Math.max(100, Math.round((askedPrice * 0.65) / 50) * 50);
+    if (deepCut <= cash && deepCut < undercut) {
+      const deepMsg =
+        gameLocale === 'en'
+          ? `Take $${formatMoney(deepCut, gameLocale)} cold cash right now or walk.`
+          : gameLocale === 'es'
+            ? `Toma ${formatMoney(deepCut, gameLocale)} $ en efectivo ahora mismo o lárgate.`
+            : `Prends ${formatMoney(deepCut, gameLocale)} $ en liquide tout de suite ou dégage.`;
+      out.push({ key: 'c35', label: gameLocale === 'en' ? `-35% ($${formatMoney(deepCut, gameLocale)})` : `-35% (${formatMoney(deepCut, gameLocale)} $)`, tone: 'red', run: () => { triggerHaptic(20); sendMessage(deepMsg, deepCut); } });
+    }
+    out.push({ key: 'press', label: t.chipPressure, tone: 'plain', run: () => { triggerHaptic(15); sendMessage(t.chipPressureMsg); } });
+    out.push({
+      key: 'flaw',
+      label: unlockedFaille ? t.chipFlaw : t.chipBluff,
+      tone: 'plain',
+      run: () => {
+        triggerHaptic(15);
+        sendMessage(
+          unlockedFaille
+            ? flawLine(localizeCastText(castForChip ? castForChip.weaknessHint : currentCase.gender === 'f' && profile.femaleWeaknessHint ? profile.femaleWeaknessHint : profile.weaknessHint, gameLocale))
+            : t.chipBluffMsg,
+        );
+      },
+    });
+    return out;
+  };
+
   const itemProp = (
     <CounterItemProp
       name={localizeItemName(currentCase.item.name, gameLocale)}
@@ -3099,7 +3212,7 @@ export default function App() {
     <div
       className={`${
         tab === 'counter' || tab === 'daily' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
-      } bg-[#09090b] text-zinc-100 flex flex-col pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
+      } bg-[#09090b] text-zinc-100 flex flex-col sm:pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
     >
       {/* Top Bar : Responsive iOS/Android & Desktop */}
       <header className="relative z-30 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 bg-[#090a0f]/95 px-2.5 py-1.5 sm:px-6 w-full max-w-full overflow-hidden">
@@ -3209,22 +3322,9 @@ export default function App() {
 
         {/* Droite : Navigation sobre & Contrôles épurés */}
         <div className="contents sm:flex sm:w-auto sm:flex-nowrap sm:items-center sm:justify-end sm:gap-2">
-          <nav className="order-2 max-lg:[@media(max-height:520px)]:hidden flex w-full min-w-0 max-w-full items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto sm:justify-start no-scrollbar sm:order-none sm:w-auto font-mono text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap">
+          <nav className="order-2 max-sm:hidden max-lg:[@media(max-height:520px)]:hidden flex w-full min-w-0 max-w-full items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto sm:justify-start no-scrollbar sm:order-none sm:w-auto font-mono text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap">
             <button
-              onClick={() => {
-                setTab('counter');
-                if (currentCase.isDailyContract && !restoreCounterSession()) {
-                  startNewCase(
-                    generateProceduralCase(
-                      day,
-                      cityHeat,
-                      lastMemory || undefined,
-                      currentDistrict.multiplier,
-                      gameLocale,
-                    ),
-                  );
-                }
-              }}
+              onClick={goCounter}
               className={`px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'counter'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
@@ -4232,7 +4332,7 @@ export default function App() {
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                     </div>
-                    <div className="max-lg:[@media(max-height:520px)]:hidden flex min-w-0 flex-col items-start gap-0 font-mono text-[9.5px] uppercase tracking-wider sm:flex-row sm:items-center sm:gap-1.5 sm:text-[11px]">
+                    <div onClick={() => window.matchMedia('(max-width: 639px)').matches && setShowItemSheet(true)} className="max-lg:[@media(max-height:520px)]:hidden max-sm:cursor-pointer flex min-w-0 flex-col items-start gap-0 font-mono text-[9.5px] uppercase tracking-wider sm:flex-row sm:items-center sm:gap-1.5 sm:text-[11px]">
                       <span className="sm:hidden max-w-full text-zinc-400 truncate">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
@@ -4263,7 +4363,7 @@ export default function App() {
                             : currentCase.special?.kind === 'buyer' ? mny(currentCase.special.offer) : currentCase.special ? '—' : mny(askedPrice)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 lg:hidden">
+                      <div className="flex items-center gap-1 lg:hidden max-sm:hidden">
                         {tab === 'counter' && (
                           <button
                             onClick={rerollClient}
@@ -4310,7 +4410,7 @@ export default function App() {
                     <span className="text-zinc-400">{tt('Rue', 'Street', 'Calle')} ~{mny(currentCase.streetValue)}</span>
                   </div>
                 )}
-                <div className={`${currentCase.special ? 'hidden ' : ''}grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[10px] sm:text-[11px]`}>
+                <div onClick={() => window.matchMedia('(max-width: 639px)').matches && setShowClientSheet(true)} className={`${currentCase.special ? 'hidden ' : ''}max-sm:cursor-pointer grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[10px] sm:text-[11px]`}>
                   {[
                     {
                       label: t.fear,
@@ -4397,7 +4497,7 @@ export default function App() {
 
                 {/* Journal Psychologique interactif (historique des paliers) */}
                 {psychoAudit.length > 1 && (
-                  <div className="border-t border-white/10 pt-1 font-mono text-[9px] sm:text-[10px]">
+                  <div className="border-t border-white/10 pt-1 font-mono text-[9px] max-sm:hidden sm:text-[10px]">
                     <button
                       type="button"
                       onClick={() => setShowPsychoAudit((prev) => !prev)}
@@ -4558,7 +4658,7 @@ export default function App() {
                   currentCase.arcId ||
                   (cityAssets.includes('lookout') && currentCase.isTrap)) && (
                   <div className={`border border-amber-500/30 bg-[#12100b]/95 p-2 font-mono text-[10px] sm:text-[11px] sm:p-2.5 shadow-2xl backdrop-blur-md lg:w-full lg:max-h-none max-lg:absolute max-lg:right-2 max-lg:top-full max-lg:z-40 max-lg:mt-1 ${
-                    mobileNotebookOpen ? 'max-lg:left-2 max-h-[40vh] overflow-y-auto thin-scroll' : 'max-lg:w-auto max-lg:py-1'
+                    mobileNotebookOpen ? 'max-lg:left-2 max-h-[40vh] overflow-y-auto thin-scroll' : 'max-lg:w-auto max-lg:py-1 max-sm:hidden'
                   }`}>
                     <button
                       type="button"
@@ -4908,7 +5008,7 @@ export default function App() {
 
               {/* Objet posé à nu + Sous-titre cinématique côte à côte (zéro chevauchement) */}
               <div className="relative z-20 mx-auto flex w-full max-w-5xl flex-row items-center gap-2 px-3 pb-2 max-lg:min-h-0 max-lg:flex-1 max-lg:items-stretch sm:items-end sm:gap-4 sm:px-6">
-                <div className="w-16 shrink-0 sm:w-auto lg:hidden">{itemProp}</div>
+                <div className="w-16 shrink-0 max-sm:hidden sm:w-auto lg:hidden">{itemProp}</div>
 
                 {/* Sous-titre cinématique unique + toggle Historique */}
                 <div className="min-w-0 flex-1 max-lg:flex max-lg:min-h-0 max-lg:flex-col max-lg:justify-end">
@@ -5078,7 +5178,7 @@ export default function App() {
             </div>
 
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
-            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
+            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2 max-sm:pb-2 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
                 {outcome !== 'active' && (sagaNote || favor) && (
                   <div className="mb-2 space-y-1.5 border border-amber-500/30 bg-amber-500/5 p-2 font-mono text-[11px] leading-snug text-amber-100">
@@ -5353,21 +5453,9 @@ export default function App() {
                   <div className="space-y-1.5 sm:space-y-2.5">
                     {/* Ligne 1 : Outils physiques à gauche + Compteur mécanique de liasses à droite */}
                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:gap-3">
-                      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 max-sm:order-1 max-lg:[@media(max-height:520px)]:hidden">
+                      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 max-sm:hidden max-lg:[@media(max-height:520px)]:hidden">
                         <button
-                          onClick={() => {
-                            if (weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract) return;
-                            if (jokerIds.includes('a-l-aveugle')) {
-                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
-                              return;
-                            }
-                            setInspected(true);
-                            if (jokerIds.includes('radar')) {
-                              setUvScanned(true);
-                            }
-                            setMobileNotebookOpen(true);
-                            sound.playInspect();
-                          }}
+                          onClick={doLoupe}
                           disabled={Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract)}
                           title={
                             weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract
@@ -5385,16 +5473,7 @@ export default function App() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            if (nightEvent?.disableUv && !currentCase.isDailyContract) return;
-                            if (jokerIds.includes('a-l-aveugle')) {
-                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
-                              return;
-                            }
-                            setUvScanned(true);
-                            setMobileNotebookOpen(true);
-                            sound.playInspect();
-                          }}
+                          onClick={doUv}
                           disabled={Boolean(nightEvent?.disableUv && !currentCase.isDailyContract)}
                           title={
                             nightEvent?.disableUv && !currentCase.isDailyContract
@@ -5412,15 +5491,7 @@ export default function App() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            const next = !radioOpen;
-                            setRadioOpen(next);
-                            if (next) {
-                              setMobileNotebookOpen(true);
-                              sound.playInspect();
-                              ambience.crackle();
-                            }
-                          }}
+                          onClick={doRadio}
                           className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all ${
                             radioOpen
                               ? 'border-red-500 bg-red-950/50 text-red-300'
@@ -5433,7 +5504,7 @@ export default function App() {
                       </div>
 
                       {/* Compteur mécanique de billets + Boutons */}
-                      <div className="h-0 basis-full max-sm:order-4 sm:hidden max-lg:[@media(max-height:520px)]:hidden" aria-hidden />
+                      
                       <div className="max-sm:contents flex flex-wrap items-center gap-2">
                         <div className="flex items-center border border-amber-500/40 bg-black/80 max-sm:order-4">
                           <button
@@ -5524,7 +5595,7 @@ export default function App() {
                           onClick={passClient}
                           disabled={loading}
                           title={tt('Décliner poliment sans pénalité de Heat', 'Decline politely with no Heat penalty', 'Rechazar con educación sin penalización de Heat')}
-                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:order-2 max-sm:ml-auto border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[10px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[10px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
                         >
                           {t.pass}
                         </button>
@@ -5534,7 +5605,7 @@ export default function App() {
                             onClick={phantomBuyout}
                             disabled={loading}
                             title={tt('Revend jusqu’à 4 pièces du coffre à ×1,2 — plafond 15 000 $', 'Resells up to 4 vault pieces at ×1.2 — $15,000 cap', 'Revende hasta 4 piezas de la caja fuerte a ×1,2 — tope de 15 000 $')}
-                            className="max-sm:order-3 border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
+                            className="max-sm:hidden border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
                           >
                             {t.phantomBuyout(Math.min(PHANTOM_MAX_ITEMS, inventory.length))}
                           </button>
@@ -5544,7 +5615,7 @@ export default function App() {
                           onClick={rejectTrap}
                           disabled={loading}
                           title={tt('Le démasquer : un infiltré décampe, un client réglo s\'en va', 'Expose him: an undercover agent bolts, an honest client walks away', 'Desenmascararlo: un infiltrado huye, un cliente legal se va')}
-                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:order-3 border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
                         >
                           {t.expose}
                         </button>
@@ -5553,105 +5624,42 @@ export default function App() {
 
                     {/* Ligne 2 : 3 relances rapides tactiques + Saisie directe au clavier */}
                     <div className="flex flex-col gap-1.5 w-full">
-                      {(() => {
-                        const undercut = Math.max(100, Math.round((askedPrice * 0.8) / 50) * 50);
-                        const unlockedFaille = history.length >= FLAW_REVEAL_TURNS;
-                        const castForChip = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
-                        const profile = findProfileForArchetype(castForChip?.profileId ?? currentCase.archetype);
-                        return (
-                          <div className="max-lg:[@media(max-height:520px)]:hidden grid w-full grid-cols-2 gap-1.5 py-0.5 sm:flex sm:flex-wrap sm:items-center [&>*]:whitespace-normal [&>*]:text-left sm:[&>*]:whitespace-nowrap">
-                            {undercut <= cash && undercut < askedPrice && (
-                              <button
-                                type="button"
-                                disabled={loading}
-                                onClick={() => {
-                                  triggerHaptic(15);
-                                  sendMessage(
-                                    t.chip20Msg(formatMoney(undercut, gameLocale)),
-                                    undercut,
-                                  );
-                                }}
-                                className="border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] text-amber-200 hover:bg-amber-500/25 active:scale-95 transition-transform disabled:opacity-40"
-                              >
-                                {t.chip20(formatMoney(undercut, gameLocale))}
-                              </button>
-                            )}
-                            {(() => {
-                              const deepCut = Math.max(100, Math.round((askedPrice * 0.65) / 50) * 50);
-                              if (deepCut <= cash && deepCut < undercut) {
-                                const deepMsg =
-                                  gameLocale === 'en'
-                                    ? `Take $${formatMoney(deepCut, gameLocale)} cold cash right now or walk.`
-                                    : gameLocale === 'es'
-                                      ? `Toma ${formatMoney(deepCut, gameLocale)} $ en efectivo ahora mismo o lárgate.`
-                                      : `Prends ${formatMoney(deepCut, gameLocale)} $ en liquide tout de suite ou dégage.`;
-                                const deepLabel =
-                                  gameLocale === 'en'
-                                    ? `-35% ($${formatMoney(deepCut, gameLocale)})`
-                                    : `-35% (${formatMoney(deepCut, gameLocale)} $)`;
-                                return (
-                                  <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => {
-                                      triggerHaptic(20);
-                                      sendMessage(deepMsg, deepCut);
-                                    }}
-                                    className="border border-red-500/30 bg-red-500/10 px-2 py-1 font-mono text-[10px] text-red-300 hover:bg-red-500/20 active:scale-95 transition-transform disabled:opacity-40"
-                                  >
-                                    {deepLabel}
-                                  </button>
-                                );
-                              }
-                              return null;
-                            })()}
-                            <button
-                              type="button"
-                              disabled={loading}
-                              onClick={() => {
-                                triggerHaptic(15);
-                                sendMessage(t.chipPressureMsg);
-                              }}
-                              className="border border-white/15 bg-black/50 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:border-white/35 hover:text-white active:scale-95 transition-transform disabled:opacity-40"
-                            >
-                              {t.chipPressure}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={loading}
-                              onClick={() => {
-                                triggerHaptic(15);
-                                sendMessage(
-                                  unlockedFaille
-                                    ? flawLine(
-                                        localizeCastText(
-                                          castForChip
-                                            ? castForChip.weaknessHint
-                                            : currentCase.gender === 'f' && profile.femaleWeaknessHint
-                                              ? profile.femaleWeaknessHint
-                                              : profile.weaknessHint,
-                                          gameLocale,
-                                        ),
-                                      )
-                                    : t.chipBluffMsg,
-                                );
-                              }}
-                              className="border border-white/15 bg-black/50 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/50 hover:text-amber-200 active:scale-95 transition-transform disabled:opacity-40"
-                            >
-                              {unlockedFaille ? t.chipFlaw : t.chipBluff}
-                            </button>
-                          </div>
-                        );
-                      })()}
+                      <div className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden grid w-full grid-cols-2 gap-1.5 py-0.5 sm:flex sm:flex-wrap sm:items-center [&>*]:whitespace-normal [&>*]:text-left sm:[&>*]:whitespace-nowrap">
+                        {quickReplies().map((q) => (
+                          <button
+                            key={q.key}
+                            type="button"
+                            disabled={loading}
+                            onClick={q.run}
+                            className={`border px-2.5 py-1 font-mono text-[10px] active:scale-95 transition-transform disabled:opacity-40 ${
+                              q.tone === 'amber'
+                                ? 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/25'
+                                : q.tone === 'red'
+                                  ? 'border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20'
+                                  : 'border-white/15 bg-black/50 text-zinc-300 hover:border-white/35 hover:text-white'
+                            }`}
+                          >
+                            {q.label}
+                          </button>
+                        ))}
+                      </div>
 
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
                           sendMessage();
                         }}
-                        className="flex w-full items-center gap-2 border border-white/15 bg-black/75 px-3 py-1.5"
+                        className="flex w-full items-center gap-2 border border-white/15 bg-black/75 px-3 py-1.5 max-sm:rounded-full max-sm:px-1.5 max-sm:py-1"
                       >
-                        <span className="font-mono text-sm font-bold text-amber-400">&gt;</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowActions(true)}
+                          aria-label={tt('Actions', 'Actions', 'Acciones')}
+                          className="hidden shrink-0 items-center justify-center rounded-full bg-white/10 text-zinc-200 active:scale-95 max-sm:flex max-sm:h-9 max-sm:w-9"
+                        >
+                          <Ellipsis className="h-5 w-5" />
+                        </button>
+                        <span className="font-mono text-sm font-bold text-amber-400 max-sm:hidden">&gt;</span>
                         <input
                           type="text"
                           value={input}
@@ -5669,7 +5677,7 @@ export default function App() {
                           onClick={toggleMic}
                           disabled={loading}
                           title="Dicter au micro"
-                          className={`p-1 ${listening ? 'animate-pulse text-red-400' : 'text-zinc-400 hover:text-white'}`}
+                          className={`p-1 max-sm:hidden ${listening ? 'animate-pulse text-red-400' : 'text-zinc-400 hover:text-white'}`}
                         >
                           {listening ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                         </button>
@@ -5677,7 +5685,7 @@ export default function App() {
                           type="submit"
                           disabled={loading || !input.trim()}
                           title="Envoyer"
-                          className="p-1 text-amber-400 hover:text-amber-300 disabled:opacity-40"
+                          className="p-1 text-amber-400 hover:text-amber-300 disabled:opacity-40 max-sm:flex max-sm:h-9 max-sm:w-9 max-sm:items-center max-sm:justify-center max-sm:rounded-full max-sm:bg-amber-400 max-sm:text-zinc-950 max-sm:disabled:bg-white/10 max-sm:disabled:text-zinc-500"
                         >
                           {loading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -5700,6 +5708,75 @@ export default function App() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* Menu d'actions mobile (feuille du bas façon iOS) : tout ce qui n'est pas « parler » ou « payer » */}
+      {showActions && (
+        <div className="fixed inset-0 z-50 sm:hidden" onClick={() => setShowActions(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-[#14151b] px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/25" />
+            {(() => {
+              const close = (fn: () => void) => () => {
+                setShowActions(false);
+                fn();
+              };
+              const replies = quickReplies();
+              return (
+                <>
+                  <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{tt('Répliques rapides', 'Quick replies', 'Respuestas rápidas')}</p>
+                  <div className="grid grid-cols-2 gap-2 px-2">
+                    {replies.map((q) => (
+                      <button
+                        key={q.key}
+                        type="button"
+                        disabled={loading}
+                        onClick={close(q.run)}
+                        className={`rounded-2xl px-3 py-3 text-left text-[14px] leading-tight active:scale-[0.98] disabled:opacity-40 ${
+                          q.tone === 'amber' ? 'bg-amber-500/15 text-amber-200' : q.tone === 'red' ? 'bg-red-500/15 text-red-300' : 'bg-white/10 text-zinc-100'
+                        }`}
+                      >
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{tt('Examiner', 'Inspect', 'Examinar')}</p>
+                  <div className="grid grid-cols-4 gap-2 px-2">
+                    {[
+                      { key: 'loupe', icon: <Search className="h-5 w-5" />, label: loupeOff ? t.loupeOff : t.loupe, on: inspected, off: loupeOff, cls: 'text-amber-300', run: doLoupe },
+                      { key: 'uv', icon: <Flashlight className="h-5 w-5" />, label: uvOff ? t.uvOff : t.uv, on: uvScanned, off: uvOff, cls: 'text-sky-300', run: doUv },
+                      { key: 'radio', icon: <Radio className="h-5 w-5" />, label: t.radio, on: radioOpen, off: false, cls: 'text-red-300', run: doRadio },
+                      { key: 'notes', icon: <BookOpen className="h-5 w-5" />, label: tt('Carnet', 'Notes', 'Notas'), on: false, off: false, cls: 'text-amber-100', run: () => setMobileNotebookOpen(true) },
+                    ].map((x) => (
+                      <button
+                        key={x.key}
+                        type="button"
+                        disabled={x.off}
+                        onClick={close(x.run)}
+                        className={`flex flex-col items-center gap-1 rounded-2xl py-3 text-[12px] active:scale-[0.97] disabled:opacity-40 ${x.on ? 'bg-white/20' : 'bg-white/10'} ${x.cls}`}
+                      >
+                        {x.icon}
+                        <span className="max-w-full truncate px-1 text-zinc-100">{x.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{tt('Ce client', 'This client', 'Este cliente')}</p>
+                  <ActionRow icon={<UserX className="h-4 w-4" />} label={t.pass} hint={tt('Décliner poliment, sans pénalité de Heat', 'Decline politely, no Heat penalty', 'Rechazar con educación, sin penalización de Heat')} disabled={loading} onClick={close(passClient)} />
+                  <ActionRow icon={<Skull className="h-4 w-4" />} tone="danger" label={t.expose} hint={tt('Le démasquer : un infiltré décampe, un client réglo s’en va', 'Expose him: an agent bolts, an honest client walks', 'Desenmascararlo: un infiltrado huye, un cliente honesto se va')} disabled={loading} onClick={close(rejectTrap)} />
+                  {currentCase.bossKind === 'phantom' && !phantomDone && inventory.length > 0 && (
+                    <ActionRow icon={<Package className="h-4 w-4" />} label={t.phantomBuyout(Math.min(PHANTOM_MAX_ITEMS, inventory.length))} disabled={loading} onClick={close(phantomBuyout)} />
+                  )}
+                  <ActionRow icon={<Shuffle className="h-4 w-4" />} label={tt('Client suivant', 'Next client', 'Siguiente cliente')} hint={`${rerollsLeft} ${tt('restants', 'left', 'restantes')}`} disabled={rerollsLeft <= 0 || tab !== 'counter'} onClick={close(rerollClient)} />
+                  <ActionRow icon={<User className="h-4 w-4" />} label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')} hint={tt('Tempérament, historique des jauges', 'Temperament, gauge history', 'Temperamento, historial de medidores')} onClick={close(() => setShowClientSheet(true))} />
+                  <ActionRow icon={<CircleHelp className="h-4 w-4" />} label={tt('Comment jouer', 'How to play', 'Cómo jugar')} onClick={close(() => setShowHelp(true))} />
+                </>
+              );
+            })()}
+          </div>
+        </div>
       )}
 
       {/* Aide : règles, jauges et atouts actifs */}
@@ -6248,6 +6325,35 @@ export default function App() {
           </div>
         );
       })()}
+
+      {/* Barre d'onglets mobile (façon iOS) : le comptoir reste plein écran, la navigation est à portée de pouce */}
+      <nav className="sticky bottom-0 z-40 flex shrink-0 border-t border-white/10 bg-[#0b0c11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
+        {([
+          { id: 'counter', icon: MessageSquare, label: tt('Comptoir', 'Counter', 'Mostrador'), badge: `${Math.min(clientsServedToday + 1, maxClientsPerDay)}/${maxClientsPerDay}`, go: goCounter },
+          { id: 'night', icon: Package, label: tt('Coffre', 'Vault', 'Caja'), badge: inventory.length > 0 ? String(inventory.length) : '', go: () => setTab('night') },
+          { id: 'daily', icon: Clock, label: formatCountdown(countdown, true), badge: '', go: () => openDailyContract() },
+          { id: 'shop', icon: Building2, label: t.tabEmpire, badge: '', go: () => setTab('shop') },
+          { id: 'pantheon', icon: Trophy, label: t.tabPantheon, badge: '', go: () => setTab('pantheon') },
+        ] as const).map((it) => {
+          const Icon = it.icon;
+          const active = tab === it.id;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              onClick={() => {
+                triggerHaptic(10);
+                it.go();
+              }}
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 active:bg-white/5 ${active ? 'text-amber-300' : 'text-zinc-500'}`}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="max-w-full truncate px-0.5 text-[10px] font-medium">{it.label}</span>
+              {it.badge && <span className="absolute left-[calc(50%+8px)] top-0.5 rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-4 text-zinc-950">{it.badge}</span>}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
