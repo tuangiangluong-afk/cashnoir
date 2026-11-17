@@ -41,6 +41,7 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
+import { chapterStart, checkpointCash } from './data/checkpoints';
 import { evaluatePsychoTriggers, findProfileForArchetype, temperamentOf } from './data/psychology';
 import { getNightEvent, localizeNightEvent } from './data/events';
 import { drawRandomJokers, JOKER_POOL, type SyndicateJoker } from './data/jokers';
@@ -1765,6 +1766,33 @@ export default function App() {
     startNewCase(generateProceduralCase(1, 15, undefined, 1, gameLocale));
   };
 
+  // Reprise au dernier palier atteint : mêmes remises à zéro qu'un nouveau départ, mais au jour du chapitre validé.
+  const restartFromCheckpoint = () => {
+    const cp = chapterStart(bestDay);
+    setDay(cp);
+    setCash(checkpointCash(cp, ascMod?.rentMult ?? 1));
+    setDebt(0);
+    setGraceUsed(false);
+    setTotalProfit(0);
+    setCityHeat(15);
+    setInventory([]);
+    setUpgrades({ uvLamp: false, armoredDoor: false, gpsJammer: false });
+    setLastMemory('');
+    setJokerIds([]);
+    setJokerDraft(null);
+    setClientsServedToday(0);
+    setAuctionsToday(0);
+    setSoldCategories({});
+    setRerollsLeft(baseRerolls);
+    setRaidNote(null);
+    setArcNotes([]);
+    setVengeance([]);
+    setMaxDaySurvived((prev) => Math.max(prev, cp));
+    setGameOverReason(null);
+    setTab('counter');
+    startNewCase(generateProceduralCase(cp, 15, undefined, currentDistrict.multiplier, gameLocale));
+  };
+
   const saveConfig = () => {
     sessionStorage.setItem('fence_provider', provider);
     sessionStorage.removeItem('fence_api_key');
@@ -1786,10 +1814,15 @@ export default function App() {
     try {
       let inferredOffer = explicitOffer;
       if (inferredOffer === undefined) {
-        const match = text.match(/(?:^|\s)(\d{3,6}|\d{1,2}\s\d{3})(?:\s*\$|\s|$|[.,!?])/);
+        // Les montants cités ne sont pas des offres : « liasse de 20 000 € » (nom de l'objet) ou un montant en euros.
+        const itemNums = new Set((currentCase.item.name.match(/\d[\d\s.,]*\d|\d/g) ?? []).map((n) => n.replace(/\D/g, '')));
+        const scan = text.replace(/\d[\d\s]*\s?(?:€|euros?|eur)(?![a-z])/gi, ' ');
+        const match = scan.match(/(?:^|\s)(\d{3,6}|\d{1,2}\s\d{3})(?:\s*\$|\s|$|[.,!?])/);
         if (match?.[1]) {
           const parsedNum = Number(match[1].replace(/\s+/g, ''));
-          if (Number.isFinite(parsedNum) && parsedNum >= 100) {
+          if (itemNums.has(String(parsedNum))) {
+            // nombre qui appartient au nom de l'objet : pas une offre
+          } else if (Number.isFinite(parsedNum) && parsedNum >= 100) {
             if (parsedNum <= cash) {
               inferredOffer = parsedNum;
             } else {
@@ -1803,7 +1836,7 @@ export default function App() {
             }
           }
         } else if (
-          /^(?:ok|d'accord|dac|vendu|deal|march[eé]\s*conclu|tope\s*l[aà]|[cç]a\s*marche|je\s*(?:te\s*le\s*)?prends)[.!\s]*$/i.test(
+          /^(?:(?:ok|okay|oui|d'accord|dac|vendu|deal|march[eé]\s*conclu|tope\s*l[aà]|topons\s*l[aà]|[cç]a\s*marche|c'est\s*bon|accept[eé]e?|je\s*(?:te\s*le\s*)?prends|yes|sure|done|agreed|trato|vale|hecho|de\s*acuerdo|acepto)[\s,.!;:]*)+$/i.test(
             text,
           ) &&
           askedPrice <= cash
@@ -1811,6 +1844,8 @@ export default function App() {
           inferredOffer = askedPrice;
         }
       }
+      // Jamais d'offre au-dessus du prix demandé : on paierait plus cher que nécessaire.
+      if (inferredOffer !== undefined && inferredOffer > askedPrice) inferredOffer = askedPrice;
       const playerTurnsSoFar = history.filter((h) => h.role === 'player').length;
       const repeated = history.some((h) => h.role === 'player' && h.content.trim().toLowerCase() === text.toLowerCase());
       let psycho: ReturnType<typeof evaluatePsychoTriggers>;
@@ -2741,17 +2776,45 @@ export default function App() {
             <div className="text-amber-400">
               {t.gameOverSwiss(formatMoney(swissBank, gameLocale), cityAssets.length)}
             </div>
-            <div className={day >= maxDaySurvived ? 'text-emerald-300' : 'text-zinc-400'}>
-              {day >= maxDaySurvived
+            <div className={day >= bestDay ? 'text-emerald-300' : 'text-zinc-400'}>
+              {day >= bestDay
                 ? tt(`Nouveau record : jour ${day}.`, `New record: day ${day}.`, `Nuevo récord: día ${day}.`)
                 : tt(`Ton record : jour ${maxDaySurvived}. Tu peux faire mieux.`, `Your record: day ${maxDaySurvived}. You can beat it.`, `Tu récord: día ${maxDaySurvived}. Puedes superarlo.`)}
             </div>
+            {!hasPass && (
+              <button type="button" onClick={() => void buyPass()} className="w-full border border-amber-500/50 bg-amber-500/10 px-3 py-2 font-mono text-[11px] uppercase text-amber-300 hover:bg-amber-500/20">
+                {tt('Pass Syndicat : IA sans limite & classement mondial →', 'Syndicate Pass: unlimited AI & world leaderboard →', 'Pase del Sindicato: IA sin límite y ranking mundial →')}
+              </button>
+            )}
             {legacyBonus > 0 && (
               <div className="text-emerald-300">
                 {tt(`Bonus de départ de ta prochaine partie : +${mny(legacyBonus)} (grâce à ton record).`, `Starting bonus for your next run: +${mny(legacyBonus)} (thanks to your record).`, `Bonificación de inicio de tu próxima partida: +${mny(legacyBonus)} (por tu récord).`)}
               </div>
             )}
           </div>
+          {chapterStart(bestDay) > 1 && (
+            <div className="space-y-1.5">
+              <button
+                onClick={restartFromCheckpoint}
+                className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold py-2.5 rounded-md text-sm"
+              >
+                {tt(
+                  `Reprendre au jour ${chapterStart(bestDay)} (${mny(
+                    checkpointCash(chapterStart(bestDay), ascMod?.rentMult ?? 1),
+                  )} en caisse)`,
+                  `Resume at day ${chapterStart(bestDay)} (${mny(
+                    checkpointCash(chapterStart(bestDay), ascMod?.rentMult ?? 1),
+                  )} cash)`,
+                  `Reanudar en el día ${chapterStart(bestDay)} (${mny(
+                    checkpointCash(chapterStart(bestDay), ascMod?.rentMult ?? 1),
+                  )} en caja)`,
+                )}
+              </button>
+              <p className="text-[11px] leading-snug text-zinc-500">
+                {tt('Chapitres de 5 jours : ceux que tu as validés restent verrouillés, tu ne repars jamais plus bas. Coffre vide, atouts remis à zéro.', 'Chapters of 5 days: the ones you cleared stay locked, you never restart lower. Vault empty, jokers reset.', 'Capítulos de 5 días: los que superaste quedan bloqueados, nunca reinicias más abajo. Caja vacía, comodines reiniciados.')}
+              </p>
+            </div>
+          )}
           {swissBank >= reopenCostSwiss && (
             <button
               onClick={reopenFromSwiss}
@@ -3205,6 +3268,15 @@ export default function App() {
                       ? tr(`Liquidités insuffisantes en caisse (${money(cash)} dispo). Vends une pièce ou puise dans le compte suisse.`, `Insufficient vault cash (${money(cash)} available). Liquidate a piece or tap Swiss funds.`, `Efectivo insuficiente (${money(cash)} disponible). Vende una pieza o retira de la cuenta suiza.`)
                       : tr(`Reste net en caisse après paiement : ${money(cash - dailyRent)}`, `Net remaining in cash after payment: ${money(cash - dailyRent)}`, `Restante neto en caja tras el pago: ${money(cash - dailyRent)}`)}
                   </p>
+                  {cityHeat >= 75 && (
+                    <p className="rounded border border-red-500/40 bg-red-950/40 px-2 py-1.5 text-[11px] leading-snug text-red-300">
+                      {tr(
+                        `Heat ${cityHeat} % : à 80 %, descente de police à la fin de la nuit. Tu perdrais ${inventory.length} pièce(s)${jokerIds.includes('double-fond') ? ' (2 sauvées par ton double-fond)' : ''} et 30 % de ta caisse. Nettoie tes pièces ou vends-les pour faire baisser le Heat.`,
+                        `Heat ${cityHeat}%: at 80%, a police raid hits at the end of the night. You would lose ${inventory.length} piece(s)${jokerIds.includes('double-fond') ? ' (2 saved by your false bottom)' : ''} and 30% of your cash. Clean or sell your pieces to lower the Heat.`,
+                        `Heat ${cityHeat} %: al 80 %, redada policial al final de la noche. Perderías ${inventory.length} pieza(s)${jokerIds.includes('double-fond') ? ' (2 salvadas por tu doble fondo)' : ''} y el 30 % de tu caja. Limpia o vende tus piezas para bajar el Heat.`,
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
@@ -4054,7 +4126,7 @@ export default function App() {
 
                     {showPsychoAudit && (
                       <div className="mt-1 max-h-28 sm:max-h-36 overflow-y-auto space-y-1 rounded bg-black/90 p-2 border border-white/10 text-[9px] no-scrollbar">
-                        {psychoAudit.slice(1).map((entry) => (
+                        {psychoAudit.slice(1).reverse().map((entry) => (
                           <div
                             key={entry.id}
                             className="flex flex-col gap-0.5 border-b border-white/5 pb-1 last:border-b-0"
@@ -5363,7 +5435,7 @@ export default function App() {
               {psychoAudit.length > 1 && (
                 <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-[11px]">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Historique des jauges', 'Gauge history', 'Historial de medidores')}</div>
-                  {psychoAudit.slice(1).map((entry) => (
+                  {psychoAudit.slice(1).reverse().map((entry) => (
                     <div key={entry.id} className="border-b border-white/5 pb-1 text-zinc-300">
                       <div className="flex justify-between gap-2">
                         <span className="min-w-0 truncate font-semibold text-amber-200/90">#{entry.turn} · {hitLoc(entry.action)}</span>

@@ -345,6 +345,8 @@ function buildProceduralRoster(): CastCharacter[] {
     faces[c.gender].push({ id: c.id, age: c.age });
     faceUse[c.id] = 1;
   }
+  // Les visages des boss (c003, c005, c013) ne sont jamais prêtés à un autre personnage tant qu'un autre visage convient.
+  for (const bossFace of ['c003', 'c005', 'c013']) faceUse[bossFace] = 99;
   const jobAgeRange = (job: string): [number, number] => {
     if (/^fille /i.test(job)) return [22, 30];
     if (/pilote|chimiste|avocat|journaliste|restaurat|archiviste|expert|attachée|négociante|biolog|traduct|galér/i.test(job)) return [30, 65];

@@ -795,7 +795,7 @@ export function generateDailyContract(
   locale: Locale = 'fr',
 ): ProceduralCase {
   const seed = hashString(`THE-FENCE-DAILY-${dateStr}`);
-  return buildCase(mulberry32(seed), {
+  const base = buildCase(mulberry32(seed), {
     day: 1,
     cityHeat: 45,
     isDaily: true,
@@ -803,6 +803,22 @@ export function generateDailyContract(
     priceOverride,
     locale,
   });
+  // Identité cohérente : même genre, visage dont l'âge colle à l'âge affiché. Les prix et la séquence
+  // aléatoire (parité serveur) ne changent pas : on ne remplace que nom, visage et âge, sans rand().
+  const sameGender = CAST_ROSTER.filter((c) => c.gender === base.gender && !['c003', 'c005', 'c013'].includes(c.id));
+  const byAge = [...sameGender].sort((a, b) => Math.abs(a.age - base.age) - Math.abs(b.age - base.age));
+  const close = byAge.filter((c) => Math.abs(c.age - base.age) <= Math.abs(byAge[0].age - base.age) + 1);
+  const cast = close[seed % close.length] ?? byAge[0];
+  if (!cast) return base;
+  const swap = (t: string) => t.split(base.name).join(cast.fullName).split(`${base.age} ans`).join(`${cast.age} ans`);
+  return {
+    ...base,
+    castId: cast.id,
+    name: cast.fullName,
+    age: cast.age,
+    openingLine: swap(base.openingLine),
+    systemPrompt: swap(base.systemPrompt),
+  };
 }
 
 export function formatItemInSpeech(itemName: string, locale: Locale = 'fr'): string {

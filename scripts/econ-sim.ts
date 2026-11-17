@@ -6,7 +6,9 @@ import { generateProceduralCase, setPlayerCashHint } from '../src/data/generator
 import { computeDynamicFloor } from '../src/services/llm';
 
 const RUNS = Number(process.env.RUNS || 300);
-const DAYS = 40;
+const START_DAY = Number(process.env.START_DAY || 1); // reprise à un palier : jour et caisse de départ
+const START_CASH = Number(process.env.START_CASH || 2500);
+const DAYS = Number(process.env.HORIZON || 40);
 const num = (k: string, d: number) => (process.env[k] ? Number(process.env[k]) : d);
 const FAST = num('FAST', 0.8); // revente rapide : part de la valeur de rue
 const AUC_CLEAN = num('AUC_CLEAN', 1.2);
@@ -30,11 +32,11 @@ const strategies: Strategy[] = [
 const median = (a: number[]) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 
 function play(s: Strategy) {
-  let cash = 2500;
+  let cash = START_CASH;
   let debt = 0;
   let graceUsed = false;
   const history: number[] = [];
-  for (let day = 1; day <= DAYS; day++) {
+  for (let day = START_DAY; day < START_DAY + DAYS; day++) {
     const bought: { street: number; paid: number }[] = [];
     for (let k = 0; k < 3; k++) {
       setPlayerCashHint(cash);
@@ -73,7 +75,7 @@ function play(s: Strategy) {
   return { diedDay: null as number | null, cash, history };
 }
 
-console.log(`Monte-Carlo : ${RUNS} parties × ${DAYS} jours par style, départ 2 500 $\n`);
+console.log(`Monte-Carlo : ${RUNS} parties × ${DAYS} jours par style, départ jour ${START_DAY}, ${START_CASH} $\n`);
 console.log('style'.padEnd(52) + ' | survie 40 j | jour de mort (médiane) | cash médian j10 | j20 | j40');
 for (const s of strategies) {
   const runs = Array.from({ length: RUNS }, () => play(s));

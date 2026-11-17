@@ -4,13 +4,14 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseNPCJson, computeDynamicFloor } from '../src/services/llm';
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
+import { chapterStart, checkpointCash } from '../src/data/checkpoints';
 import { isInjection, evaluatePsychoTriggers } from '../src/data/psychology';
 import { localizeCastText } from '../src/data/castI18n';
 import { localizeArchetype, localizeItemName, localizeFaction } from '../src/data/noirLocalization';
 import { localizeItemText } from '../src/data/itemsI18n';
 import { CAST_ROSTER, PORTRAIT_OF } from '../src/data/cast';
 import { checkSecret, secretContent, rollSecretId, secretAnswer, secretReward } from '../src/data/secrets';
-import { generateProceduralCase, setPlayerCashHint } from '../src/data/generator';
+import { generateProceduralCase, generateDailyContract, setPlayerCashHint } from '../src/data/generator';
 import { SEASON_EPISODES, episodesUnlocked, daysUntilEpisode } from '../src/data/seasons';
 import { COLLECTIONS_DATA } from '../src/data/codex';
 import { localizeSeasonEpisode } from '../src/data/noirLocalization';
@@ -263,6 +264,33 @@ for (const msg of [
   const femFr = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'Bonjour' }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, locale: 'fr', gender: 'f' }));
   const femEn = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'Hello' }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, locale: 'en', gender: 'f' }));
   check('vendeur scripté : didascalie genrée au féminin (FR/EN)', femFr.indice_comportemental.startsWith('Elle ') && femEn.indice_comportemental.startsWith('She '), `${femFr.indice_comportemental} | ${femEn.indice_comportemental}`);
+}
+
+// Contrat quotidien : visage / âge / nom cohérents, sans casser la séquence aléatoire (mêmes prix qu'avant).
+{
+  let bad = 0;
+  for (let d = 1; d <= 60; d++) {
+    const date = `2026-03-${String((d % 28) + 1).padStart(2, '0')}-x${d}`;
+    const c = generateDailyContract(date, undefined, 'fr');
+    const cast = CAST_ROSTER.find((x) => x.id === c.castId);
+    if (!cast || cast.gender !== c.gender || Math.abs(cast.age - c.age) > 3 || ['c003', 'c005', 'c013'].includes(cast.id)) bad += 1;
+  }
+  check('contrat quotidien : visage cohérent avec le genre et l’âge, jamais celui d’un boss', bad === 0, `incohérences=${bad}/60`);
+  const g = { peur: 30, colere: 10, mefiance: 40 };
+  const r = parseNPCJson(JSON.stringify({ dialogue: 'ok', indice_comportemental: 't', jauges: g, prix_actuel_demande: 1300, action_speciale: 'aucune' }), g, 1300, 2000, 600, 1500, 'fr', 'm');
+  check('une offre au-dessus du prix demandé est payée au prix demandé', r.prix_actuel_demande <= 1300, String(r.prix_actuel_demande));
+}
+
+// Paliers de redémarrage : chapitres de 5 jours, jamais plus bas que le dernier validé.
+{
+  check('palier : avant le jour 6, on repart du jour 1', chapterStart(0) === 1 && chapterStart(5) === 1);
+  check('palier : jour 6 à 10 -> reprise au jour 6', chapterStart(6) === 6 && chapterStart(10) === 6);
+  check('palier : jour 11 -> reprise au jour 11, jour 31 -> 31', chapterStart(11) === 11 && chapterStart(31) === 31);
+  check('palier : caisse = premier loyer du chapitre, jamais sous 2 500 $', checkpointCash(1) === 2500 && checkpointCash(6) === 2600 && checkpointCash(11) === 4600 && checkpointCash(21) === 8650);
+  check('palier : avec loyer d’ascension (1.5x), caisse adaptée au premier loyer', checkpointCash(11, 1.5) === 6900);
+  let mono = true;
+  for (let d = 1; d < 200; d++) if (chapterStart(d + 1) < chapterStart(d)) mono = false;
+  check('palier : jamais décroissant quand le record monte', mono);
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

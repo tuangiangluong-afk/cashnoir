@@ -222,7 +222,8 @@ export function parseNPCJson(
   ) {
     forcedOutcome = 'deal';
     action = 'deal_accepte';
-    nextPrice = playerOffer;
+    // On ne paie jamais plus que le prix demandé, même si le joueur a proposé davantage.
+    nextPrice = Math.min(playerOffer, currentPrice);
   } else if (jauges.colere >= 80) {
     if (action !== 'sort_son_arme') forcedOutcome = 'gun';
     action = 'sort_son_arme';
