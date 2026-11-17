@@ -816,6 +816,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showClientSheet, setShowClientSheet] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [cashWarningCollapsed, setCashWarningCollapsed] = useState(true);
   // Prix demandé à l'acheteur (-1 = valeur de rue par défaut).
   const [buyerAsk, setBuyerAsk] = useState<number>(-1);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
@@ -4992,7 +4993,7 @@ export default function App() {
                               alt=""
                               onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
                               onLoad={() => { const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }}
-                              className="h-[15vh] max-h-28 w-auto rounded-xl border border-amber-500/30 object-cover shadow-2xl"
+                              className="h-[10vh] max-h-20 sm:h-[15vh] sm:max-h-28 w-auto rounded-xl border border-amber-500/30 object-cover shadow-2xl"
                             />
                           </button>
                         )}
@@ -5084,58 +5085,96 @@ export default function App() {
                   );
                 })()}
 
-                {(error || ((cash < askedPrice || cash < 1000) && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2)) && (
-                  <div className="mt-1 flex flex-wrap items-center justify-between gap-1.5 border border-amber-500/40 bg-[#16120d]/95 px-2 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs text-amber-200 shadow-lg">
-                    <span className="text-[10px] sm:text-[11px]">
-                      {error || (cash < askedPrice
-                        ? (inventory.length === 0 && swissBank < 500 && debt > 0
-                            ? tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés, et plus aucun recours. Négocie sous ${mny(cash)} ou passe ce client (aucune pénalité).`, `You have ${mny(cash)} for ${mny(askedPrice)} asked, and no way out. Negotiate under ${mny(cash)} or pass on this client (no penalty).`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos y ningún recurso. Negocia por debajo de ${mny(cash)} o pasa de este cliente (sin penalización).`)
-                            : tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés. Négocie plus bas, ou trouve du cash :`, `You have ${mny(cash)} for ${mny(askedPrice)} asked. Negotiate lower, or raise cash:`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos. Negocia más bajo o consigue efectivo:`))
-                        : tt(`Caisse basse (${mny(cash)}). Options :`, `Cash low (${mny(cash)}). Options:`, `Caja baja (${mny(cash)}). Opciones:`))}
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {inventory.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sellItem(inventory[0].id, 'fast');
-                            setError(null);
-                          }}
-                          className="border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-200 hover:bg-emerald-500/35"
-                        >
-                          {gameLocale === 'en'
-                            ? `Sell ${localizeItemName(inventory[0].name, gameLocale)} (+$${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)})`
-                            : `Vendre ${inventory[0].name} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`}
-                        </button>
-                      )}
-                      {swissBank >= 500 && (
-                        <button
-                          type="button"
-                          onClick={() => withdrawFromSwiss(500)}
-                          className="border border-amber-400/60 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 hover:bg-amber-500/35"
-                        >
-                          {tt('Retirer 500 $ (Suisse)', 'Withdraw $500 (Swiss)', 'Retirar 500 $ (Suiza)')}
-                        </button>
-                      )}
-                      {cash < askedPrice && outcome === 'active' && !currentCase.special && (
-                        <button
-                          type="button"
-                          onClick={passClient}
-                          className="border border-white/30 bg-black/50 px-2 py-0.5 text-[10px] font-bold text-zinc-200 hover:bg-white/10"
-                        >
-                          {tt('Passer ce client', 'Pass on this client', 'Pasar de este cliente')}
-                        </button>
-                      )}
-                      {debt === 0 && (
-                        <button
-                          type="button"
-                          onClick={takeSyndicateLoan}
-                          className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-amber-500/30"
-                        >
-                          {tt('Crédit Syndicat (+1 000 $, +15% Heat)', 'Syndicate Loan (+$1,000, +15% Heat)', 'Crédito Sindicato (+1.000 $, +15% Heat)')}
-                        </button>
-                      )}
+                {(error || (cash < askedPrice && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2)) && (
+                  <div className="mt-1 border border-amber-500/40 bg-[#16120d]/95 px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs text-amber-200 shadow-lg">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-amber-400 font-bold shrink-0">⚠️</span>
+                        <span className="truncate text-[10px] sm:text-[11px]">
+                          {error || (
+                            <>
+                              <span className="sm:hidden font-semibold">
+                                {tt(`Manque de cash : ${mny(cash)} / ${mny(askedPrice)}`, `Cash shortage: ${mny(cash)} / ${mny(askedPrice)}`, `Falta cash: ${mny(cash)} / ${mny(askedPrice)}`)}
+                              </span>
+                              <span className="hidden sm:inline">
+                                {inventory.length === 0 && swissBank < 500 && debt > 0
+                                  ? tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés, et plus aucun recours. Négocie sous ${mny(cash)} ou passe ce client (aucune pénalité).`, `You have ${mny(cash)} for ${mny(askedPrice)} asked, and no way out. Negotiate under ${mny(cash)} or pass on this client (no penalty).`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos y ningún recurso. Negocia por debajo de ${mny(cash)} o pasa de este cliente (sin penalización).`)
+                                  : tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés. Négocie plus bas, ou trouve du cash :`, `You have ${mny(cash)} for ${mny(askedPrice)} asked. Negotiate lower, or raise cash:`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos. Negocia más bajo o consigue efectivo:`)}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!error && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              triggerHaptic(10);
+                              setCashWarningCollapsed((v) => !v);
+                            }}
+                            className="border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300 hover:bg-amber-500/25 active:scale-95 transition-all"
+                          >
+                            {cashWarningCollapsed ? tt('Trouver du cash ▼', 'Raise cash ▼', 'Conseguir cash ▼') : tt('Réduire ▲', 'Collapse ▲', 'Reducir ▲')}
+                          </button>
+                        )}
+                        {error && (
+                          <button
+                            type="button"
+                            onClick={() => setError(null)}
+                            className="text-zinc-400 hover:text-white px-1 text-xs"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {!error && !cashWarningCollapsed && (
+                      <div className="mt-1.5 pt-1.5 border-t border-amber-500/20 flex flex-wrap items-center gap-1.5">
+                        {inventory.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sellItem(inventory[0].id, 'fast');
+                              setError(null);
+                            }}
+                            className="border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-200 hover:bg-emerald-500/35 active:scale-95 transition-transform"
+                          >
+                            {gameLocale === 'en'
+                              ? `Sell ${localizeItemName(inventory[0].name, gameLocale)} (+$${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)})`
+                              : `Vendre ${inventory[0].name} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`}
+                          </button>
+                        )}
+                        {swissBank >= 500 && (
+                          <button
+                            type="button"
+                            onClick={() => withdrawFromSwiss(500)}
+                            className="border border-amber-400/60 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 hover:bg-amber-500/35 active:scale-95 transition-transform"
+                          >
+                            {tt('Retirer 500 $ (Suisse)', 'Withdraw $500 (Swiss)', 'Retirar 500 $ (Suiza)')}
+                          </button>
+                        )}
+                        {debt === 0 && (
+                          <button
+                            type="button"
+                            onClick={takeSyndicateLoan}
+                            className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-amber-500/30 active:scale-95 transition-transform"
+                          >
+                            {tt('Crédit Syndicat (+1 000 $, +15% Heat)', 'Syndicate Loan (+$1,000, +15% Heat)', 'Crédito Sindicato (+1.000 $, +15% Heat)')}
+                          </button>
+                        )}
+                        {cash < askedPrice && outcome === 'active' && !currentCase.special && (
+                          <button
+                            type="button"
+                            onClick={passClient}
+                            className="border border-white/30 bg-black/50 px-2 py-0.5 text-[10px] font-bold text-zinc-200 hover:bg-white/10 active:scale-95 transition-transform"
+                          >
+                            {tt('Passer ce client', 'Pass on this client', 'Pasar de este cliente')}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 </div>
@@ -5143,7 +5182,7 @@ export default function App() {
             </div>
 
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
-            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2 max-sm:pb-2 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
+            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
                 {outcome !== 'active' && (sagaNote || favor) && (
                   <div className="mb-2 space-y-1.5 border border-amber-500/30 bg-amber-500/5 p-2 font-mono text-[11px] leading-snug text-amber-100">
@@ -5484,13 +5523,13 @@ export default function App() {
                             type="button"
                             disabled={cash < 100}
                             onClick={() => setOfferAmount((v) => Math.max(100, Math.min(cash, v) - 100))}
-                            className="border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            className="border-l border-white/10 px-2 py-1.5 max-sm:py-1 max-sm:px-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40"
                           >
                             -100
                           </button>
                           <div className="min-w-[88px] sm:min-w-[110px] px-2 sm:px-2.5 py-0.5 text-center">
                             {cash < 100 ? (
-                              <span className="block font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-red-400">
+                              <span className="block font-[family-name:var(--font-display)] text-xl sm:text-2xl leading-none tracking-wider text-red-400">
                                 {gameLocale === 'en' ? `$${formatMoney(cash, gameLocale)}` : `${formatMoney(cash, gameLocale)} $`}
                               </span>
                             ) : (
@@ -5511,9 +5550,9 @@ export default function App() {
                                     setOfferAmount((v) => Math.max(100, Math.min(cash, v)))
                                   }
                                   title={gameLocale === 'en' ? 'Type exact offer directly' : 'Tape directement le montant exact'}
-                                  className="w-20 bg-transparent text-center font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-emerald-300 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                  className="w-20 bg-transparent text-center font-[family-name:var(--font-display)] text-xl sm:text-2xl leading-none tracking-wider text-emerald-300 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 />
-                                <span className="font-[family-name:var(--font-display)] text-xl leading-none text-emerald-300/80">
+                                <span className="font-[family-name:var(--font-display)] text-lg sm:text-xl leading-none text-emerald-300/80">
                                   $
                                 </span>
                               </div>
@@ -5532,7 +5571,7 @@ export default function App() {
                             onClick={() =>
                               setOfferAmount((v) => Math.min(cash, currentCase.initialPrice, v + 100))
                             }
-                            className="border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            className="border-l border-white/10 px-2 py-1.5 max-sm:py-1 max-sm:px-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40"
                           >
                             +100
                           </button>
@@ -5551,7 +5590,7 @@ export default function App() {
                         <button
                           onClick={slapCashOnCounter}
                           disabled={loading || cash < 100}
-                          className="brass max-sm:order-5 max-sm:min-w-0 max-sm:flex-1 max-sm:py-2 max-[359px]:text-base max-[359px]:px-2 px-4 py-1.5 font-[family-name:var(--font-display)] text-xl tracking-widest uppercase text-[#1a1206] transition-transform hover:scale-[1.02] disabled:opacity-40"
+                          className="brass max-sm:order-5 max-sm:min-w-0 max-sm:flex-1 max-sm:py-1.5 max-[359px]:text-sm max-[359px]:px-2 px-3 sm:px-4 py-1.5 font-[family-name:var(--font-display)] text-lg sm:text-xl tracking-wider uppercase text-[#1a1206] transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-40"
                         >
                           {cash < 100 ? t.cashEmpty : t.slapCash}
                         </button>
