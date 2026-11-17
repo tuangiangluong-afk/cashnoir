@@ -208,14 +208,14 @@ const RAW_CAST: RawCastTuple[] = [
 const LAST_NAMES_EXT = [
   'Bouchard', 'Rousseau', 'Keller', 'Novak', 'Diallo', 'Ferrari', 'Silva', 'Lindqvist',
   'Kowalski', 'Chen', 'Sato', 'Al-Mansoor', 'Conti', 'Varga', 'Okafor', 'Mercier',
-  'Delacroix', 'Bauer', 'Haddad', 'Reyes', 'Fontaine', 'Giraud', 'Lambert', 'Roche',
-  'Vasseur', 'Navarro', 'Rossi', 'Schneider', 'Petrov', 'Larsson', 'Berg', 'Santos',
-  'Costa', 'Dubois', 'Moreau', 'Laurent', 'Simon', 'Michel', 'Lefebvre', 'Leroy',
-  'Roux', 'David', 'Bertrand', 'Morel', 'Fournier', 'Girard', 'Bonnet', 'Dupont',
-  'Vincent', 'Muller', 'Lefevre', 'Faure', 'Andre', 'Blanc', 'Guerin', 'Boyer',
-  'Garnier', 'Chevalier', 'Francois', 'Legrand', 'Gauthier', 'Garcia', 'Perez', 'Lopez',
-  'Sanchez', 'Fernandez', 'Gonzalez', 'Rodriguez', 'Martinez', 'Hernandez', 'Diaz', 'Torres',
-  'Ramirez', 'Ramos', 'Flores', 'Alvarez', 'Castillo', 'Vargas', 'Morales', 'Ortega',
+  'Delacroix', 'Bauer', 'Haddad',
+  'Mendoza', 'Takahashi', 'Moretti', 'Radic', 'Voronin', 'Rossi', 'Schneider', 'Petrov', 'Larsson',
+  'Berg', 'Santos', 'Costa', 'Traoré', 'Sokolov', 'Cortez', 'Lombardi', 'Popovic', 'Zhang',
+  'Delgado', 'Bensaïd', 'De Luca', 'Volkov', 'Watanabe', 'Keïta', 'Horvat', 'Vega', 'Mancini',
+  'Morozov', 'Cissé', 'Kovac', 'Castillo', 'Greco', 'Yamamoto', 'Trabelsi', 'Stankovic', 'Cabrera',
+  'Rinaldi', 'Orlov', 'Diop', 'Petrovic', 'Vargas', 'Bellini', 'Lin', 'Khelifi', 'Dimitrov',
+  'Morales', 'Leone', 'Nakamura', 'Mensah', 'Ilic', 'Ortega', 'Castiglione', 'Wong', 'Chalhoub',
+  'Jovanovic', 'Ramos', 'Moreau', 'Reyes', 'Navarro', 'De Montfort',
 ];
 
 const EXTRA_JOBS_M = [
@@ -235,16 +235,16 @@ const EXTRA_JOBS_F = [
 ];
 
 const FIRST_M = [
-  'Marek', 'Driss', 'Vance', 'Tarik', 'Milo', 'Yanis', 'Benoît', 'Lucas', 'Hugo', 'Matteo',
-  'Samir', 'Ivan', 'Enzo', 'Roman', 'Karim', 'Damien', 'Théo', 'Julien', 'Cédric', 'Arnaud',
-  'Maxime', 'Adrien', 'Gabriel', 'Victor', 'Dimitri', 'Rachid', 'Sacha', 'Milan', 'Florian', 'Basile',
-  'Antonin', 'Grégory', 'Mathias', 'Gilles', 'Serge', 'Boris', 'Fabrice', 'Xavier', 'Alain', 'Cyril',
+  'Marek', 'Driss', 'Vance', 'Tarik', 'Milo', 'Yanis', 'Benoît', 'Kenji', 'Nikolai', 'Matteo',
+  'Vito', 'Kofi', 'Luka', 'Farouk', 'Jin', 'Thiago', 'Goran', 'Diego', 'Idris', 'Lorenzo',
+  'Alexei', 'Kaito', 'Rafael', 'Axel', 'Marko', 'Kwame', 'Salvatore', 'Dmitri', 'Zoran', 'Chen',
+  'Rodrigo', 'Nassim', 'Henrik', 'Javier', 'Dante', 'Bogdan', 'Malik', 'Takeshi', 'Vlad', 'Samir',
 ];
 const FIRST_F = [
-  'Inès', 'Nora', 'Chloé', 'Zara', 'Elena', 'Marina', 'Claire', 'Camille', 'Sarah', 'Leïla',
-  'Amélie', 'Roxane', 'Eva', 'Maya', 'Lucie', 'Diane', 'Katya', 'Soraya', 'Jade', 'Salomé',
-  'Astrid', 'Yasmine', 'Valentine', 'Juliette', 'Natacha', 'Agnès', 'Delphine', 'Myriam', 'Elsa', 'Estelle',
-  'Sabrina', 'Coline', 'Tatiana', 'Laure', 'Pauline', 'Fanny', 'Clémence', 'Hélène', 'Sybille', 'Noémie',
+  'Inès', 'Nora', 'Chloé', 'Zara', 'Elena', 'Marina', 'Claire', 'Katya', 'Carmen', 'Chiara',
+  'Soraya', 'Aissatou', 'Valeria', 'Mila', 'Aoi', 'Leïla', 'Sofia', 'Roxy', 'Daria', 'Paloma',
+  'Nia', 'Alessia', 'Oksana', 'Sun-woo', 'Inez', 'Samira', 'Astrid', 'Lin', 'Lucia', 'Natasha',
+  'Amira', 'Francesca', 'Zola', 'Svetlana', 'Camila', 'Hana', 'Vera', 'Fatou', 'Bianca', 'Rania',
 ];
 
 const FACTIONS_CYCLE = [

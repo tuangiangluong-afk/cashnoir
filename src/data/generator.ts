@@ -73,7 +73,7 @@ const FIRST_NAMES = [
 
 export function getGenderFromName(name: string): 'm' | 'f' {
   const n = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return /sonia|ines|nora|olga|chloe|zara|elena|marina|claire|camille|julie|sophie|lucie|sarah|leila/.test(n) ? 'f' : 'm';
+  return /sonia|ines|nora|olga|chloe|zara|elena|marina|claire|camille|julie|sophie|lucie|sarah|leila|mei|katya|carmen|chiara|soraya|aissatou|valeria|mila|aoi|sofia|roxy|daria|paloma|nia|alessia|oksana|sun-woo|inez|samira|astrid|lin|lucia|natasha|amira|francesca|zola|svetlana|camila|hana|vera|fatou|bianca|rania/.test(n) ? 'f' : 'm';
 }
 
 const FACTIONS = [
