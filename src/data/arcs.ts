@@ -9,6 +9,7 @@ export interface ArcNote {
   note: string;
   itemKey: string;
   resolved: boolean;
+  failed?: boolean;
 }
 
 export interface StoryArc {

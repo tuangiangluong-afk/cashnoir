@@ -794,6 +794,7 @@ export default function App() {
     return localStorage.getItem('fence_player_handle') || '';
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [pendingSellConfirm, setPendingSellConfirm] = useState<{ item: BoughtItem; mode: 'fast' | 'auction' } | null>(null);
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(() => {
     return localStorage.getItem('fence_haptics') !== '0';
   });
@@ -2253,7 +2254,7 @@ export default function App() {
     if (outcome !== 'active' || currentCase.arcStep !== 2) return;
     sound.playDanger();
     setArcNotes((prev) =>
-      prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+      prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true, failed: true } : n)),
     );
     setTell(tt('Piste perdue : tu as revendu la pièce trop tôt.', 'Lead lost: you sold the piece too early.', 'Pista perdida: vendiste la pieza demasiado pronto.'));
     setOutcome('quitte_la_boutique');
@@ -2334,20 +2335,27 @@ export default function App() {
     );
   };
 
-  const sellItem = (itemId: string, mode: 'fast' | 'auction') => {
+  const sellItem = (itemId: string, mode: 'fast' | 'auction', forceConfirmed = false) => {
     const target = inventory.find((i) => i.id === itemId);
-    if (!target || !lockAction(`sell-${itemId}`)) return;
+    if (!target) return;
 
+    if (target.arcItemKey && !forceConfirmed) {
+      triggerHaptic([20, 50, 20]);
+      setPendingSellConfirm({ item: target, mode });
+      return;
+    }
+
+    if (!lockAction(`sell-${itemId}`)) return;
+
+    // Si on liquide une pièce clé d'enquête, clore et rompre définitivement la piste associée
     if (target.arcItemKey) {
-      const warningText =
-        gameLocale === 'en'
-          ? `⚠️ "${localizeItemName(target.name, gameLocale)}" is a key INVESTIGATION LEAD for an upcoming story client!\n\nSelling it now will cancel this story arc and you will forfeit the $7,500 conclusion bounty.\n\nAre you sure you want to sell it?`
-          : gameLocale === 'es'
-            ? `⚠️ ¡"${localizeItemName(target.name, gameLocale)}" es una PISTA DE INVESTIGACIÓN clave para una misión futura!\n\nVenderlo ahora cancelará la trama y perderás la recompensa final de 7 500 $.\n\n¿Seguro que deseas venderlo?`
-            : `⚠️ « ${target.name} » est une PISTE D'ENQUÊTE clé pour un client de l'histoire !\n\nLe vendre maintenant annulera cette intrigue et tu passeras à côté des 7 500 $ de prime finale.\n\nEs-tu certain de vouloir le liquider ?`;
-      if (typeof window !== 'undefined' && !window.confirm(warningText)) {
-        return;
-      }
+      setArcNotes((prev) =>
+        prev.map((n) =>
+          n.itemKey === target.arcItemKey || (target.arcId && n.arcId === target.arcId)
+            ? { ...n, resolved: true, failed: true }
+            : n
+        )
+      );
     }
 
     const salePrice = mode === 'fast' ? getFastSellPayout(target) : getAuctionPayout(target);
@@ -2597,7 +2605,7 @@ export default function App() {
       const hasItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
       if (!hasItem) {
         setArcNotes((prev) =>
-          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true, failed: true } : n)),
         );
       }
     }
@@ -2619,7 +2627,7 @@ export default function App() {
       const hasItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
       if (!hasItem) {
         setArcNotes((prev) =>
-          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
+          prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true, failed: true } : n)),
         );
       }
     }
@@ -3195,7 +3203,7 @@ export default function App() {
         const short = Math.max(0, dailyRent - cash);
         const openSecrets = inventory.filter((i) => i.secretState === 'open').length;
         const openCases = arcNotes.filter((n) => !n.resolved).length;
-        const solvedCases = STORY_ARCS.filter((a) => arcNotes.some((n) => n.arcId === a.id && n.resolved)).length;
+        const solvedCases = STORY_ARCS.filter((a) => arcNotes.some((n) => n.arcId === a.id && n.resolved && !n.failed)).length;
         const todo: string[] = [];
         if (debt > 0) todo.push(tr(`Tu dois ${money(debt)} au Syndicat : c’est inclus dans le loyer de ce soir.`, `You owe the Syndicate ${money(debt)}: it is included in tonight’s rent.`, `Debes ${money(debt)} al Sindicato: va incluido en el alquiler de esta noche.`));
         if (openSecrets > 0) todo.push(tr(`${openSecrets} pièce${openSecrets > 1 ? 's' : ''} à double fond à examiner.`, `${openSecrets} piece${openSecrets > 1 ? 's' : ''} with a false bottom to examine.`, `${openSecrets} pieza${openSecrets > 1 ? 's' : ''} con doble fondo por examinar.`));
@@ -3495,9 +3503,25 @@ export default function App() {
               </div>
 
               {inventory.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-8 text-center space-y-2">
-                  <p className="text-sm text-zinc-400">{t.vaultEmpty}</p>
-                  <p className="text-xs text-zinc-600">{tr('Retourne au comptoir pour négocier tes premières acquisitions.', 'Head back to the counter to negotiate your first deals.', 'Vuelve al mostrador para negociar tus compras.')}</p>
+                <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-8 text-center space-y-3">
+                  <p className="text-sm font-semibold text-zinc-300">{t.vaultEmpty}</p>
+                  <p className="text-xs text-zinc-500 max-w-md mx-auto">{tr('Retourne au comptoir pour négocier tes premières acquisitions.', 'Head back to the counter to negotiate your first deals.', 'Vuelve al mostrador para negociar tus compras.')}</p>
+                  {arcNotes.filter((n) => !n.resolved).length > 0 && (
+                    <div className="mt-4 mx-auto text-left max-w-md rounded-lg border border-purple-500/30 bg-purple-950/20 p-3.5 font-mono text-[11px] text-purple-200 shadow-lg space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-purple-300 font-bold">
+                        <span>🔍</span>
+                        <span>{tr("Carnet d'histoire vs Coffre physique", 'Story Notebook vs Physical Vault', 'Cuaderno de Trama vs Caja Física')}</span>
+                        <span className="text-purple-400 font-normal">({arcNotes.filter((n) => !n.resolved).length} {tr('piste en cours', 'active lead', 'pista activa')})</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 font-sans leading-relaxed">
+                        {tr(
+                          "Tu as une enquête ouverte dans ton carnet, mais aucune pièce physique dans ton coffre-fort. Les « Pièces en réserve » sont uniquement les objets matériels en stock. Dès que tu achètes l'objet d'une piste au comptoir, garde-le ici pour débloquer l'étape finale et empocher les 7 500 $ de prime !",
+                          "You have an open case in your notebook, but no physical pieces in your safe. 'Pieces in reserve' are strictly tangible stock. As soon as you acquire a lead's item at the counter, keep it here to unlock the final step and pocket the $7,500 bounty!",
+                          "Tienes un caso abierto en tu cuaderno, pero ninguna pieza física en tu caja. Las 'Piezas en reserva' son existencias físicas. ¡En cuanto compres el objeto de una pista en el mostrador, consérvalo aquí para desbloquear el paso final y cobrar los 7 500 $ de recompensa!"
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -3644,12 +3668,13 @@ export default function App() {
               </p>
               <ul className="mt-3 space-y-1">
                 {STORY_ARCS.map((arc) => {
-                  const solved = arcNotes.some((n) => n.arcId === arc.id && n.resolved);
+                  const solved = arcNotes.some((n) => n.arcId === arc.id && n.resolved && !n.failed);
+                  const failed = arcNotes.some((n) => n.arcId === arc.id && n.failed);
                   const active = arcNotes.some((n) => n.arcId === arc.id && !n.resolved);
                   return (
-                    <li key={arc.id} className={solved ? 'text-emerald-400' : active ? 'text-amber-200' : 'text-zinc-500'}>
-                      {solved ? '✓' : active ? '•' : '○'} {localizeArcTitle(arc.id, arc.title, L)}
-                      <span className="text-zinc-500"> {solved ? tr('· résolue', '· solved', '· resuelto') : active ? tr('· en cours', '· in progress', '· en curso') : ''}</span>
+                    <li key={arc.id} className={solved ? 'text-emerald-400' : failed ? 'text-red-400/70 line-through' : active ? 'text-amber-200' : 'text-zinc-500'}>
+                      {solved ? '✓' : failed ? '✗' : active ? '•' : '○'} {localizeArcTitle(arc.id, arc.title, L)}
+                      <span className="text-zinc-500"> {solved ? tr('· résolue', '· solved', '· resuelto') : failed ? tr('· rompue (pièce vendue)', '· broken (item sold)', '· rota (pieza vendida)') : active ? tr('· en cours', '· in progress', '· en curso') : ''}</span>
                     </li>
                   );
                 })}
@@ -4263,16 +4288,36 @@ export default function App() {
 
                 {/* Pistes actives (si présentes) */}
                 {arcNotes.filter((n) => !n.resolved).length > 0 && (
-                  <div className="space-y-0.5 border-l-2 border-purple-500/80 bg-purple-950/30 px-2 py-1 font-mono text-[11px] rounded-r">
-                    <div className="text-purple-300 font-semibold uppercase tracking-wider flex items-center gap-1">
-                      <span>🔍 {gameLocale === 'en' ? 'Story Leads' : gameLocale === 'es' ? 'Pistas de Trama' : 'Pistes en cours'}</span>
-                      <span className="text-purple-400/80 font-normal">({arcNotes.filter((n) => !n.resolved).length})</span>
+                  <div className="space-y-1 border-l-2 border-purple-500/80 bg-purple-950/35 px-2.5 py-1.5 font-mono text-[11px] rounded-r shadow-sm">
+                    <div className="text-purple-300 font-semibold uppercase tracking-wider flex items-center justify-between gap-1">
+                      <span className="flex items-center gap-1.5">
+                        <span>🔍</span>
+                        <span>{gameLocale === 'en' ? 'Story Leads' : gameLocale === 'es' ? 'Pistas de Trama' : 'Pistes en cours'}</span>
+                        <span className="text-purple-400 font-normal">({arcNotes.filter((n) => !n.resolved).length})</span>
+                      </span>
+                      <span className="text-[9px] text-zinc-400 font-sans normal-case tracking-normal">
+                        {tt("Carnet", 'Notebook', 'Cuaderno')}
+                      </span>
                     </div>
-                    {arcNotes.filter((n) => !n.resolved).slice(0, 2).map((n) => (
-                      <div key={n.arcId} className="truncate text-zinc-300 text-[10px]">
-                        <span className="text-amber-200 font-medium">{localizeArcTitle(n.arcId, n.title, gameLocale)}:</span> {localizeArcNote(n.arcId, n.note, gameLocale)}
-                      </div>
-                    ))}
+                    {arcNotes.filter((n) => !n.resolved).slice(0, 2).map((n) => {
+                      const inVault = inventory.some((i) => i.arcItemKey === n.itemKey);
+                      return (
+                        <div key={n.arcId} className="flex items-center justify-between gap-2 text-zinc-300 text-[10px]">
+                          <span className="truncate">
+                            <span className="text-amber-200 font-medium">{localizeArcTitle(n.arcId, n.title, gameLocale)}:</span> {localizeArcNote(n.arcId, n.note, gameLocale)}
+                          </span>
+                          <span className={`shrink-0 px-1.5 py-0.2 rounded text-[9px] font-mono border ${
+                            inVault
+                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                              : 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                          }`}>
+                            {inVault
+                              ? tt('Au coffre ✓', 'In vault ✓', 'En caja ✓')
+                              : tt('Pièce manquante ✗', 'Missing item ✗', 'Falta pieza ✗')}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -5802,6 +5847,125 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Modal Confirmation de Liquidation Pièce d'Enquête (Bespoke Dark Neo-Noir, Zéro Prompt Natif) */}
+      {pendingSellConfirm && (() => {
+        const item = pendingSellConfirm.item;
+        const mode = pendingSellConfirm.mode;
+        const payout = mode === 'auction' ? getAuctionPayout(item) : getFastSellPayout(item);
+        const kind = itemKindFor(item.name);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-in fade-in duration-150"
+            onClick={() => setPendingSellConfirm(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-purple-500/50 bg-[#0c0d12] p-5 shadow-[0_0_50px_rgba(168,85,247,0.25)] space-y-4 font-mono animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Top Bar / Badge */}
+              <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                    <ShieldAlert className="h-3.5 w-3.5 text-purple-300" />
+                  </span>
+                  <span className="text-xs font-bold tracking-wider text-purple-300 uppercase">
+                    {tt("Alerte · Piste d'Enquête Clé", 'Alert · Key Story Lead', 'Alerta · Pista Clave')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(10);
+                    setPendingSellConfirm(null);
+                  }}
+                  className="text-zinc-500 hover:text-zinc-200 text-xs p-1 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Thumbnail + Item details */}
+              <div className="flex items-center gap-3.5 rounded-xl border border-white/10 bg-black/60 p-3">
+                <div className="relative h-14 w-16 shrink-0 rounded-lg bg-black/80 border border-white/10 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                  <img
+                    src={`/assets/items/${kind}.webp`}
+                    alt={item.name}
+                    className="h-full w-full object-contain mix-blend-lighten drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="text-xs font-bold text-amber-200 truncate">
+                    « {localizeItemName(item.name, gameLocale)} »
+                  </div>
+                  <div className="text-[10px] text-zinc-400 flex items-center gap-2">
+                    <span>{localizeFaction(item.faction, gameLocale)}</span>
+                    <span>·</span>
+                    <span className="text-emerald-400 font-semibold">
+                      {mode === 'auction'
+                        ? tt(`Enchères : ~${mny(payout)}`, `Auction: ~${mny(payout)}`, `Subasta: ~${mny(payout)}`)
+                        : tt(`Rapide : ~${mny(payout)}`, `Fast: ~${mny(payout)}`, `Rápido: ~${mny(payout)}`)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning Message Box */}
+              <div className="rounded-xl border border-red-500/30 bg-red-950/25 p-3.5 space-y-2 text-xs">
+                <div className="text-red-300 font-semibold flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                  <span>⚠️</span>
+                  <span>{tt('Conséquence irréversible', 'Irreversible consequence', 'Consecuencia irreversible')}</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed font-sans">
+                  {tt(
+                    "Cette pièce est l'élément central d'une intrigue en cours notée dans ton Carnet. Un client de l'histoire viendra au comptoir pour la réclamer.",
+                    'This piece is the core element of an ongoing lead in your Notebook. A story client will come to the counter to claim it.',
+                    'Esta pieza es el elemento central de una trama activa en tu Cuaderno. Un cliente de la historia vendrá al mostrador a reclamarla.'
+                  )}
+                </p>
+                <div className="border-t border-red-500/20 pt-2 text-[11px] font-mono space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">{tt('Si gardée au coffre :', 'If kept in vault:', 'Si la guardas:')}</span>
+                    <span className="text-emerald-400 font-bold">+7 500 $ {tt('prime + baisse Heat', 'bounty + Heat drop', 'recompensa')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">{tt('Si liquidée maintenant :', 'If liquidated now:', 'Si la liquidas:')}</span>
+                    <span className="text-red-400 font-bold">{tt('Intrigue DÉFINITIVEMENT rompue', 'Story arc PERMANENTLY broken', 'Trama PERMANENTEMENTE rota')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(15);
+                    sound.playDealSuccess();
+                    setPendingSellConfirm(null);
+                  }}
+                  className="w-full brass py-2.5 px-3 rounded-lg text-xs font-bold text-[#1a1206] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.02] cursor-pointer"
+                >
+                  <span>🛡️</span>
+                  <span>{tt('Garder au Coffre', 'Keep in Vault', 'Guardar en Caja')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic([30, 60]);
+                    setPendingSellConfirm(null);
+                    sellItem(item.id, mode, true);
+                  }}
+                  className="w-full border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 py-2.5 px-3 rounded-lg text-xs font-semibold text-red-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>{tt('Vendre quand même', 'Sell Anyway', 'Vender de todos modos')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
