@@ -6,6 +6,7 @@ import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from '../src/data/checkpoints';
 import { heistRisk, heistLoss } from '../src/data/risk';
+import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type DebriefEntry } from '../src/data/debrief';
 import { ASCENSION_LEVELS, getAscensionModifier, MAX_ASCENSION, ROMAN, canAscend } from '../src/data/ascension';
 import { COMBOS, activeCombos, comboCompletedBy } from '../src/data/combos';
 import { JOKER_POOL } from '../src/data/jokers';
@@ -440,6 +441,27 @@ for (const msg of [
   const daily0 = generateDailyContract('2026-03-30', undefined, 'fr');
   check('ascension : le contrat quotidien n’est jamais modifié', daily.floorPrice === daily0.floorPrice && daily.initialPrice === daily0.initialPrice);
   check('ascension : seuil de braquage plus bas = plus de risque', heistRisk(14000, 5, false, 0.65) > heistRisk(14000, 5, false, 1));
+}
+
+// Autopsie du deal et bilan de partie : règles déterministes, 3 langues, aucune donnée inventée.
+{
+  const e = (turn: number, o: Partial<DebriefEntry>): DebriefEntry => ({ turn, action: 'msg', peurDelta: 0, colereDelta: 0, mefianceDelta: 0, colere: 20, mefiance: 40, priceDelta: 0, ...o });
+  const base = { outcome: 'deal_accepte' as const, initialPrice: 2000, finalPrice: 1300, isTrap: false, profileId: 'gambler', tags: [] as string[], money: (n: number) => `$${n}` };
+  check('autopsie : trop peu de tours = rien', dealDebrief([e(0, {}), e(1, {})], { ...base, locale: 'fr' }).length === 0);
+  const entries = [e(0, {}), e(1, { priceDelta: -300, weak: true, tools: 1 }), e(2, { colereDelta: 18, colere: 60, offer: 500, floor: 1200 })];
+  for (const locale of ['fr', 'en', 'es'] as const) {
+    const pts = dealDebrief(entries, { ...base, locale });
+    const text = pts.map((p) => p.text).join(' ');
+    check(`autopsie ${locale} : baisse de prix, colère, offre trop basse, conseil de profil`, pts.length >= 4 && pts.some((p) => p.kind === 'tip') && /\$300/.test(text) && /\$500/.test(text) && /\$1200/.test(text) && !/\{\w+\}|undefined|NaN/.test(text), text.slice(0, 120));
+  }
+  const walk = dealDebrief([e(0, {}), e(1, { mefiance: 75 }), e(2, { colereDelta: 20, colere: 70 })], { ...base, outcome: 'quitte_la_boutique', locale: 'en' });
+  check('autopsie : un départ explique la colère et la méfiance', walk.some((p) => /leave/.test(p.text)) && walk.some((p) => /Suspicion/.test(p.text)));
+  check('autopsie : au plus 5 points, erreurs d’abord', dealDebrief(entries, { ...base, locale: 'fr' }).length <= 5 && dealDebrief(entries, { ...base, locale: 'fr' })[0].kind === 'warn');
+  check('autopsie : un piège acheté est signalé', dealDebrief(entries, { ...base, isTrap: true, locale: 'es' }).some((p) => /infiltrado/.test(p.text)));
+  const adv = (s: Partial<typeof EMPTY_RUN_STATS>, l: 'fr' | 'en' | 'es') => runAdvice({ ...EMPTY_RUN_STATS, ...s }, l);
+  check('bilan : conseil neutre sans statistiques', adv({}, 'fr').length === 1);
+  check('bilan : armes, offres trop basses, pièges, départs, prix trop haut', adv({ guns: 1, lowballs: 3, trapsBought: 2, deals: 3, discountSum: 12, walkouts: 4 }, 'en').length === 3);
+  check('bilan : jamais de variable oubliée dans les 3 langues', (['fr', 'en', 'es'] as const).every((l) => adv({ guns: 1, lowballs: 3, trapsBought: 2, deals: 3, discountSum: 12, walkouts: 4 }, l).every((x) => x && !/\{\w+\}/.test(x))));
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

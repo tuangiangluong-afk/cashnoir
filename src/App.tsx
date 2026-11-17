@@ -52,6 +52,7 @@ import {
   localizeArcNote,
 } from './data/noirLocalization';
 import { track } from './services/telemetry';
+import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type RunStats } from './data/debrief';
 import { activeCombos, comboCompletedBy, hasCombo } from './data/combos';
 import { heistLoss, heistRisk } from './data/risk';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from './data/checkpoints';
@@ -203,6 +204,11 @@ interface AuditEntry {
   mefianceDelta: number;
   price: number;
   priceDelta: number;
+  offer?: number;
+  floor?: number;
+  weak?: boolean;
+  name?: boolean;
+  tools?: number;
 }
 
 /** Le client en cours est sauvegardé : recharger la page ou passer par le contrat quotidien ne change pas de client. */
@@ -514,6 +520,13 @@ export default function App() {
     }
   });
   const [sagaNote, setSagaNote] = useState('');
+  const [runStats, setRunStats] = useState<RunStats>(() => {
+    try {
+      return { ...EMPTY_RUN_STATS, ...JSON.parse(localStorage.getItem('fence_runstats') || '{}') };
+    } catch {
+      return EMPTY_RUN_STATS;
+    }
+  });
   const [league, setLeague] = useState<{ endsAt: string; players: number; standings: { pseudo: string; total: number; days: number; rank: number; tier: string }[] } | null>(null);
   const [favor, setFavor] = useState<{ castId: string; name: string; cost: number } | null>(null);
   const [registry, setRegistry] = useState<RegistryEntry[]>(() => {
@@ -614,6 +627,7 @@ export default function App() {
     localStorage.setItem('fence_debt', String(debt));
     localStorage.setItem('fence_registry', JSON.stringify(registry.slice(-60)));
     localStorage.setItem('fence_saga', JSON.stringify(sagas));
+    localStorage.setItem('fence_runstats', JSON.stringify(runStats));
   }, [
     day,
     cash,
@@ -1167,6 +1181,20 @@ export default function App() {
         street: currentCase.streetValue,
       },
     ]);
+    if (!currentCase.castId || !currentCase.isTrap) {
+      const lows = psychoAudit.filter((e) => e.offer !== undefined && e.floor !== undefined && e.offer < e.floor * 0.78).length;
+      setRunStats((st) => ({
+        ...st,
+        deals: st.deals + (result === 'deal' ? 1 : 0),
+        discountSum: st.discountSum + (result === 'deal' && currentCase.initialPrice > 0 ? Math.max(0, ((currentCase.initialPrice - askedPrice) / currentCase.initialPrice) * 100) : 0),
+        walkouts: st.walkouts + (result === 'walk' && psychoAudit.length > 1 ? 1 : 0),
+        guns: st.guns + (result === 'gun' ? 1 : 0),
+        lowballs: st.lowballs + lows,
+        trapsBought: st.trapsBought + (result === 'trap' ? 1 : 0),
+      }));
+    } else if (result === 'trap') {
+      setRunStats((st) => ({ ...st, trapsBought: st.trapsBought + 1 }));
+    }
     // Saga : la relation évolue à chaque rencontre avec un personnage du casting (pas les infiltrés).
     const cid = currentCase.castId;
     if (cid && !currentCase.isTrap) {
@@ -1931,6 +1959,7 @@ export default function App() {
     setAscensionLevel(0);
     setMaxDaySurvived(0);
     setSagas((a) => rebaseSagas(a));
+    setRunStats(EMPTY_RUN_STATS);
     setTab('counter');
     startNewCase(generateProceduralCase(1, 15, undefined, 1, gameLocale));
   };
@@ -1959,6 +1988,7 @@ export default function App() {
     setVengeance([]);
     setMaxDaySurvived((prev) => Math.max(prev, cp));
     setSagas((a) => rebaseSagas(a, cp));
+    setRunStats(EMPTY_RUN_STATS);
     setGameOverReason(null);
     setTab('counter');
     startNewCase(generateProceduralCase(cp, 15, undefined, currentDistrict.multiplier, gameLocale));
@@ -2138,6 +2168,11 @@ export default function App() {
           mefianceDelta: deltaM,
           price: res.prix_actuel_demande,
           priceDelta: deltaPr,
+          offer: inferredOffer,
+          floor: computeDynamicFloor(currentCase.initialPrice, currentCase.floorPrice, nextGauges.peur),
+          weak: psycho.hitWeak,
+          name: psycho.hitName,
+          tools: (inspected ? 1 : 0) + (uvScanned ? 2 : 0) + (radioOpen ? 4 : 0),
         },
       ]);
       setGauges(nextGauges);
@@ -2771,6 +2806,7 @@ export default function App() {
     setRerollsLeft(baseRerolls);
     setRaidNote(null);
     setSagas((a) => rebaseSagas(a));
+    setRunStats(EMPTY_RUN_STATS);
     setGameOverReason(null);
     setTab('counter');
     startNewCase(generateProceduralCase(1, 15, lastMemory || undefined, currentDistrict.multiplier, gameLocale));
@@ -2809,6 +2845,7 @@ export default function App() {
       }
     }
     if (currentCase.isTrap) {
+      setRunStats((st) => ({ ...st, trapsExposed: st.trapsExposed + 1 }));
       sound.playDealSuccess();
       const trapBonus = seasonState.level >= 6 ? 500 : 350;
       setCash((c) => c + trapBonus);
@@ -3099,6 +3136,12 @@ export default function App() {
                 {tt('Pass Syndicat : IA sans limite & classement mondial →', 'Syndicate Pass: unlimited AI & world leaderboard →', 'Pase del Sindicato: IA sin límite y ranking mundial →')}
               </button>
             )}
+            <div className="space-y-1 border border-violet-400/30 bg-violet-950/20 p-2 text-left text-[11px] leading-snug text-zinc-300">
+              <p className="font-bold uppercase tracking-wider text-violet-200">🧠 {tt('Conseil du Parrain', 'Godfather’s advice', 'Consejo del Padrino')}</p>
+              {runAdvice(runStats, gameLocale).map((line, i) => (
+                <p key={i}>• {line}</p>
+              ))}
+            </div>
             {legacyBonus > 0 && (
               <div className="text-emerald-300">
                 {tt(`Bonus de départ de ta prochaine partie : +${mny(legacyBonus)} (grâce à ton record).`, `Starting bonus for your next run: +${mny(legacyBonus)} (thanks to your record).`, `Bonificación de inicio de tu próxima partida: +${mny(legacyBonus)} (por tu récord).`)}
@@ -3168,6 +3211,7 @@ export default function App() {
                 setVengeance([]);
                 setMaxDaySurvived(0);
                 setSagas((a) => rebaseSagas(a));
+                setRunStats(EMPTY_RUN_STATS);
                 setGameOverReason(null);
                 setTab('counter');
                 startNewCase(generateProceduralCase(1, 15, undefined, 1, gameLocale));
@@ -5228,6 +5272,34 @@ export default function App() {
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
             <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
+                {outcome !== 'active' && !currentCase.special && !currentCase.isDailyContract && (() => {
+                  const castD = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
+                  const points = dealDebrief(psychoAudit, {
+                    outcome,
+                    initialPrice: currentCase.initialPrice,
+                    finalPrice: askedPrice,
+                    isTrap: currentCase.isTrap,
+                    profileId: castD?.profileId,
+                    tags: temperamentOf(currentCase.castId)?.tags ?? [],
+                    locale: gameLocale,
+                    money: mny,
+                    label: hitLoc,
+                  });
+                  if (!points.length) return null;
+                  return (
+                    <details className="mb-2 border border-violet-400/30 bg-violet-950/20 font-mono text-[11px] text-zinc-200">
+                      <summary className="cursor-pointer px-2 py-1.5 uppercase tracking-wider text-violet-200">🧠 {tt('Autopsie du deal', 'Deal autopsy', 'Autopsia del trato')} ({points.length})</summary>
+                      <ul className="space-y-1.5 px-2 pb-2 leading-snug">
+                        {points.map((pt, i) => (
+                          <li key={i} className={pt.kind === 'good' ? 'text-emerald-300' : pt.kind === 'warn' ? 'text-amber-300' : 'text-sky-300'}>
+                            {pt.kind === 'good' ? '✓ ' : pt.kind === 'warn' ? '⚠ ' : '💡 '}
+                            {pt.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  );
+                })()}
                 {outcome !== 'active' && (sagaNote || favor) && (
                   <div className="mb-2 space-y-1.5 border border-amber-500/30 bg-amber-500/5 p-2 font-mono text-[11px] leading-snug text-amber-100">
                     {sagaNote && <p>{sagaNote}</p>}
