@@ -14,8 +14,6 @@ import {
   Unlock,
   Volume2,
   VolumeX,
-  Mic,
-  MicOff,
   Loader2,
   User,
   MessageSquare,
@@ -423,7 +421,6 @@ export default function App() {
     }
   });
   const [lastPoachedItem, setLastPoachedItem] = useState<string | undefined>(undefined);
-  const [listening, setListening] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LbEntry[]>([]);
   const [lbBoard, setLbBoard] = useState<LbBoard>('margin');
@@ -985,38 +982,6 @@ export default function App() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-  };
-
-  const toggleMic = () => {
-    const SpeechRec =
-      (window as unknown as { SpeechRecognition?: new () => unknown; webkitSpeechRecognition?: new () => unknown })
-        .SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: new () => unknown }).webkitSpeechRecognition;
-
-    if (!SpeechRec) {
-      setError(tt('Reconnaissance vocale non supportée sur ce navigateur (utilise Chrome/Safari).', 'Speech recognition is not supported in this browser (use Chrome or Safari).', 'El reconocimiento de voz no es compatible con este navegador (usa Chrome o Safari).'));
-      return;
-    }
-
-    if (listening) return;
-    const rec = new SpeechRec() as {
-      lang: string;
-      interimResults: boolean;
-      onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
-      onerror: () => void;
-      onend: () => void;
-      start: () => void;
-    };
-    rec.lang = 'fr-FR';
-    rec.interimResults = false;
-    setListening(true);
-    rec.onresult = (e) => {
-      const transcript = e.results[0]?.[0]?.transcript;
-      if (transcript) setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    rec.start();
   };
 
   const refreshPass = async () => {
@@ -5268,7 +5233,7 @@ export default function App() {
                         )}
                         <button
                           onClick={nextProceduralClient}
-                          className="brass flex items-center gap-1.5 px-5 py-2 font-[family-name:var(--font-display)] text-lg tracking-widest uppercase text-[#1a1206] transition-transform hover:scale-[1.02]"
+                          className="brass flex items-center justify-center gap-1.5 px-5 py-2.5 font-[family-name:var(--font-display)] text-lg tracking-widest uppercase text-[#1a1206] max-sm:w-full transition-transform hover:scale-[1.02] active:scale-95"
                         >
                           {clientsServedToday + 1 >= maxClientsPerDay ? t.toNight : t.nextClient}
                           <ChevronRight className="h-4 w-4" />
@@ -5353,12 +5318,12 @@ export default function App() {
                     const btn = 'brass px-2 py-2.5 font-mono text-xs font-bold uppercase text-[#1a1206] disabled:opacity-40';
                     const ghost = 'border border-white/20 bg-black/60 px-2 py-2.5 font-mono text-xs uppercase text-zinc-200 hover:border-white/40 disabled:opacity-40';
                     return sp.event === 'checkpoint' ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <button type="button" disabled={cash < bribe} onClick={() => resolveEvent('a')} className={btn}>{tt(`Graisser la patte ${mny(bribe)} · Heat −20 %`, `Bribe ${mny(bribe)} · Heat −20%`, `Sobornar ${mny(bribe)} · Heat −20 %`)}</button>
                         <button type="button" onClick={() => resolveEvent('b')} className={ghost}>{tt('Profil bas · Heat +10 %, 40 % de perdre une pièce', 'Low profile · Heat +10%, 40% to lose a piece', 'Perfil bajo · Heat +10 %, 40 % de perder una pieza')}</button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button type="button" onClick={() => resolveEvent('a')} className={ghost}>{tt('Payer 15 % de la caisse', 'Pay 15% of the register', 'Pagar el 15 % de la caja')}</button>
                         <button type="button" disabled={!upgrades.armoredDoor} onClick={() => resolveEvent('b')} className={btn}>{upgrades.armoredDoor ? tt('Porte blindée · gratuit', 'Armored door · free', 'Puerta blindada · gratis') : tt('Porte blindée (non installée)', 'Armored door (not installed)', 'Puerta blindada (sin instalar)')}</button>
                         <button type="button" onClick={() => resolveEvent('c')} className={ghost}>{tt('Bluffer · 50 % : rien ou −30 %', 'Bluff · 50%: nothing or −30%', 'Farolear · 50 %: nada o −30 %')}</button>
@@ -5411,15 +5376,15 @@ export default function App() {
                           );
                         })}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 max-sm:w-full">
                         <button
                           type="button"
                           onClick={acceptBuyerOffer}
-                          className="flex-1 border border-emerald-400/60 bg-emerald-950/60 px-2 py-2 font-mono text-[11px] font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80"
+                          className="flex-1 border border-emerald-400/60 bg-emerald-950/60 px-2 py-2.5 font-mono text-xs font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80 active:scale-95"
                         >
                           {tt(`Accepter ${mny(sp.offer)}`, `Accept ${mny(sp.offer)}`, `Aceptar ${mny(sp.offer)}`)}
                         </button>
-                        <button type="button" onClick={leaveSpecial} className="border border-white/20 bg-black/60 px-3 py-2 font-mono text-[11px] uppercase text-zinc-300 hover:border-white/40">
+                        <button type="button" onClick={leaveSpecial} className="border border-white/20 bg-black/60 px-4 py-2.5 font-mono text-xs uppercase text-zinc-300 hover:border-white/40 active:scale-95">
                           {t.pass}
                         </button>
                       </div>
@@ -5434,15 +5399,15 @@ export default function App() {
                           ? tt(`${currentCase.name} veut la pièce que tu gardes et la paie ${mny(currentCase.arcRewardCash || 0)}. Livre-la pour clore la piste.`, `${currentCase.name} wants the piece you kept and pays ${mny(currentCase.arcRewardCash || 0)}. Deliver it to close the case.`, `${currentCase.name} quiere la pieza que guardas y paga ${mny(currentCase.arcRewardCash || 0)}. Entrégala para cerrar el caso.`)
                           : tt('Tu n’as plus la pièce : ce client repart et la piste se referme.', 'You no longer have the piece: this client leaves and the case closes.', 'Ya no tienes la pieza: este cliente se va y el caso se cierra.')}
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 max-sm:w-full">
                         {hasArcItem && (
-                          <button onClick={resolveArcStep2} className="brass px-5 py-2 text-sm font-semibold text-[#1a1206]">
+                          <button onClick={resolveArcStep2} className="brass flex-1 px-5 py-2 text-sm font-semibold text-[#1a1206]">
                             {t.arcDeliver(formatMoney(currentCase.arcRewardCash || 0, gameLocale))}
                           </button>
                         )}
                         <button
                           onClick={hasArcItem ? passClient : abandonArcStep2}
-                          className="border border-white/20 px-4 py-2 text-sm text-zinc-200 hover:border-white/40"
+                          className="border border-white/20 px-4 py-2 text-sm text-zinc-200 hover:border-white/40 max-sm:flex-1"
                         >
                           {hasArcItem ? t.pass : t.arcClose}
                         </button>
@@ -5672,15 +5637,6 @@ export default function App() {
                           }
                           className="min-w-0 flex-1 bg-transparent text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
                         />
-                        <button
-                          type="button"
-                          onClick={toggleMic}
-                          disabled={loading}
-                          title="Dicter au micro"
-                          className={`p-1 max-sm:hidden ${listening ? 'animate-pulse text-red-400' : 'text-zinc-400 hover:text-white'}`}
-                        >
-                          {listening ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                        </button>
                         <button
                           type="submit"
                           disabled={loading || !input.trim()}
