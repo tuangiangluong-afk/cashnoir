@@ -79,6 +79,112 @@ export function computeDynamicFloor(initialPrice: number, floorPrice: number, pe
 
 const LOWBALL_RATIO = 0.65;
 
+export function parseSpelledPrices(text: string): number[] {
+  const t = text.toLowerCase();
+  const patterns: [RegExp, number][] = [
+    [/\b(?:deux\s+mille\s+neuf\s+cents?|twenty-nine\s+hundred|dos\s+mil\s+novecientos)\b/g, 2900],
+    [/\b(?:deux\s+mille\s+huit\s+cents?|twenty-eight\s+hundred|dos\s+mil\s+ochocientos)\b/g, 2800],
+    [/\b(?:deux\s+mille\s+sept\s+cents?|twenty-seven\s+hundred|dos\s+mil\s+setecientos)\b/g, 2700],
+    [/\b(?:deux\s+mille\s+six\s+cents?|twenty-six\s+hundred|dos\s+mil\s+seiscientos)\b/g, 2600],
+    [/\b(?:deux\s+mille\s+cinq\s+cents?|twenty-five\s+hundred|dos\s+mil\s+quinientos)\b/g, 2500],
+    [/\b(?:deux\s+mille\s+quatre\s+cents?|twenty-four\s+hundred|dos\s+mil\s+cuatrocientos)\b/g, 2400],
+    [/\b(?:deux\s+mille\s+trois\s+cents?|twenty-three\s+hundred|dos\s+mil\s+trescientos)\b/g, 2300],
+    [/\b(?:deux\s+mille\s+deux\s+cents?|twenty-two\s+hundred|dos\s+mil\s+doscientos)\b/g, 2200],
+    [/\b(?:deux\s+mille\s+cents?|twenty-one\s+hundred|dos\s+mil\s+cien)\b/g, 2100],
+    [/\b(?:mille\s+neuf\s+cents?|dix-neuf\s+cents?|nineteen\s+hundred|mil\s+novecientos)\b/g, 1900],
+    [/\b(?:mille\s+huit\s+cents?|dix-huit\s+cents?|eighteen\s+hundred|mil\s+ochocientos)\b/g, 1800],
+    [/\b(?:mille\s+sept\s+cents?|dix-sept\s+cents?|seventeen\s+hundred|mil\s+setecientos)\b/g, 1700],
+    [/\b(?:mille\s+six\s+cents?|seize\s+cents?|sixteen\s+hundred|mil\s+seiscientos)\b/g, 1600],
+    [/\b(?:mille\s+cinq\s+cents?|quinze\s+cents?|fifteen\s+hundred|mil\s+quinientos)\b/g, 1500],
+    [/\b(?:mille\s+quatre\s+cents?|quatorze\s+cents?|fourteen\s+hundred|mil\s+cuatrocientos)\b/g, 1400],
+    [/\b(?:mille\s+trois\s+cents?|treize\s+cents?|thirteen\s+hundred|mil\s+trescientos)\b/g, 1300],
+    [/\b(?:mille\s+deux\s+cents?|douze\s+cents?|twelve\s+hundred|mil\s+doscientos)\b/g, 1200],
+    [/\b(?:mille\s+cents?|onze\s+cents?|eleven\s+hundred|mil\s+cien)\b/g, 1100],
+    [/\b(?:deux\s+mille|two\s+thousand|dos\s+mil)\b/g, 2000],
+    [/\b(?:trois\s+mille|three\s+thousand|tres\s+mil)\b/g, 3000],
+    [/\b(?:quatre\s+mille|four\s+thousand|cuatro\s+mil)\b/g, 4000],
+    [/\b(?:cinq\s+mille|five\s+thousand|cinco\s+mil)\b/g, 5000],
+    [/\b(?:mille|one\s+thousand|mil)\b/g, 1000],
+  ];
+  const found: number[] = [];
+  let s = t;
+  for (const [regex, val] of patterns) {
+    if (regex.test(s)) {
+      found.push(val);
+      s = s.replace(regex, '');
+    }
+  }
+  return found;
+}
+
+export function spelledAmount(n: number, locale: Locale): string {
+  const thousands = Math.floor(n / 1000);
+  const rem = n % 1000;
+  if (locale === 'fr') {
+    const tMap: Record<number, string> = {
+      1: 'mille',
+      2: 'deux mille',
+      3: 'trois mille',
+      4: 'quatre mille',
+      5: 'cinq mille',
+      6: 'six mille',
+      7: 'sept mille',
+      8: 'huit mille',
+      9: 'neuf mille',
+    };
+    const tStr = tMap[thousands] || `${thousands} mille`;
+    if (rem === 0) return `${tStr} dollars`;
+    return `${tStr} ${rem} dollars`;
+  }
+  if (locale === 'es') {
+    const tMap: Record<number, string> = {
+      1: 'mil',
+      2: 'dos mil',
+      3: 'tres mil',
+      4: 'cuatro mil',
+      5: 'cinco mil',
+    };
+    const tStr = tMap[thousands] || `${thousands} mil`;
+    if (rem === 0) return `${tStr} dólares`;
+    return `${tStr} ${rem} dólares`;
+  }
+  const tMap: Record<number, string> = {
+    1: 'one thousand',
+    2: 'two thousand',
+    3: 'three thousand',
+    4: 'four thousand',
+    5: 'five thousand',
+  };
+  const tStr = tMap[thousands] || `${thousands} thousand`;
+  if (rem === 0) return `${tStr} dollars`;
+  return `${tStr} ${rem} dollars`;
+}
+
+export function sanitizeSpelledOffer(dialogue: string, playerOffer: number | undefined, locale: Locale): string {
+  if (playerOffer === undefined) return dialogue;
+  let cleaned = dialogue;
+  if (locale === 'fr') {
+    if (playerOffer >= 1800 && playerOffer <= 2200) {
+      cleaned = cleaned.replace(/\bvingt[\s-]mille\b/gi, (m) => (m[0] === m[0].toUpperCase() ? 'Deux mille' : 'deux mille'));
+      cleaned = cleaned.replace(/\b20[\s\u202f\u00a0]?000\s*\$?/gi, `${playerOffer.toLocaleString('fr-FR')} $`);
+    } else if (playerOffer >= 2800 && playerOffer <= 3200) {
+      cleaned = cleaned.replace(/\btrente[\s-]mille\b/gi, (m) => (m[0] === m[0].toUpperCase() ? 'Trois mille' : 'trois mille'));
+      cleaned = cleaned.replace(/\b30[\s\u202f\u00a0]?000\s*\$?/gi, `${playerOffer.toLocaleString('fr-FR')} $`);
+    }
+  } else if (locale === 'en') {
+    if (playerOffer >= 1800 && playerOffer <= 2200) {
+      cleaned = cleaned.replace(/\btwenty[\s-]thousand\b/gi, (m) => (m[0] === m[0].toUpperCase() ? 'Two thousand' : 'two thousand'));
+      cleaned = cleaned.replace(/\$?\b20[, ]?000\b/gi, `$${playerOffer.toLocaleString('en-US')}`);
+    }
+  } else if (locale === 'es') {
+    if (playerOffer >= 1800 && playerOffer <= 2200) {
+      cleaned = cleaned.replace(/\bveinte[\s-]mil\b/gi, (m) => (m[0] === m[0].toUpperCase() ? 'Dos mil' : 'dos mil'));
+      cleaned = cleaned.replace(/\b20[., ]?000\s*\$?/gi, `${playerOffer.toLocaleString('es-ES')} $`);
+    }
+  }
+  return cleaned;
+}
+
 function sanitizeText(raw: unknown, fallback: string): string {
   const s = String(raw || fallback)
     .replace(/(?:<0xE2><0x80><0xAF>|<0xC2><0xA0>|[\u202f\u00a0])/gi, ' ')
@@ -138,12 +244,15 @@ export function parseNPCJson(
     Math.max(floorPrice, Math.round(Number(parsed.prix_actuel_demande ?? currentPrice))),
   );
 
-  // Extrait tout prix de concession ou contre-offre mentionné textuellement par le NPC (support $2,200 et 2 200 $)
-  const dialoguePriceMatches = Array.from(
+  // Extrait tout prix de concession ou contre-offre mentionné textuellement par le NPC (en chiffres et en toutes lettres)
+  const numericMatches = Array.from(
     String(parsed.dialogue || '').matchAll(/(?:\$\s*(\d[\d,\s\u202f\u00a0]{1,8})|(\d[\d,\s\u202f\u00a0]{1,8})\s*(?:\$|dollars?))/gi),
   )
-    .map((m) => Number((m[1] || m[2]).replace(/[\s\u202f\u00a0,\.]/g, '')))
+    .map((m) => Number((m[1] || m[2]).replace(/[\s\u202f\u00a0,\.]/g, '')));
+  const spelledMatches = parseSpelledPrices(String(parsed.dialogue || ''));
+  const dialoguePriceMatches = [...numericMatches, ...spelledMatches]
     .filter((n) => Number.isFinite(n) && n >= floorPrice && n <= initialPrice);
+
   const mentionedPrice = dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
   const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice < currentPrice);
   if (hasConcededInDialogue && mentionedPrice) {
@@ -172,18 +281,13 @@ export function parseNPCJson(
     );
   }
 
-  // Anti-capitulation : quand le vendeur n'est pas terrifié (peur < 55) ET n'a pas spontanément
-  // concédé un prix inférieur dans son dialogue, il ne baisse pas de plus de 25 % d'un coup.
-  // S'il a la trouille (peur >= 55) ou a lui-même proposé ce prix, il peut craquer jusqu'au plancher.
-  if (jauges.peur < 55) {
+  // Anti-capitulation : ne baisse pas de plus de 25 % d'un coup sauf si la peur est installée ou si le vendeur a concédé
+  if (jauges.peur < 55 && !hasConcededInDialogue && action !== 'deal_accepte') {
     nextPrice = Math.max(nextPrice, Math.max(floorPrice, Math.round((currentPrice * (fearCap < 25 ? 0.95 : 0.75)) / 50) * 50));
-  } else {
-    nextPrice = Math.max(dynamicFloor, nextPrice);
   }
 
   // Un lowball insultant arrive UNIQUEMENT si l'offre est sous le plancher dynamique
   // ET que le vendeur n'est pas terrorisé. S'il est sous pression ou si l'offre >= dynamicFloor, ce n'est PAS un lowball.
-  // La peur doit déjà être installée AVANT ce message : un seul bluff ne suffit pas à tout débloquer.
   const isTerrified = fallbackGauges.peur >= 55;
   const isCloseToAsked = playerOffer !== undefined && playerOffer >= currentPrice * 0.82;
   const satisfiesDynamicFloor = playerOffer !== undefined && playerOffer >= dynamicFloor;
@@ -204,20 +308,38 @@ export function parseNPCJson(
   if (leaveGuard && action === 'quitte_la_boutique' && jauges.mefiance < 72 && jauges.colere < 62) action = 'aucune';
 
   // Un deal ne peut JAMAIS être conclu sans offre explicite du joueur.
-  // Si le joueur utilise un outil (Radio, UV, Loupe) ou pose une question sans offre de cash,
-  // le PNJ peut paniquer et baisser son prix demandé, mais l'action reste 'aucune' (le joueur garde la main pour accepter ou contre-attaquer).
   if (playerOffer === undefined && action === 'deal_accepte') {
     action = 'aucune';
   }
 
+  // Détection d'accord explicite dans le dialogue du PNJ
+  const rawDialogue = String(parsed.dialogue || '');
+  const dialogueAgreed =
+    playerOffer !== undefined &&
+    !lowball &&
+    /(?:vous avez raison|laissez-moi (?:juste )?partir|c'est (?:parfait|d'accord|bon)|marché conclu|on est d'accord|d'accord pour|vendu|trato hecho|de acuerdo|deal done|it's yours|take it and let me go|agreed)/i.test(
+      rawDialogue,
+    );
+
   // Enforcement déterministe des seuils et de l'acceptation d'offre
   let forcedOutcome: 'deal' | 'gun' | 'leave' | 'lowball' | null = lowball ? 'lowball' : null;
-  const offerOk = playerOffer !== undefined && (playerOffer >= dynamicFloor || playerOffer >= nextPrice);
-  if (action === 'deal_accepte' && !offerOk) action = 'aucune';
+  const offerOk =
+    playerOffer !== undefined &&
+    (playerOffer >= dynamicFloor ||
+      playerOffer >= nextPrice ||
+      (hasConcededInDialogue && mentionedPrice && playerOffer >= mentionedPrice) ||
+      (action === 'deal_accepte' && !lowball) ||
+      dialogueAgreed);
+
+  // Ne jamais annuler une acceptation du vendeur sauf en cas d'insulte / lowball abusif
+  if (action === 'deal_accepte' && (playerOffer === undefined || lowball)) {
+    action = 'aucune';
+  }
+
   if (
     !lowball &&
     playerOffer !== undefined &&
-    offerOk &&
+    (offerOk || action === 'deal_accepte' || dialogueAgreed) &&
     fallbackGauges.colere < 78
   ) {
     forcedOutcome = 'deal';
@@ -244,6 +366,9 @@ export function parseNPCJson(
   } else if (locale === 'es') {
     dialogue = dialogue.replace(/\bte\s+doy\s+(\d+)/gi, 'te lo dejo en $1');
   }
+
+  // Nettoie toute confusion 2000 vs 20000 ("vingt mille" -> "deux mille")
+  dialogue = sanitizeSpelledOffer(dialogue, playerOffer, locale);
   let tell = sanitizeText(
     parsed.indice_comportemental,
     locale === 'en'
@@ -286,15 +411,17 @@ export function parseNPCJson(
   if (forcedOutcome === 'deal') {
     const dealAmount = playerOffer !== undefined ? playerOffer : nextPrice;
     const formattedOffer = formatMoney(dealAmount, locale);
-    if (locale === 'en') {
-      dialogue = `Deal sealed for $${formattedOffer}. Hand over the bills, and I was never here.`;
-      tell = `${isFemale ? 'She' : 'He'} pushes the item across the counter and reaches for the cash.`;
-    } else if (locale === 'es') {
-      dialogue = `Trato cerrado por ${formattedOffer} $. Dame los billetes y olvida mi cara.`;
-      tell = `${isFemale ? 'Ella empuja' : 'Empuja'} el objeto sobre el mostrador y extiende la mano para el dinero.`;
-    } else {
-      dialogue = `Marché conclu pour ${formattedOffer} $. Donne le liquide, je disparais.`;
-      tell = `${isFemale ? 'Elle' : 'Il'} pousse l'objet vers toi et tend la main pour les billets.`;
+    if (!dialogueAgreed && parsed.action_speciale !== 'deal_accepte') {
+      if (locale === 'en') {
+        dialogue = `Deal sealed for $${formattedOffer}. Hand over the bills, and I was never here.`;
+        tell = `${isFemale ? 'She' : 'He'} pushes the item across the counter and reaches for the cash.`;
+      } else if (locale === 'es') {
+        dialogue = `Trato cerrado por ${formattedOffer} $. Dame los billetes y olvida mi cara.`;
+        tell = `${isFemale ? 'Ella empuja' : 'Empuja'} el objeto sobre el mostrador y extiende la mano para el dinero.`;
+      } else {
+        dialogue = `Marché conclu pour ${formattedOffer} $. Donne le liquide, je disparais.`;
+        tell = `${isFemale ? 'Elle' : 'Il'} pousse l'objet vers toi et tend la main pour les billets.`;
+      }
     }
   } else if (forcedOutcome === 'gun') {
     if (locale === 'en') {
@@ -364,32 +491,32 @@ export async function queryNPC(
 CURRENT ASKING PRICE: $${currentPrice} (ABSOLUTE RULE: NEVER ask for more than $${currentPrice}, price can only drop or stay at $${currentPrice}).
 ACCEPTABLE FLOOR THRESHOLD: $${dynamicFloor} (if player offers at least $${dynamicFloor} without insults, accept the deal).${
       playerOffer !== undefined
-        ? `\nPLAYER'S CASH OFFER THIS TURN: $${playerOffer} (take this exact cash amount: $${playerOffer}, do not invent another number).`
+        ? `\nPLAYER'S CASH OFFER THIS TURN: $${playerOffer} (${spelledAmount(playerOffer, 'en')} — read this exact amount in digits: $${playerOffer}, do not confuse with $20,000).`
         : ''
     }
 MANDATORY COMMERCIAL ROLE: YOU ARE THE SELLER demanding cash. The player is the BUYER. You NEVER give cash to the player. NEVER say "I give you $X". Say "I'll let you have it for $X", "give me $X and I walk", or "deal for $X".
-PRICE CONSISTENCY DIRECTIVE: Any price you speak in your dialogue MUST strictly match your current asking price or counter-offer. Never repeat an outdated initial price.
+PRICE CONSISTENCY DIRECTIVE: Any price you speak in your dialogue MUST strictly match your current asking price or counter-offer. ALWAYS write prices in DIGITS with $ (e.g. "$${currentPrice}", never spell out large numbers in words). If you accept the player's cash offer or say deal/alright, you MUST set action_speciale to "deal_accepte" and prix_actuel_demande to ${playerOffer ?? currentPrice}.
 MANDATORY LANGUAGE: Respond 100% in gritty spoken English.`
     : locale === 'es'
       ? `ESTADO ACTUAL DE LAS BARRAS: miedo=${currentGauges.peur}, ira=${currentGauges.colere}, desconfianza=${currentGauges.mefiance}.
 PRECIO ACTUAL PEDIDO: ${currentPrice} $ (REGLA ABSOLUTA: NUNCA pidas más de ${currentPrice} $, el precio solo puede bajar o mantenerse).
 UMBRAL MÍNIMO ACEPTABLE: ${dynamicFloor} $ (si el jugador ofrece al menos ${dynamicFloor} $ sin insultarte, aceptas el trato).${
         playerOffer !== undefined
-          ? `\nOFERTA EN EFECTIVO DEL JUGADOR ESTE TURNO: ${playerOffer} $ (toma este monto exacto: ${playerOffer} $).`
+          ? `\nOFERTA EN EFECTIVO DEL JUGADOR ESTE TURNO: ${playerOffer} $ (${spelledAmount(playerOffer, 'es')} — lee este monto exacto en números: ${playerOffer} $, no confundir con 20 000 $).`
           : ''
       }
 ROL COMERCIAL OBLIGATORIO: ERES EL VENDEDOR pidiendo efectivo. El jugador es el COMPRADOR. NUNCA le das dinero al jugador. NUNCA digas "te doy X $". Di "te lo dejo en X $", "dame X $ y me voy", o "trato hecho por X $".
-DIRECTIVA DE PRECIO: Cualquier precio que digas en tu diálogo DEBE coincidir con tu precio pedido actual. Nunca repitas un precio desactualizado.
+DIRECTIVA DE PRECIO: Cualquier precio que digas DEBE coincidir con tu precio actual. Escribe SIEMPRE los precios en CIFRAS con $ (ej: "${currentPrice} $", NUNCA en letras). Si aceptas la oferta del jugador o dices que sí en tu diálogo, debes poner action_speciale: "deal_accepte" y prix_actuel_demande: ${playerOffer ?? currentPrice}.
 IDIOMA OBLIGATORIO: Responde 100% en español callejero.`
       : `ÉTAT ACTUEL DES JAUGES : peur=${currentGauges.peur}, colere=${currentGauges.colere}, mefiance=${currentGauges.mefiance}.
 PRIX ACTUEL DEMANDÉ : ${currentPrice} $ (RÈGLE ABSOLUE : ne demande JAMAIS plus que ${currentPrice} $, le prix ne peut que baisser ou rester à ${currentPrice} $).
 SEUIL ACCEPTABLE ACTUEL : ${dynamicFloor} $ (si le joueur propose au moins ${dynamicFloor} $ sans t'insulter, tu acceptes le deal).${
         playerOffer !== undefined
-          ? `\nOFFRE CHIFFRÉE DU JOUEUR CE TOUR : ${playerOffer} $ (lis bien ce montant exact : ${playerOffer} $, ne le transforme pas en un autre nombre).`
+          ? `\nOFFRE CHIFFRÉE DU JOUEUR CE TOUR : ${playerOffer} $ (${spelledAmount(playerOffer, 'fr')} — lis bien ce montant exact en chiffres : ${playerOffer} $, et ne le confonds JAMAIS avec 20 000 $ ni "vingt mille").`
           : ''
       }
 RÔLE COMMERCIAL OBLIGATOIRE : TU ES LE VENDEUR qui réclame du liquide. Le joueur est l'ACHETEUR. Tu ne donnes JAMAIS d'argent au joueur. Ne dis JAMAIS "je vous en donne X $" ni "je vous donne X $". Dis "je vous le cède pour X $", "laissez-moi partir avec X $", ou "donnez-moi X $ et je disparais".
-DIRECTIVE DE PRIX : Tout prix que tu prononces dans ton dialogue DOIT correspondre exactement à ton prix demandé actuel. Ne répète jamais un prix dépassé.`;
+DIRECTIVE DE PRIX : Tout prix que tu prononces dans ton dialogue DOIT être écrit en CHIFFRES avec le symbole $ (exemple : "${currentPrice} $", JAMAIS en toutes lettres). Si tu acceptes l'offre du joueur dans ton texte ("d'accord", "vous avez raison", "laissez-moi partir", "marché conclu"), tu DOIS OBLIGATOIREMENT renvoyer action_speciale: "deal_accepte" et prix_actuel_demande: ${playerOffer ?? currentPrice}.`;
 
   const fullSystem = `${systemPrompt}
 

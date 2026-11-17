@@ -2,7 +2,7 @@
 // Lancés par `npm run selftest` (scripts/selftest.mjs bundle ce fichier avec esbuild puis l'exécute avec node).
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseNPCJson, computeDynamicFloor } from '../src/services/llm';
+import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/services/llm';
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
 import { chapterStart, checkpointCash } from '../src/data/checkpoints';
 import { isInjection, evaluatePsychoTriggers } from '../src/data/psychology';
@@ -77,6 +77,21 @@ const parse = (
   const dyn = computeDynamicFloor(750, 150, 60);
   const r = parse({ jauges: g(60), prix_actuel_demande: 700 }, g(60), 750, dyn);
   check('vendeur déjà terrifié : une offre au plancher passe', r.action_speciale === 'deal_accepte', `dyn=${dyn}`);
+}
+{
+  // Concession formulée en toutes lettres ("mille neuf cents" -> 1900)
+  const r = parseNPCJson(raw({ jauges: g(60), prix_actuel_demande: 2450, dialogue: 'Donnez-moi juste... les mille neuf cents et on est partis.' }), g(60), 2450, 2750, 1200, undefined, 'fr', 'm', 25);
+  check('concession en toutes lettres ("mille neuf cents") reconnue', r.prix_actuel_demande === 1900, `prix=${r.prix_actuel_demande}`);
+}
+{
+  // Accord explicite dans le dialogue du vendeur ("Vous avez raison... Laissez-moi juste partir")
+  const r = parseNPCJson(raw({ jauges: g(60), prix_actuel_demande: 2150, dialogue: 'Vous avez raison. Laissez-moi juste partir. Oui. C\'est parfait.' }), g(60), 2150, 2750, 1200, 1900, 'fr', 'm', 25);
+  check('accord explicite dans le texte valide le deal à 1900 $', r.action_speciale === 'deal_accepte' && r.prix_actuel_demande === 1900, `action=${r.action_speciale} prix=${r.prix_actuel_demande}`);
+}
+{
+  // Hallucination 2000 vs 20000 ("vingt mille" corrigé en "Deux mille")
+  const cleaned = sanitizeSpelledOffer('Vingt mille... Vous plaisantez ? Donnez-moi au moins deux mille deux cents.', 2000, 'fr');
+  check('hallucination "vingt mille" corrigée en "Deux mille" quand l\'offre est 2000', cleaned.includes('Deux mille'), `dialogue=${cleaned}`);
 }
 {
   const r = parse({ jauges: g(30, 95), prix_actuel_demande: 750 }, g(30, 70), 750, undefined);
