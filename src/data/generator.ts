@@ -482,7 +482,7 @@ export function buildCase(
       : arch.trait;
 
   // À partir du Jour 2 (ou si Heat >= 40), les infiltrés apparaissent et durcissent au fil des jours
-  const trapChance = options.day >= 4 ? 0.36 : options.day === 3 ? 0.22 : 0.15;
+  const trapChance = (options.day >= 4 ? 0.36 : options.day === 3 ? 0.22 : 0.15) + (options.isDaily ? 0 : ascTrap);
   const isTrap = !options.isDaily && !options.windfall && (options.day >= 2 || options.cityHeat >= 40) && rand() < trapChance;
   const subtleTrap = isTrap && options.day >= 4 && rand() < 0.5;
 
@@ -542,10 +542,14 @@ export function buildCase(
       ? Math.round((streetValue * trapPriceRatio) / 50) * 50
       : Math.round((streetValue * (0.65 + rand() * 0.25)) / 50) * 50);
   const dayTightness = !options.isDaily ? Math.min(0.14, Math.max(0, options.day - 2) * 0.03) : 0;
-  const floorPrice =
+  const floorRaw =
     options.priceOverride?.floorPrice ??
     (options.windfall ? Math.max(100, Math.round((initialPrice * 0.5) / 50) * 50) : undefined) ??
     Math.round((streetValue * (0.14 + dayTightness + rand() * 0.1)) / 50) * 50;
+  const floorPrice =
+    options.isDaily || ascFloor <= 0
+      ? floorRaw
+      : Math.min(Math.round((floorRaw * (1 + ascFloor)) / 50) * 50, Math.max(floorRaw, Math.round((initialPrice * 0.9) / 50) * 50));
 
   const locale: Locale = options.locale || 'fr';
   const itemName = localizeItemName(itemTpl.name, locale);
@@ -810,6 +814,14 @@ function pickCast(rand: () => number): CastCharacter {
     // stockage indisponible : pas d'historique, le tirage reste valide
   }
   return chosen;
+}
+
+let ascTrap = 0;
+let ascFloor = 0;
+/** L'Ascension du joueur durcit les pièges et le plancher des vendeurs (hors contrat quotidien). */
+export function setAscensionHint(trapBoost: number, floorBoost: number): void {
+  ascTrap = trapBoost;
+  ascFloor = floorBoost;
 }
 
 let playerCashHint = 0;

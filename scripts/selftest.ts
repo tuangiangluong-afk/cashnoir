@@ -6,6 +6,7 @@ import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from '../src/data/checkpoints';
 import { heistRisk, heistLoss } from '../src/data/risk';
+import { ASCENSION_LEVELS, getAscensionModifier, MAX_ASCENSION, ROMAN, canAscend } from '../src/data/ascension';
 import { COMBOS, activeCombos, comboCompletedBy } from '../src/data/combos';
 import { JOKER_POOL } from '../src/data/jokers';
 import { applyEncounter, applyFavor, isDue, pickDue, trustTone, SAGA_EPISODES, type SagaState } from '../src/data/saga';
@@ -16,7 +17,7 @@ import { localizeArchetype, localizeItemName, localizeFaction } from '../src/dat
 import { localizeItemText } from '../src/data/itemsI18n';
 import { CAST_ROSTER, PORTRAIT_OF } from '../src/data/cast';
 import { checkSecret, secretContent, rollSecretId, secretAnswer, secretReward } from '../src/data/secrets';
-import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint } from '../src/data/generator';
+import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint, setAscensionHint } from '../src/data/generator';
 import { SEASON_EPISODES, episodesUnlocked, daysUntilEpisode } from '../src/data/seasons';
 import { COLLECTIONS_DATA } from '../src/data/codex';
 import { localizeSeasonEpisode } from '../src/data/noirLocalization';
@@ -410,6 +411,35 @@ for (const msg of [
     if (!c.windfall || c.isTrap || (r !== 'legendaire' && r !== 'mythique') || c.initialPrice > c.streetValue * 0.08 || c.initialPrice < c.floorPrice || c.streetValue < 4000) bad += 1;
   }
   check('trouvaille : pièce légendaire bradée (≤ 8 % de la valeur de rue), jamais un piège', bad === 0, `anomalies=${bad}/80`);
+}
+
+// Ascension : 10 niveaux cumulatifs, textes FR/EN/ES, effets réellement branchés sur le moteur.
+{
+  check('ascension : 10 niveaux et 10 chiffres romains', MAX_ASCENSION === 10 && ROMAN.length === 10);
+  let mono = true;
+  for (let i = 1; i < ASCENSION_LEVELS.length; i++) {
+    const a = ASCENSION_LEVELS[i - 1];
+    const b = ASCENSION_LEVELS[i];
+    if (b.mefianceBoost < a.mefianceBoost || b.angerBoost < a.angerBoost || b.rentMult < a.rentMult || b.rerollPenalty < a.rerollPenalty || b.trapBoost < a.trapBoost || b.floorBoost < a.floorBoost || b.raidShift < a.raidShift || b.heistScale > a.heistScale || b.loanHeat < a.loanHeat || b.heatMin < a.heatMin || (a.radioDown && !b.radioDown)) mono = false;
+  }
+  check('ascension : cumulative (jamais plus facile qu’un niveau précédent)', mono);
+  check('ascension : chaque niveau apporte une règle nouvelle', ASCENSION_LEVELS.every((l, i) => i === 0 || JSON.stringify({ ...l, level: 0, title: 0, desc: 0 }) !== JSON.stringify({ ...ASCENSION_LEVELS[i - 1], level: 0, title: 0, desc: 0 })));
+  check('ascension : titres et descriptions en 3 langues', ASCENSION_LEVELS.every((l) => (['fr', 'en', 'es'] as const).every((k) => l.title[k] && l.desc[k])));
+  check('ascension : niveau 0 = aucun, niveau 99 = max', getAscensionModifier(0) === null && getAscensionModifier(99)?.level === 10 && !canAscend(10, 10) && canAscend(10, 30));
+  const rate = (n: number) => { let k = 0; for (let i = 0; i < 800; i++) if (generateProceduralCase(5, 20, undefined, 1, 'fr').isTrap) k += 1; return k / n; };
+  setAscensionHint(0, 0);
+  const base = rate(800);
+  setAscensionHint(0.15, 0.12);
+  const hard = rate(800);
+  check('ascension : plus de pièges avec trapBoost', hard > base + 0.08, `${Math.round(base * 100)} % -> ${Math.round(hard * 100)} %`);
+  let floorBad = 0;
+  for (let i = 0; i < 300; i++) { const c = generateProceduralCase(8, 20, undefined, 1, 'fr'); if (c.floorPrice > c.initialPrice) floorBad += 1; }
+  check('ascension : le plancher ne dépasse jamais le prix demandé', floorBad === 0, `anomalies=${floorBad}/300`);
+  const daily = generateDailyContract('2026-03-30', undefined, 'fr');
+  setAscensionHint(0, 0);
+  const daily0 = generateDailyContract('2026-03-30', undefined, 'fr');
+  check('ascension : le contrat quotidien n’est jamais modifié', daily.floorPrice === daily0.floorPrice && daily.initialPrice === daily0.initialPrice);
+  check('ascension : seuil de braquage plus bas = plus de risque', heistRisk(14000, 5, false, 0.65) > heistRisk(14000, 5, false, 1));
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

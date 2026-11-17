@@ -2,7 +2,8 @@
 // Lancé par `npm run econ`. Règles reprises du jeu : 3 clients/jour, achat impossible au-dessus du cash,
 // loyer = 500 + 450×(jour−1) + 8 % du cash, revente rapide ×0,62, enchères ×1,15 (×1,3 nettoyées, 150 $) saturées (1 · 0,8 · 0,6).
 // Sans jokers, bâtiments, tendances de marché ni événements : c'est la base du jeu.
-import { generateProceduralCase, setPlayerCashHint } from '../src/data/generator';
+import { generateProceduralCase, setPlayerCashHint, setAscensionHint } from '../src/data/generator';
+import { getAscensionModifier } from '../src/data/ascension';
 import { computeDynamicFloor } from '../src/services/llm';
 
 const RUNS = Number(process.env.RUNS || 300);
@@ -18,7 +19,10 @@ const RENT_BASE = num('RENT_BASE', 300);
 const RENT_SLOPE = num('RENT_SLOPE', 350);
 const DAILY_BONUS = num('DAILY_BONUS', 600); // quêtes du jour + série de connexion, en moyenne
 const tax = (cash: number) => Math.round(Math.min(cash, 15000) * 0.08 + Math.max(0, Math.min(cash, 50000) - 15000) * 0.15 + Math.max(0, cash - 50000) * 0.25);
-const rentOf = (day: number, cash: number) => RENT_BASE + (day - 1) * RENT_SLOPE + tax(cash);
+// ASC=n : Ascension n (loyer et plancher des vendeurs ; les pièges sont déjà évités par le joueur simulé).
+const ASC = getAscensionModifier(Number(process.env.ASC || 0));
+setAscensionHint(ASC?.trapBoost ?? 0, ASC?.floorBoost ?? 0);
+const rentOf = (day: number, cash: number) => Math.round((RENT_BASE + (day - 1) * RENT_SLOPE + tax(cash)) * (ASC?.rentMult ?? 1));
 
 type Strategy = { name: string; fear: number; sell: 'fast' | 'auction-clean'; lazy?: boolean };
 const strategies: Strategy[] = [

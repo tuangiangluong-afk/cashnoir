@@ -33,6 +33,7 @@ import {
   generateDailyContract,
   generateBossCase,
   generateWindfallCase,
+  setAscensionHint,
   type ProceduralCase,
 } from './data/generator';
 import { DISTRICTS, CITY_ASSETS, type District, type CityAsset } from './data/empire';
@@ -63,7 +64,7 @@ import { JokerIcon } from './components/JokerIcon';
 import { EmpireIcon } from './components/EmpireIcons';
 import { type VengeanceEntry, checkVengeance, pruneVengeance } from './data/revenge';
 import { getWeeklyChallenge, type WeeklyChallenge } from './data/challenges';
-import { getAscensionModifier, canAscend } from './data/ascension';
+import { getAscensionModifier, canAscend, MAX_ASCENSION, ROMAN } from './data/ascension';
 import {
   getDiscoveredCodexItems,
   recordCodexDiscovery,
@@ -976,7 +977,8 @@ export default function App() {
   ) + debt; // le prêt du Syndicat se rembourse avec le loyer du soir
   const maxClientsPerDay = 3;
   const baseRerolls = Math.max(0, 2 - (ascMod?.rerollPenalty ?? 0));
-  const heatRaid = cityHeat >= 80;
+  const raidAt = 80 - (ascMod?.raidShift ?? 0);
+  const heatRaid = cityHeat >= raidAt;
 
   // Voix robotique TTS désactivée volontairement (sera remplacée par de vraies voix plus tard).
   const speakNPC = (_text: string, _currentGauges: Gauges) => {
@@ -1191,6 +1193,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome, currentCase.id]);
 
+  useEffect(() => {
+    setAscensionHint(ascMod?.trapBoost ?? 0, ascMod?.floorBoost ?? 0);
+  }, [ascMod]);
+  useEffect(() => {
+    if (ascMod?.heatMin && cityHeat < ascMod.heatMin) setCityHeat(ascMod.heatMin);
+  }, [ascMod, cityHeat]);
+
   // Le générateur adapte la valeur des pièces au cash du joueur (jamais de pièce hors de portée).
   useEffect(() => {
     setPlayerCashHint(cash);
@@ -1252,6 +1261,7 @@ export default function App() {
     const armedWeapons = activeJokers.includes('vitrine-armee')
       ? inventory.filter((it) => it.category === 'Armement').length
       : 0;
+    const ascAnger = nextCase.isDailyContract ? 0 : ascMod?.angerBoost ?? 0;
     const fearBonus =
       (activeJokers.includes('intimidation') ? 15 : 0) +
       armedWeapons * 15 +
@@ -1272,7 +1282,7 @@ export default function App() {
     setGauges({
       ...nextCase.initialGauges,
       peur: Math.min(100, nextCase.initialGauges.peur + fearBonus),
-      colere: Math.min(100, nextCase.initialGauges.colere + (revenge?.angerBoost ?? 0)),
+      colere: Math.min(100, nextCase.initialGauges.colere + ascAnger + (revenge?.angerBoost ?? 0)),
       mefiance: Math.max(
         5,
         Math.min(
@@ -1319,7 +1329,7 @@ export default function App() {
         action: tt('Entrée au comptoir', 'Enters counter', 'Entrada al mostrador'),
         peur: Math.min(100, nextCase.initialGauges.peur + fearBonus),
         peurDelta: fearBonus,
-        colere: Math.min(100, nextCase.initialGauges.colere + (revenge?.angerBoost ?? 0)),
+        colere: Math.min(100, nextCase.initialGauges.colere + ascAnger + (revenge?.angerBoost ?? 0)),
         colereDelta: revenge?.angerBoost ?? 0,
         mefiance: Math.max(5, Math.min(100, nextCase.initialGauges.mefiance + suspicionBonus + (revenge?.mefianceBoost ?? 0) + (facRank?.mefianceDelta ?? 0))),
         mefianceDelta: suspicionBonus + (revenge?.mefianceBoost ?? 0) + (facRank?.mefianceDelta ?? 0),
@@ -2592,7 +2602,7 @@ export default function App() {
     let heistText: string | null = null;
     // Heat >= 80 : descente de police. Le risque devient une vraie perte.
     const raidProtected = activeCodexPerks.includes('Brouillage Total');
-    if (cityHeat >= 80 && !raidProtected) {
+    if (cityHeat >= raidAt && !raidProtected) {
       const fine = Math.round(cash * 0.3);
       const seized = inventory.length;
       const cashLeft = cash - fine;
@@ -2616,7 +2626,7 @@ export default function App() {
       }
     } else {
       // Une caisse bien garnie attire les braqueurs (la porte blindée et le compte suisse protègent).
-      if (Math.random() < heistRisk(cash, day, upgrades.armoredDoor)) {
+      if (Math.random() < heistRisk(cash, day, upgrades.armoredDoor, ascMod?.heistScale ?? 1)) {
         const loss = heistLoss(cash, Math.random);
         setCash((c) => Math.max(0, c - loss));
         heistText = tt(`Braquage de nuit : ${mny(loss)} envolés. Une caisse bien garnie attire du monde.`, `Night robbery: ${mny(loss)} gone. A full register attracts company.`, `Atraco nocturno: ${mny(loss)} desaparecidos. Una caja llena atrae visitas.`);
@@ -2632,7 +2642,7 @@ export default function App() {
         setRaidNote(
           '✓ ' + tt(`Couvre-feu calme (Heat < 35%) : +${mny(nightEvent.curfewBonusCash)} de prime de discrétion.`, `Quiet curfew (Heat < 35%): +${mny(nightEvent.curfewBonusCash)} discretion bonus.`, `Toque de queda tranquilo (Heat < 35 %): +${mny(nightEvent.curfewBonusCash)} de prima de discreción.`),
         );
-      } else if (raidProtected && cityHeat >= 80) {
+      } else if (raidProtected && cityHeat >= raidAt) {
         setRaidNote('✓ ' + tt('Brouillage Total (Codex) : la descente de police a été déviée.', 'Total Jamming (Codex): the police raid was diverted.', 'Interferencia total (Códice): la redada policial fue desviada.'));
       } else {
         setRaidNote(null);
@@ -2727,7 +2737,7 @@ export default function App() {
     sound.playCashSlap();
     setDebt(1300);
     setCash((c) => c + 1000);
-    setCityHeat((h) => Math.min(100, h + 15));
+    setCityHeat((h) => Math.min(100, h + (ascMod?.loanHeat ?? 15)));
     setError(null);
   };
 
@@ -2948,6 +2958,10 @@ export default function App() {
                             sound.playInspect();
   };
   const doRadio = () => {
+    if (ascMod?.radioDown && day % 3 === 0) {
+      setError(tt('Ascension : la radio de police est en panne aujourd’hui.', 'Ascension: the police radio is down today.', 'Ascensión: la radio de la policía no funciona hoy.'));
+      return;
+    }
                             const next = !radioOpen;
                             setRadioOpen(next);
                             if (next) {
@@ -3132,7 +3146,7 @@ export default function App() {
               {t.gameOverReopen(formatMoney(reopenCostSwiss, gameLocale), formatMoney(reopenStartingCash, gameLocale))}
             </button>
           )}
-          {canAscend(swissBank, maxDaySurvived) && (
+          {ascensionLevel < MAX_ASCENSION && canAscend(swissBank, maxDaySurvived) && (
             <button
               onClick={() => {
                 const nextLevel = ascensionLevel + 1;
@@ -3160,7 +3174,7 @@ export default function App() {
               }}
               className="w-full bg-amber-600 hover:bg-amber-500 text-zinc-950 font-semibold py-2.5 rounded-md text-sm"
             >
-              {t.gameOverAscend(['I', 'II', 'III'][ascensionLevel] || 'MAX')}
+              {t.gameOverAscend(ROMAN[ascensionLevel] ?? 'MAX')}
             </button>
           )}
           <button
@@ -3210,7 +3224,7 @@ export default function App() {
             <span className="text-zinc-400">{getLocalizedRank(totalProfit, gameLocale)}</span>
             {ascensionLevel > 0 && (
               <span className="border border-amber-500/40 bg-amber-500/10 px-1 py-0.2 text-[8px] text-amber-300">
-                ASC.{['I','II','III'][ascensionLevel - 1] || ascensionLevel}
+                ASC.{ROMAN[ascensionLevel - 1] ?? ascensionLevel}
               </span>
             )}
           </div>
@@ -3565,21 +3579,21 @@ export default function App() {
                       ? tr(`Liquidités insuffisantes en caisse (${money(cash)} dispo). Vends une pièce ou puise dans le compte suisse.`, `Insufficient vault cash (${money(cash)} available). Liquidate a piece or tap Swiss funds.`, `Efectivo insuficiente (${money(cash)} disponible). Vende una pieza o retira de la cuenta suiza.`)
                       : tr(`Reste net en caisse après paiement : ${money(cash - dailyRent)}`, `Net remaining in cash after payment: ${money(cash - dailyRent)}`, `Restante neto en caja tras el pago: ${money(cash - dailyRent)}`)}
                   </p>
-                  {heistRisk(cash, day, upgrades.armoredDoor) >= 0.1 && (
+                  {heistRisk(cash, day, upgrades.armoredDoor, ascMod?.heistScale ?? 1) >= 0.1 && (
                     <p className="rounded border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-[11px] leading-snug text-amber-200">
                       {tr(
-                        `Ta caisse (${money(cash)}) attire les braqueurs : ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)} % de risque cette nuit, 12 à 25 % de la caisse. Mets du cash en Suisse ou installe la porte blindée.`,
-                        `Your register (${money(cash)}) attracts robbers: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)}% risk tonight, 12-25% of the cash. Move cash to Switzerland or install the armored door.`,
-                        `Tu caja (${money(cash)}) atrae a los ladrones: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)} % de riesgo esta noche, 12-25 % de la caja. Pasa efectivo a Suiza o instala la puerta blindada.`,
+                        `Ta caisse (${money(cash)}) attire les braqueurs : ${Math.round(heistRisk(cash, day, upgrades.armoredDoor, ascMod?.heistScale ?? 1) * 100)} % de risque cette nuit, 12 à 25 % de la caisse. Mets du cash en Suisse ou installe la porte blindée.`,
+                        `Your register (${money(cash)}) attracts robbers: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor, ascMod?.heistScale ?? 1) * 100)}% risk tonight, 12-25% of the cash. Move cash to Switzerland or install the armored door.`,
+                        `Tu caja (${money(cash)}) atrae a los ladrones: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor, ascMod?.heistScale ?? 1) * 100)} % de riesgo esta noche, 12-25 % de la caja. Pasa efectivo a Suiza o instala la puerta blindada.`,
                       )}
                     </p>
                   )}
-                  {cityHeat >= 75 && (
+                  {cityHeat >= raidAt - 5 && (
                     <p className="rounded border border-red-500/40 bg-red-950/40 px-2 py-1.5 text-[11px] leading-snug text-red-300">
                       {tr(
-                        `Heat ${cityHeat} % : à 80 %, descente de police à la fin de la nuit. Tu perdrais ${inventory.length} pièce(s)${jokerIds.includes('double-fond') ? ' (2 sauvées par ton double-fond)' : ''} et 30 % de ta caisse. Nettoie tes pièces ou vends-les pour faire baisser le Heat.`,
-                        `Heat ${cityHeat}%: at 80%, a police raid hits at the end of the night. You would lose ${inventory.length} piece(s)${jokerIds.includes('double-fond') ? ' (2 saved by your false bottom)' : ''} and 30% of your cash. Clean or sell your pieces to lower the Heat.`,
-                        `Heat ${cityHeat} %: al 80 %, redada policial al final de la noche. Perderías ${inventory.length} pieza(s)${jokerIds.includes('double-fond') ? ' (2 salvadas por tu doble fondo)' : ''} y el 30 % de tu caja. Limpia o vende tus piezas para bajar el Heat.`,
+                        `Heat ${cityHeat} % : à ${raidAt} %, descente de police à la fin de la nuit. Tu perdrais ${inventory.length} pièce(s)${jokerIds.includes('double-fond') ? ' (2 sauvées par ton double-fond)' : ''} et 30 % de ta caisse. Nettoie tes pièces ou vends-les pour faire baisser le Heat.`,
+                        `Heat ${cityHeat}%: at ${raidAt}%, a police raid hits at the end of the night. You would lose ${inventory.length} piece(s)${jokerIds.includes('double-fond') ? ' (2 saved by your false bottom)' : ''} and 30% of your cash. Clean or sell your pieces to lower the Heat.`,
+                        `Heat ${cityHeat} %: al ${raidAt} %, redada policial al final de la noche. Perderías ${inventory.length} pieza(s)${jokerIds.includes('double-fond') ? ' (2 salvadas por tu doble fondo)' : ''} y el 30 % de tu caja. Limpia o vende tus piezas para bajar el Heat.`,
                       )}
                     </p>
                   )}
@@ -5191,7 +5205,7 @@ export default function App() {
                             onClick={takeSyndicateLoan}
                             className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-amber-500/30 active:scale-95 transition-transform"
                           >
-                            {tt('Crédit Syndicat (+1 000 $, +15% Heat)', 'Syndicate Loan (+$1,000, +15% Heat)', 'Crédito Sindicato (+1.000 $, +15% Heat)')}
+                            {tt(`Crédit Syndicat (+1 000 $, +${ascMod?.loanHeat ?? 15}% Heat)`, `Syndicate Loan (+$1,000, +${ascMod?.loanHeat ?? 15}% Heat)`, `Crédito Sindicato (+1.000 $, +${ascMod?.loanHeat ?? 15}% Heat)`)}
                           </button>
                         )}
                         {cash < askedPrice && outcome === 'active' && !currentCase.special && (
@@ -5822,6 +5836,9 @@ export default function App() {
               <li><span className="text-amber-400">2.</span> {tt('Loupe, UV et Radio révèlent la pièce et le piège. Un infiltré démasqué rapporte une prime.', 'Magnifier, UV and Radio reveal the piece and the trap. Exposing an undercover agent pays a bounty.', 'Lupa, UV y Radio revelan la pieza y la trampa. Desenmascarar a un infiltrado da una prima.')}</li>
               <li><span className="text-amber-400">3.</span> {tt('Au Coffre : nettoie, revends, paie le loyer du soir (affiché en haut).', 'In the Vault: clean, resell, pay tonight’s rent (shown at the top).', 'En la Caja: limpia, revende, paga el alquiler de esta noche (arriba).')}</li>
             </ol>
+            {ascMod && (
+              <p className="mt-4 border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-xs leading-snug text-amber-200"><span className="font-bold">{tt('Ascension', 'Ascension', 'Ascensión')} {ROMAN[ascMod.level - 1]} · {ascMod.title[gameLocale]}</span> — {ascMod.desc[gameLocale]}</p>
+            )}
             <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
             <ul className="space-y-1 text-xs leading-relaxed text-zinc-300">
               <li><span className="text-amber-300">{t.fear}</span> — {tt('plus elle monte, plus son prix plancher baisse.', 'the higher it goes, the lower his floor price.', 'cuanto más sube, más baja su precio mínimo.')}</li>

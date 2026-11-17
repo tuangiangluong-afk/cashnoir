@@ -3,8 +3,8 @@
 export const heistThreshold = (day: number): number => 12000 + day * 600;
 
 /** Probabilité de braquage cette nuit (0 sous le seuil, plafonnée à 60 %). */
-export function heistRisk(cash: number, day: number, armored: boolean): number {
-  const th = heistThreshold(day);
+export function heistRisk(cash: number, day: number, armored: boolean, thresholdScale = 1): number {
+  const th = heistThreshold(day) * thresholdScale;
   if (cash <= th) return 0;
   const r = Math.min(0.6, (cash - th) / (th * 2));
   return armored ? r * 0.4 : r;
