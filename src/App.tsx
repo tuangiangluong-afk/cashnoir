@@ -6686,7 +6686,7 @@ export default function App() {
                     <span>{tt(`Nettoyer (−${cleanCost} $) & Enchères`, `Clean (−$${cleanCost}) & Auction`, `Limpiar (−${cleanCost} $) y Subasta`)}</span>
                   </span>
                   <span className="font-bold text-[11px]">
-                    +{formatMoney(cleanPayout, gameLocale)} $
+                    +{mny(cleanPayout)}
                   </span>
                 </button>
                 {!canClean && (
@@ -6710,7 +6710,7 @@ export default function App() {
                     <span>{tt('Passer en Vente Rapide (−5% Heat)', 'Switch to Quick Sale (−5% Heat)', 'Pasar a Venta Rápida (−5% Heat)')}</span>
                   </span>
                   <span className="font-mono font-bold text-[11px]">
-                    +{formatMoney(fastPayout, gameLocale)} $
+                    +{mny(fastPayout)}
                   </span>
                 </button>
 
@@ -6729,7 +6729,7 @@ export default function App() {
                     <span>{tt('Vendre quand même (+18% Heat)', 'Sell Anyway (+18% Heat)', 'Vender de todos modos (+18% Heat)')}</span>
                   </span>
                   <span className="font-mono text-zinc-400">
-                    +{formatMoney(dirtyPayout, gameLocale)} $
+                    +{mny(dirtyPayout)}
                   </span>
                 </button>
               </div>
