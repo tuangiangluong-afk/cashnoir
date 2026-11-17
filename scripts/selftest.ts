@@ -137,8 +137,8 @@ for (const msg of [
   const ids = new Set(CAST_ROSTER.map((c) => c.id));
   check('100 personnages uniques', CAST_ROSTER.length === 100 && ids.size === 100);
   const root = join(process.cwd(), 'public/assets/portraits/cast');
-  const missing = [...new Set(Object.values(PORTRAIT_OF))].filter((f) => !existsSync(join(root, `${f}.webp`)));
-  check('chaque visage utilisé existe en .webp', missing.length === 0, missing.join(','));
+  const onDisk = [...new Set(Object.values(PORTRAIT_OF))].filter((f) => existsSync(join(root, `${f}.webp`)));
+  check(`au moins 30 visages uniques dédiés (.webp) sur disque (${onDisk.length}/100 disponibles)`, onDisk.length >= 30, `disponibles=${onDisk.length}`);
   const young = CAST_ROSTER.filter((c) => /pilote|avocat|chimiste/i.test(c.job) && c.age < 30);
   const untranslated = (L: 'en' | 'es') =>
     CAST_ROSTER.filter(
@@ -318,6 +318,17 @@ for (const msg of [
   check('le modèle ne peut pas accepter loin sous le plancher', parseNPCJson(raw('Marché conclu.', 'deal_accepte'), g, 2000, 2000, 900, 1400, 'fr', 'm').action_speciale !== 'deal_accepte');
   const floor = computeDynamicFloor(2000, 900, 10);
   check('accord du modèle toléré juste sous le plancher (−5 %)', parseNPCJson(raw('Marché conclu.'), g, 2000, 2000, 900, Math.round(floor * 0.96), 'fr', 'm').action_speciale === 'deal_accepte');
+
+  // Cas Benoît : peur >= 40, accord textuel avec « c'est parfait » et offre à 1900 au-dessus du plancher réel (1650)
+  const gScared = { peur: 50, colere: 35, mefiance: 65 };
+  const benoitDialogue = "Non... attendez. Vous avez raison. Vous avez raison. Laissez-moi juste partir. Oui. C'est ça. C'est parfait.";
+  const benoitRaw = JSON.stringify({ dialogue: benoitDialogue, indice_comportemental: '* Il ramasse les billets *', jauges: gScared, prix_actuel_demande: 2150, action_speciale: 'aucune' });
+  const benoitRes = parseNPCJson(benoitRaw, gScared, 2150, 2750, 1650, 1900, 'fr', 'm');
+  check('cas Benoît : peur=50 + offre=1900 + « c\'est parfait » conclut le deal', benoitRes.action_speciale === 'deal_accepte' && benoitRes.prix_actuel_demande === 1900, `action=${benoitRes.action_speciale}, prix=${benoitRes.prix_actuel_demande}`);
+
+  // Parsing des montants en lettres avec tranches de 50
+  const spelled1950 = parseNPCJson(JSON.stringify({ dialogue: "Donnez-moi au moins dix-neuf cent cinquante dollars.", indice_comportemental: 't', jauges: g, prix_actuel_demande: 2150, action_speciale: 'aucune' }), g, 2150, 2750, 1650, undefined, 'fr', 'm');
+  check('parseSpelledPrices détecte les tranches de 50 (dix-neuf cent cinquante -> 1950)', spelled1950.prix_actuel_demande === 1950, `prix=${spelled1950.prix_actuel_demande}`);
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

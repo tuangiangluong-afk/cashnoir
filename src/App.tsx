@@ -1235,6 +1235,10 @@ export default function App() {
       facPriceMult !== 1 || negoMult !== 1
         ? Math.round((nextCase.initialPrice * negoMult * facPriceMult) / 50) * 50
         : nextCase.initialPrice;
+    const floorAfterNego =
+      facPriceMult !== 1 || negoMult !== 1
+        ? Math.round((nextCase.floorPrice * negoMult * facPriceMult) / 50) * 50
+        : nextCase.floorPrice;
 
     // Aligne la fiche de cas (prix initial, prompt système et réplique d'ouverture) sur le prix remisé
     const fixedOpening = fixOpeningPrice(nextCase.openingLine, nextCase.initialPrice, priceAfterNego);
@@ -1245,11 +1249,12 @@ export default function App() {
     setCurrentCase({
       ...nextCase,
       initialPrice: priceAfterNego,
+      floorPrice: floorAfterNego,
       openingLine: fixedOpening,
       systemPrompt: adjustedPrompt,
     });
     setAskedPrice(priceAfterNego);
-    setPriceTrail([priceAfterNego]);
+    setPriceTrail(priceAfterNego !== nextCase.initialPrice ? [nextCase.initialPrice, priceAfterNego] : [priceAfterNego]);
     setPsychoAudit([
       {
         id: 'audit-0',
@@ -2294,7 +2299,7 @@ export default function App() {
   const getAuctionPayout = (target: BoughtItem): number => {
     const baseAuctionMult = target.cleaned
       ? jokerIds.includes('blanchisseur')
-        ? AUCTION_CLEAN_RATIO + 0.1
+        ? 1.4
         : AUCTION_CLEAN_RATIO
       : AUCTION_DIRTY_RATIO;
     const assetBoost = cityAssets.includes('warehouse') ? 1.35 : 1;
@@ -3924,6 +3929,7 @@ export default function App() {
                     <img
                       src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                       alt=""
+                      onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
                       className="h-12 w-12 rounded-full border border-amber-500/40 object-cover object-[50%_18%]"
                     />
                   </button>
@@ -4010,6 +4016,9 @@ export default function App() {
                       >
                         <s className="text-zinc-500">{gameLocale === 'en' ? `$${formatMoney(priceTrail[0], gameLocale)}` : `${formatMoney(priceTrail[0], gameLocale)} $`}</s>{' '}
                         −{((priceTrail[0] - askedPrice) / Math.max(1, priceTrail[0]) * 100).toFixed(0)} %
+                        {jokerIds.includes('negociateur') && (
+                          <span className="ml-1 text-[9px] text-amber-300 font-bold tracking-tight">★ -10% NÉGO</span>
+                        )}
                       </span>
                     )}
                   </div>
@@ -4600,6 +4609,7 @@ export default function App() {
                             <img
                               src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                               alt=""
+                              onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
                               onLoad={() => { const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }}
                               className="h-[15vh] max-h-28 w-auto rounded-xl border border-amber-500/30 object-cover shadow-2xl"
                             />
@@ -5001,6 +5011,9 @@ export default function App() {
                               return;
                             }
                             setInspected(true);
+                            if (jokerIds.includes('radar')) {
+                              setUvScanned(true);
+                            }
                             setMobileNotebookOpen(true);
                             sound.playInspect();
                           }}
@@ -5403,6 +5416,7 @@ export default function App() {
                 <img
                   src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                   alt=""
+                  onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
                   className="h-28 w-24 shrink-0 rounded-lg border border-amber-500/40 object-cover object-[50%_18%]"
                 />
                 <div className="min-w-0 flex-1">

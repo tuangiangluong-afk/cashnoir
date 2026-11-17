@@ -400,18 +400,25 @@ export function ClientBust({
 
   // Portrait illustré : toujours un portrait dédié haute résolution (/cast/<id>.webp)
   const baseKey = resolveCastPortrait(castId, gender, name, archetype);
+  const fallbackKey = isFemale
+    ? `cast/${FEMALE_CAST_PORTRAITS[hash % FEMALE_CAST_PORTRAITS.length]}`
+    : `cast/${MALE_CAST_PORTRAITS[hash % MALE_CAST_PORTRAITS.length]}`;
   const moodVariantKey = isFurious ? `${baseKey}_furious` : isBroken ? `${baseKey}_broken` : null;
   const [triedMood, setTriedMood] = useState(false);
+  const [triedFallback, setTriedFallback] = useState(false);
   const [portrait, setPortrait] = useState<'idle' | 'ok' | 'none'>('idle');
 
   useEffect(() => {
     setTriedMood(false);
+    setTriedFallback(false);
     setPortrait('idle');
   }, [baseKey, isFurious, isBroken]);
 
-  const activeSrc = !triedMood && moodVariantKey
-    ? `${PORTRAIT_DIR}${moodVariantKey}.webp`
-    : `${PORTRAIT_DIR}${baseKey}.webp`;
+  const activeSrc = triedFallback
+    ? `${PORTRAIT_DIR}${fallbackKey}.webp`
+    : !triedMood && moodVariantKey
+      ? `${PORTRAIT_DIR}${moodVariantKey}.webp`
+      : `${PORTRAIT_DIR}${baseKey}.webp`;
 
   const stateMotionCls = isFurious
     ? 'animate-sf-rage filter contrast-[1.25] brightness-95'
@@ -473,6 +480,8 @@ export function ClientBust({
           onError={() => {
             if (!triedMood && moodVariantKey) {
               setTriedMood(true);
+            } else if (!triedFallback && baseKey !== fallbackKey) {
+              setTriedFallback(true);
             } else {
               setPortrait('none');
             }

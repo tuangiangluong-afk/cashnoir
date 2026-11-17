@@ -82,6 +82,29 @@ const LOWBALL_RATIO = 0.65;
 export function parseSpelledPrices(text: string): number[] {
   const t = text.toLowerCase();
   const patterns: [RegExp, number][] = [
+    // 50s (testés avant les centaines pour capturer 'mille neuf cent cinquante' avant 'mille neuf cents')
+    [/\b(?:deux\s+mille\s+neuf\s+cents?\s+cinquante|twenty-nine\s+fifty|dos\s+mil\s+novecientos\s+cincuenta)\b/g, 2950],
+    [/\b(?:deux\s+mille\s+huit\s+cents?\s+cinquante|twenty-eight\s+fifty|dos\s+mil\s+ochocientos\s+cincuenta)\b/g, 2850],
+    [/\b(?:deux\s+mille\s+sept\s+cents?\s+cinquante|twenty-seven\s+fifty|dos\s+mil\s+setecientos\s+cincuenta)\b/g, 2750],
+    [/\b(?:deux\s+mille\s+six\s+cents?\s+cinquante|twenty-six\s+fifty|dos\s+mil\s+seiscientos\s+cincuenta)\b/g, 2650],
+    [/\b(?:deux\s+mille\s+cinq\s+cents?\s+cinquante|twenty-five\s+fifty|dos\s+mil\s+quinientos\s+cincuenta)\b/g, 2550],
+    [/\b(?:deux\s+mille\s+quatre\s+cents?\s+cinquante|twenty-four\s+fifty|dos\s+mil\s+cuatrocientos\s+cincuenta)\b/g, 2450],
+    [/\b(?:deux\s+mille\s+trois\s+cents?\s+cinquante|twenty-three\s+fifty|dos\s+mil\s+trescientos\s+cincuenta)\b/g, 2350],
+    [/\b(?:deux\s+mille\s+deux\s+cents?\s+cinquante|twenty-two\s+fifty|dos\s+mil\s+doscientos\s+cincuenta)\b/g, 2250],
+    [/\b(?:deux\s+mille\s+cent?\s+cinquante|twenty-one\s+fifty|dos\s+mil\s+ciento?\s+cincuenta)\b/g, 2150],
+    [/\b(?:deux\s+mille\s+cinquante|two\s+thousand\s+fifty|dos\s+mil\s+cincuenta)\b/g, 2050],
+    [/\b(?:mille\s+neuf\s+cents?\s+cinquante|dix-neuf\s+cents?\s+cinquante|nineteen\s+fifty|mil\s+novecientos\s+cincuenta)\b/g, 1950],
+    [/\b(?:mille\s+huit\s+cents?\s+cinquante|dix-huit\s+cents?\s+cinquante|eighteen\s+fifty|mil\s+ochocientos\s+cincuenta)\b/g, 1850],
+    [/\b(?:mille\s+sept\s+cents?\s+cinquante|dix-sept\s+cents?\s+cinquante|seventeen\s+fifty|mil\s+setecientos\s+cincuenta)\b/g, 1750],
+    [/\b(?:mille\s+six\s+cents?\s+cinquante|seize\s+cents?\s+cinquante|sixteen\s+fifty|mil\s+seiscientos\s+cincuenta)\b/g, 1650],
+    [/\b(?:mille\s+cinq\s+cents?\s+cinquante|quinze\s+cents?\s+cinquante|fifteen\s+fifty|mil\s+quinientos\s+cincuenta)\b/g, 1550],
+    [/\b(?:mille\s+quatre\s+cents?\s+cinquante|quatorze\s+cents?\s+cinquante|fourteen\s+fifty|mil\s+cuatrocientos\s+cincuenta)\b/g, 1450],
+    [/\b(?:mille\s+trois\s+cents?\s+cinquante|treize\s+cents?\s+cinquante|thirteen\s+fifty|mil\s+trescientos\s+cincuenta)\b/g, 1350],
+    [/\b(?:mille\s+deux\s+cents?\s+cinquante|douze\s+cents?\s+cinquante|twelve\s+fifty|mil\s+doscientos\s+cincuenta)\b/g, 1250],
+    [/\b(?:mille\s+cent?\s+cinquante|onze\s+cents?\s+cinquante|eleven\s+fifty|mil\s+ciento?\s+cincuenta)\b/g, 1150],
+    [/\b(?:mille\s+cinquante|one\s+thousand\s+fifty|mil\s+cincuenta)\b/g, 1050],
+
+    // Centaines
     [/\b(?:deux\s+mille\s+neuf\s+cents?|twenty-nine\s+hundred|dos\s+mil\s+novecientos)\b/g, 2900],
     [/\b(?:deux\s+mille\s+huit\s+cents?|twenty-eight\s+hundred|dos\s+mil\s+ochocientos)\b/g, 2800],
     [/\b(?:deux\s+mille\s+sept\s+cents?|twenty-seven\s+hundred|dos\s+mil\s+setecientos)\b/g, 2700],
@@ -253,8 +276,25 @@ export function parseNPCJson(
   const dialoguePriceMatches = [...numericMatches, ...spelledMatches]
     .filter((n) => Number.isFinite(n) && n >= floorPrice && n <= initialPrice);
 
-  const mentionedPrice = dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
-  const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice < currentPrice);
+  const rawDialogue = String(parsed.dialogue || '');
+  const hasRefusalCue =
+    /(?:pas\s+un\s+de\s+moins|trouverai\s+un\s+autre|jamais\s+vendu|hors\s+de\s+question|pas\s+question|certainement\s+pas|vous\s+r[êe]vez|no\s+way|not\s+a\s+chance|ni\s+de\s+coña|de\s+ninguna\s+manera)/i.test(
+      rawDialogue,
+    );
+
+  const concessionToPlayerOffer = Boolean(
+    playerOffer !== undefined &&
+    !hasRefusalCue &&
+    dialoguePriceMatches.includes(playerOffer) &&
+    /(?:donnez-moi|d'accord|va\s+pour|prenez|march[ée]|oubli(?:ez|e)\s+le\s+prix|laissez-moi|take|give\s+me|all\s+right|de\s+acuerdo|dame)/i.test(
+      rawDialogue,
+    ),
+  );
+
+  const mentionedPrice = concessionToPlayerOffer
+    ? playerOffer
+    : dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
+  const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice <= currentPrice);
   if (hasConcededInDialogue && mentionedPrice) {
     // Plafond de baisse par tour (25 %, 5 % pour un simple indice matériel), sauf si la peur était déjà installée.
     const maxDrop = fearCap < 25 ? 0.95 : 0.75;
@@ -312,25 +352,29 @@ export function parseNPCJson(
     action = 'aucune';
   }
 
-  // Détection d'accord explicite dans le dialogue du PNJ
-  const rawDialogue = String(parsed.dialogue || '');
+  // Détection d'accord explicite dans le dialogue du PNJ (sans signal de refus)
   const dialogueAgreed =
     playerOffer !== undefined &&
     !lowball &&
-    // Accord explicite seulement : « vendu », « c'est bon » ou « laissez-moi partir » apparaissent aussi dans des refus.
-    /(?:march[ée] conclu|affaire conclue|c'est d'accord|topons l[àa]|it'?s a deal|deal done|you'?ve got a deal|trato hecho|hecho,? trato)/i.test(
+    !hasRefusalCue &&
+    (/(?:march[ée] conclu|affaire conclue|c'est d'accord|topons l[àa]|it'?s a deal|deal done|you'?ve got a deal|trato hecho|hecho,? trato)/i.test(
       rawDialogue,
-    );
+    ) ||
+      /(?:c'est parfait|c'est \u00e7a,? c'est parfait|laissez-moi (?:juste )?partir[.,\s]+(?:oui|c'est parfait)|vous avez raison[.,\s]+(?:oui|c'est (?:parfait|ça|bon))|all right,? take it|take the money)/i.test(
+        rawDialogue,
+      ));
 
   // Enforcement déterministe des seuils et de l'acceptation d'offre
   let forcedOutcome: 'deal' | 'gun' | 'leave' | 'lowball' | null = lowball ? 'lowball' : null;
+  const fearAllowsFloor = (jauges.peur >= 40 || fallbackGauges.peur >= 40) && playerOffer !== undefined && playerOffer >= floorPrice;
   const offerOk =
     playerOffer !== undefined &&
     (playerOffer >= dynamicFloor ||
       playerOffer >= nextPrice ||
       (hasConcededInDialogue && mentionedPrice && playerOffer >= mentionedPrice) ||
-      // Accord du modèle (action ou phrase) : toléré à 5 % sous le plancher, jamais au-delà (sinon le modèle se fait manipuler).
-      ((action === 'deal_accepte' || dialogueAgreed) && !lowball && playerOffer >= dynamicFloor * 0.95));
+      concessionToPlayerOffer ||
+      // Accord du modèle (action ou phrase) : toléré à 10 % sous le plancher, ou jusqu'au plancher réel si peur installée.
+      ((action === 'deal_accepte' || dialogueAgreed) && !lowball && (fearAllowsFloor || playerOffer >= dynamicFloor * 0.90)));
 
   // Une acceptation du modèle n'est valable que si l'offre tient (plancher, ou 5 % sous le plancher avec accord explicite).
   if (action === 'deal_accepte' && (playerOffer === undefined || lowball || !offerOk)) {

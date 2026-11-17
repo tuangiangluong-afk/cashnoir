@@ -297,6 +297,21 @@ const PORTRAIT_LOOKS_M = [
   'slicked back hair, rumpled dark suit, loosened tie, nervous sweat',
   'buzzcut, turtleneck sweater, sharp jawline, hard noir shadows',
   'round wire glasses, tweed blazer, silver temples, gaunt cheeks',
+  'broken crooked nose, heavy brow, bruised knuckle near jaw, black pea coat',
+  'scar across left eyebrow, dark trenchcoat collar up, stubble, intense piercing eyes',
+  'gold-framed aviator spectacles, houndstooth jacket, thin mustache, tense grimace',
+  'shaved sides with long pompadour, charcoal turtleneck, sharp angular jaw, amber rim light',
+  'deep laugh lines etched with worry, faded denim jacket under wool coat, tired gaze',
+  'salt-and-pepper cropped hair, dark turtleneck, intense hawkish nose, cold expression',
+  'thick tortoiseshell glasses, wet dark raincoat, anxious darting eyes, high forehead',
+  'sculpted beard, tailored velvet lapel coat, heavy gold signet ring visible, weary aristocratic gaze',
+  'weathered dockworker face, wool watch cap beanie, coarse beard, heavy knit sweater',
+  'narrow sunken eyes, unbuttoned dark shirt, faint scar on chin, heavy tungsten shadows',
+  'silver crew cut, crisp white collar under black bomber, stern military posture',
+  'tousled wet dark curls, open leather biker jacket, defensive glare, street-hardened look',
+  'caramel skin tone, close-shaved fade beard, charcoal overcoat, analytical gaze',
+  'hollow cheeks, wire rim spectacles, dark scarf wrapped tight, pale nervous expression',
+  'bald head with strong profile, heavy jaw, dark double-breasted suit, imposing noir presence',
 ];
 
 const PORTRAIT_LOOKS_F = [
@@ -305,9 +320,24 @@ const PORTRAIT_LOOKS_F = [
   'messy updo, wool turtleneck, dark coat collar turned up, tired beauty',
   'silver-streaked hair, silk scarf, tailored coat, guarded aristocratic expression',
   'dark hoodie under leather coat, subtle hoop earrings, wary night gaze',
+  'angular jawline, wet raven hair tucked behind ears, sharp winged eyeliner, cigarette smoke',
+  'platinum blonde pixie cut, dark cashmere sweater, pearl ear studs, watchful cynical smile',
+  'olive skin, dark wavy hair falling over one shoulder, burgundy wool coat, defiant expression',
+  'round tortoiseshell glasses, messy bun with antique pin, oversized trench, intense focused stare',
+  'high cheekbones, dark braided chignon, minimalist gold hoop, tailored midnight-blue coat',
+  'short crop hair, faint scar near temple, high-neck black tactical jacket, vigilant posture',
+  'pale porcelain skin, dark red lipstick in shadows, fur-trimmed wool collar, melancholic eyes',
+  'weathered mature beauty, elegant silver hair swept back, silk foulard, shrewd appraising gaze',
+  'asymmetrical dark bob, damp bangs sticking to forehead, leather jacket, anxious frown',
+  'sharp piercing hazel eyes, charcoal wool pea coat, wet strands of chestnut hair, tight-lipped',
+  'golden skin tone, sleek high ponytail, black tailored coat with wide lapels, composed stoic look',
+  'intense dark gaze, oversized vintage houndstooth coat, wool beret tilted, mysterious air',
+  'wispy dark brown hair, oversized knit scarf covering lower face, guarded eyes in shadow',
+  'regal posture, subtle smile hiding tension, dark velvet collar coat, finely arched eyebrows',
+  'athletic build, braided hair pulled back, rain-soaked waterproof jacket, determined glare',
 ];
 
-/** id de personnage -> id du portrait utilisé (les 20 personnages écrits ont chacun le leur, les autres en partagent un compatible). */
+/** id de personnage -> id du portrait utilisé (chaque personnage des 100 possède son portrait unique /assets/portraits/cast/<id>.webp). */
 export const PORTRAIT_OF: Record<string, string> = {};
 
 function buildProceduralRoster(): CastCharacter[] {
@@ -336,17 +366,10 @@ function buildProceduralRoster(): CastCharacter[] {
     }),
   );
 
-  // Visages disponibles : les 30 premiers personnages ont chacun leur portrait dédié (/assets/portraits/cast/cNNN.webp).
-  // Les personnages suivants (c031+) piochent dans ce vivier de 30 portraits compatibles (même genre, âge cohérent).
-  const faces: Record<'m' | 'f', { id: string; age: number }[]> = { m: [], f: [] };
-  const faceUse: Record<string, number> = {};
   for (const c of handCrafted) {
     PORTRAIT_OF[c.id] = c.id;
-    faces[c.gender].push({ id: c.id, age: c.age });
-    faceUse[c.id] = 1;
   }
-  // Les visages des boss (c003, c005, c013) ne sont jamais prêtés à un autre personnage tant qu'un autre visage convient.
-  for (const bossFace of ['c003', 'c005', 'c013']) faceUse[bossFace] = 99;
+
   const jobAgeRange = (job: string): [number, number] => {
     if (/^fille /i.test(job)) return [22, 30];
     if (/pilote|chimiste|avocat|journaliste|restaurat|archiviste|expert|attachée|négociante|biolog|traduct|galér/i.test(job)) return [30, 65];
@@ -387,20 +410,10 @@ function buildProceduralRoster(): CastCharacter[] {
         30: 42, // Marina
       };
       chosenAge = fixedPhysicalAges[idx] ?? 35;
-      PORTRAIT_OF[id] = id;
-      faceUse[id] = 1;
-      faces[gender].push({ id, age: chosenAge });
     } else {
-      const pool = faces[gender].filter((f) => f.age + 3 >= minAge && f.age - 3 <= maxAge);
-      const candidates = pool.length ? pool : faces[gender];
-      const leastUsed = Math.min(...candidates.map((f) => faceUse[f.id] ?? 0));
-      const ties = candidates.filter((f) => (faceUse[f.id] ?? 0) === leastUsed);
-      const face = ties[i % ties.length];
-      faceUse[face.id] = (faceUse[face.id] ?? 0) + 1;
-      PORTRAIT_OF[id] = face.id;
-      // Âge strictement calé sur l'âge physique du portrait (écart max de 1 an)
-      chosenAge = Math.min(maxAge, Math.max(minAge, face.age + ((i % 3) - 1)));
+      chosenAge = minAge + ((i * 7 + 3) % (maxAge - minAge + 1));
     }
+    PORTRAIT_OF[id] = id;
     const age = chosenAge;
     const faction = FACTIONS_CYCLE[i % FACTIONS_CYCLE.length];
     const profileId = PROFILES_CYCLE[i % PROFILES_CYCLE.length];
