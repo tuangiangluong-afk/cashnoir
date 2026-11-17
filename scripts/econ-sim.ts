@@ -14,7 +14,7 @@ const FAST = num('FAST', 0.8); // revente rapide : part de la valeur de rue
 const AUC_CLEAN = num('AUC_CLEAN', 1.2);
 const AUC_COST = num('AUC_COST', 250);
 const SAT = (process.env.SAT || '1,0.75,0.55').split(',').map(Number);
-const RENT_BASE = num('RENT_BASE', 500);
+const RENT_BASE = num('RENT_BASE', 300);
 const RENT_SLOPE = num('RENT_SLOPE', 350);
 const DAILY_BONUS = num('DAILY_BONUS', 600); // quêtes du jour + série de connexion, en moyenne
 const tax = (cash: number) => Math.round(Math.min(cash, 15000) * 0.08 + Math.max(0, Math.min(cash, 50000) - 15000) * 0.15 + Math.max(0, cash - 50000) * 0.25);
@@ -88,5 +88,17 @@ for (const s of strategies) {
   console.log(
     `${s.name.padEnd(52)} | ${String(Math.round((100 * alive) / RUNS)).padStart(9)} %  | ${String(died.length ? median(died) : '-').padStart(22)} | ${String(at(10)).padStart(15)} | ${String(at(20)).padStart(5)} | ${at(40)}`,
   );
+}
+if (process.env.EARLY) {
+  console.log('\nDébut de partie : caisse médiane APRÈS loyer (jours 1-6) et % de survivants');
+  for (const s of strategies) {
+    const runs = Array.from({ length: RUNS }, () => play(s));
+    const cols = [1, 2, 3, 4, 5, 6].map((d) => {
+      const alive = runs.filter((r) => r.diedDay === null || (r.diedDay as number) > d).length;
+      const v = runs.filter((r) => r.history[d - 1] !== undefined).map((r) => r.history[d - 1]);
+      return `j${d}: ${v.length ? Math.round(median(v)) : '-'} (${Math.round((100 * alive) / RUNS)}%)`;
+    });
+    console.log(`${s.name.slice(0, 22).padEnd(24)}${cols.join('  ')}`);
+  }
 }
 console.log('\nLecture : un style trop facile survit à 100 % avec un cash qui explose ; un style trop dur meurt au jour 1-2.');

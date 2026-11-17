@@ -24,6 +24,7 @@ import {
   setPlayerCashHint,
   generateDailyContract,
   generateBossCase,
+  generateWindfallCase,
   type ProceduralCase,
 } from './data/generator';
 import { DISTRICTS, CITY_ASSETS, type District, type CityAsset } from './data/empire';
@@ -41,7 +42,12 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
-import { chapterStart, checkpointCash } from './data/checkpoints';
+import { track } from './services/telemetry';
+import { activeCombos, comboCompletedBy, hasCombo } from './data/combos';
+import { heistLoss, heistRisk } from './data/risk';
+import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from './data/checkpoints';
+import { applyEncounter, applyFavor, nextEpisode, pickDue, rebaseSagas, trustTone, SAGA_EPISODES, type SagaState } from './data/saga';
+import { sagaAllyGift, sagaChapter, sagaEnding, sagaFavor, sagaOpening, sagaTell } from './data/sagaText';
 import { evaluatePsychoTriggers, findProfileForArchetype, temperamentOf } from './data/psychology';
 import { getNightEvent, localizeNightEvent } from './data/events';
 import { drawRandomJokers, JOKER_POOL, type SyndicateJoker } from './data/jokers';
@@ -271,6 +277,17 @@ export default function App() {
     };
     return label.split(' · ').map((l) => (gameLocale === 'fr' ? l : D[l]?.[gameLocale === 'en' ? 0 : 1] ?? l)).join(' · ');
   };
+  const sagaLabel = (sg: SagaState): string => {
+    const toneMap: Record<string, string> = {
+      devoted: tt('dévoué', 'devoted', 'devoto'),
+      friendly: tt('amical', 'friendly', 'amistoso'),
+      neutral: tt('neutre', 'neutral', 'neutral'),
+      wary: tt('méfiant', 'wary', 'recelo'),
+      hostile: tt('hostile', 'hostile', 'hostil'),
+    };
+    const endMap = { ally: tt('Allié fidèle', 'Loyal ally', 'Aliado fiel'), enemy: tt('Ennemi', 'Enemy', 'Enemigo'), gone: tt('Histoire close', 'Story closed', 'Historia cerrada') };
+    return sg.end ? `${endMap[sg.end]} · ${toneMap[trustTone(sg.trust)]}` : `${tt('Ép.', 'Ep.', 'Ep.')} ${Math.min(sg.met + 1, SAGA_EPISODES)}/${SAGA_EPISODES} · ${toneMap[trustTone(sg.trust)]}`;
+  };
   const TEMPER_LABEL: Record<string, string> = {
     nervous: tt('Nerveux', 'Jumpy', 'Nervioso'),
     coolheaded: tt('Sang-froid', 'Cool-headed', 'Sangre fría'),
@@ -465,6 +482,17 @@ export default function App() {
   const [secretInput, setSecretInput] = useState('');
   const [secretMsg, setSecretMsg] = useState<Record<string, string>>({});
   const [showHint, setShowHint] = useState<Record<string, boolean>>({});
+  // Sagas clients : relations persistantes (elles survivent aux nouvelles parties : c'est ta réputation dans les bas-fonds).
+  const [sagas, setSagas] = useState<Record<string, SagaState>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('fence_saga') || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [sagaNote, setSagaNote] = useState('');
+  const [league, setLeague] = useState<{ endsAt: string; players: number; standings: { pseudo: string; total: number; days: number; rank: number; tier: string }[] } | null>(null);
+  const [favor, setFavor] = useState<{ castId: string; name: string; cost: number } | null>(null);
   const [registry, setRegistry] = useState<RegistryEntry[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('fence_registry') || '[]');
@@ -562,6 +590,7 @@ export default function App() {
     localStorage.setItem('fence_achievements', JSON.stringify(unlockedAchievements));
     localStorage.setItem('fence_debt', String(debt));
     localStorage.setItem('fence_registry', JSON.stringify(registry.slice(-60)));
+    localStorage.setItem('fence_saga', JSON.stringify(sagas));
   }, [
     day,
     cash,
@@ -756,6 +785,9 @@ export default function App() {
   const lastArcStep2DayRef = useRef<number>(-1);
   const lastSpecialDayRef = useRef<number>(-1);
   const lastReturnDayRef = useRef<number>(-1);
+  const lastWindfallDayRef = useRef<number>(-99);
+  const lastHoldupDayRef = useRef<number>(-99);
+  const [telemetryOn, setTelemetryOn] = useState<boolean>(() => localStorage.getItem('fence_telemetry') !== '0');
   const scriptedNoticeRef = useRef(false);
   const threadRef = useRef<HTMLDivElement>(null);
   const [showItemSheet, setShowItemSheet] = useState(false);
@@ -913,9 +945,9 @@ export default function App() {
   const nightEvent = getNightEvent(day);
   const rentShare = wealthTax(cash);
   const dailyRent = Math.round(
-    (500 + (day - 1) * 350 + rentShare) *
+    (RENT_BASE + (day - 1) * RENT_SLOPE + rentShare) *
       (nightEvent?.rentMultiplier ?? 1) *
-      (jokerIds.includes('blanchisseur-express') ? 1.1 : 1) *
+      (jokerIds.includes('blanchisseur-express') && !hasCombo(jokerIds, 'blanchisseur', 'blanchisseur-express') ? 1.1 : 1) *
       (ascMod?.rentMult ?? 1),
   ) + debt; // le prêt du Syndicat se rembourse avec le loyer du soir
   const maxClientsPerDay = 3;
@@ -975,6 +1007,7 @@ export default function App() {
   };
 
   const buyPass = async () => {
+    track('pass_click');
     setPassBusy(true);
     setError(null);
     try {
@@ -1111,6 +1144,14 @@ export default function App() {
     if (muted || !routePath.startsWith('/play')) ambience.stop();
   }, [muted, routePath]);
 
+  useEffect(() => {
+    track('session_start');
+  }, []);
+  useEffect(() => {
+    if (gameOverReason) track('game_over', day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameOverReason]);
+
   // Registre des clients : une entrée par client, ajoutée quand l'issue est connue.
   useEffect(() => {
     if (outcome === 'active' || currentCase.isDailyContract || currentCase.special || loggedCaseRef.current === currentCase.id) return;
@@ -1132,6 +1173,29 @@ export default function App() {
         street: currentCase.streetValue,
       },
     ]);
+    // Saga : la relation évolue à chaque rencontre avec un personnage du casting (pas les infiltrés).
+    const cid = currentCase.castId;
+    if (cid && !currentCase.isTrap) {
+      const encounter: 'deal' | 'walk' | 'gun' = result === 'deal' ? 'deal' : result === 'gun' ? 'gun' : 'walk';
+      const margin = currentCase.streetValue > 0 ? 1 - askedPrice / currentCase.streetValue : 0;
+      const prevSaga = sagas[cid];
+      const next = applyEncounter(prevSaga, cid, day, encounter, margin);
+      const g = currentCase.gender;
+      let note = '';
+      if (next.end && !prevSaga?.end) {
+        note = sagaEnding(next.end, gameLocale, currentCase.name, g);
+        if (next.end === 'enemy') {
+          setCityHeat((h) => Math.min(100, h + 10));
+          setVengeance((v) => [...v, { faction: currentCase.faction, day, reason: 'rejected' as const }]);
+        }
+      }
+      const ep = currentCase.saga?.episode ?? 0;
+      if (ep >= 3 && ep <= 4 && encounter === 'deal') {
+        setFavor({ castId: cid, name: currentCase.name, cost: Math.min(1500, Math.max(200, Math.round((currentCase.streetValue * 0.3) / 50) * 50)) });
+      }
+      setSagaNote(note);
+      setSagas((all) => ({ ...all, [cid]: next }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome, currentCase.id]);
 
@@ -1231,7 +1295,7 @@ export default function App() {
     });
     // Negociateur joker + Faction rank discount
     const facPriceMult = facRank?.priceMult ?? 1;
-    const negoMult = activeJokers.includes('negociateur') ? 0.9 : 1;
+    const negoMult = (activeJokers.includes('negociateur') ? 0.9 : 1) * (hasCombo(activeJokers, 'negociateur', 'intimidation') ? 0.95 : 1);
     const priceAfterNego =
       facPriceMult !== 1 || negoMult !== 1
         ? Math.round((nextCase.initialPrice * negoMult * facPriceMult) / 50) * 50
@@ -1291,6 +1355,8 @@ export default function App() {
     setError(null);
     setOfferAmount(Math.max(150, Math.min(cash, Math.round((priceAfterNego * 0.8) / 50) * 50)));
     setBuyerAsk(-1);
+    setSagaNote('');
+    setFavor(null);
   };
 
   const startSeasonEpisode = (ep: SeasonEpisode) => {
@@ -1393,32 +1459,26 @@ export default function App() {
     };
   };
 
-  // Clients qui reviennent : ils se souviennent de ce que tu as fait (plumé, réglo, laissé sur le trottoir).
-  const buildReturningCase = (e: RegistryEntry): ProceduralCase | null => {
-    const castChar = CAST_ROSTER.find((c) => c.id === e.castId);
+  // Clients qui reviennent : une mini-série de 5 épisodes par personnage ; un allié fidèle revient avec ses trouvailles.
+  const buildSagaCase = (sg: SagaState): ProceduralCase | null => {
+    const castChar = CAST_ROSTER.find((c) => c.id === sg.castId);
     if (!castChar) return null;
     const base = generateProceduralCase(day, cityHeat, lastMemory || undefined, currentDistrict.multiplier, gameLocale);
-    const margin = e.street > 0 ? 1 - e.paid / e.street : 0;
-    const mem: 'plucked' | 'fair' | 'left' = e.result === 'deal' ? (margin >= 0.4 ? 'plucked' : 'fair') : 'left';
-    const adj = mem === 'plucked' ? { peur: -8, colere: 8, mefiance: 14 } : mem === 'fair' ? { peur: 0, colere: 0, mefiance: -12 } : { peur: 0, colere: 4, mefiance: 6 };
-    const g = base.initialGauges;
+    const ally = sg.end === 'ally';
+    const episode = ally ? SAGA_EPISODES : nextEpisode(sg);
     const item = localizeItemName(base.item.name, gameLocale);
-    const price = mny(base.initialPrice);
-    const open =
-      mem === 'plucked'
-        ? tt(`« Toi ? La dernière fois, tu m'as plumé. Cette fois je compte chaque dollar. J'ai ${item} pour ${price}. »`, `"You? Last time you fleeced me. This time I count every dollar. I have ${item} for ${price}."`, `«¿Tú? La última vez me desplumaste. Esta vez cuento cada dólar. Tengo ${item} por ${price}.»`)
-        : mem === 'fair'
-          ? tt(`« Content de te revoir : tu as été réglo la dernière fois. J'ai ${item} pour ${price}. »`, `"Good to see you again: you were straight with me last time. I have ${item} for ${price}."`, `«Me alegra verte de nuevo: fuiste honesto la última vez. Tengo ${item} por ${price}.»`)
-          : tt(`« Tu m'avais laissé sur le trottoir. J'espère que tu es plus sérieux ce soir : ${item}, ${price}. »`, `"You left me on the sidewalk. I hope you're more serious tonight: ${item}, ${price}."`, `«Me dejaste en la acera. Espero que esta noche vayas en serio: ${item}, ${price}.»`);
-    const tellTxt =
-      mem === 'plucked'
-        ? tt('Il se souvient de toi, et pas en bien.', 'He remembers you, and not fondly.', 'Se acuerda de ti, y no para bien.')
-        : mem === 'fair'
-          ? tt('Un habitué : il te fait un peu confiance.', 'A regular: he trusts you a little.', 'Un habitual: confía un poco en ti.')
-          : tt('Il te jauge : tu l’as déjà fait attendre.', 'He sizes you up: you already wasted his time.', 'Te evalúa: ya le hiciste perder el tiempo.');
+    const initialPrice = ally ? Math.max(100, Math.round((base.initialPrice * 0.75) / 50) * 50) : base.initialPrice;
+    const floorPrice = ally ? Math.max(50, Math.round((base.floorPrice * 0.75) / 50) * 50) : base.floorPrice;
+    const chapter = ally ? tt('Allié fidèle', 'Loyal ally', 'Aliado fiel') : sagaChapter(episode, gameLocale);
+    const opening = ally ? sagaAllyGift(gameLocale, item, mny(initialPrice)) : sagaOpening(castChar.profileId, episode, gameLocale, sg.trust, item, mny(initialPrice));
+    const g = base.initialGauges;
+    const mefiance = Math.max(5, Math.min(100, g.mefiance - Math.round(sg.trust / 4)));
+    const colere = Math.max(0, Math.min(100, g.colere + (sg.trust < 0 ? Math.round(-sg.trust / 5) : 0)));
+    const tone = trustTone(sg.trust);
+    const memory = `\nMÉMOIRE (importante) : tu as déjà rencontré ce joueur ${sg.met} fois ; c'est l'épisode ${episode}/${SAGA_EPISODES} de ton histoire personnelle. Ta relation avec lui : ${tone}. Fais-y allusion une fois, naturellement, sans réciter.`;
     return {
       ...base,
-      id: `ret-${Date.now()}`,
+      id: `saga-${sg.castId}-${Date.now()}`,
       castId: castChar.id,
       gender: castChar.gender,
       name: castChar.fullName,
@@ -1433,13 +1493,13 @@ export default function App() {
       arcId: undefined,
       arcStep: undefined,
       requiresItemKey: undefined,
-      initialGauges: {
-        peur: Math.max(0, Math.min(100, g.peur + adj.peur)),
-        colere: Math.max(0, Math.min(100, g.colere + adj.colere)),
-        mefiance: Math.max(5, Math.min(100, g.mefiance + adj.mefiance)),
-      },
-      openingLine: open,
-      openingTell: tellTxt,
+      initialPrice,
+      floorPrice,
+      initialGauges: { peur: g.peur, colere, mefiance },
+      openingLine: opening,
+      openingTell: ally ? tt('Un allié de la maison : la confiance règne.', 'A friend of the house: trust runs deep.', 'Un aliado de la casa: reina la confianza.') : sagaTell(episode, gameLocale, castChar.gender),
+      systemPrompt: base.systemPrompt + memory,
+      saga: { episode, ally, chapter },
     };
   };
 
@@ -1469,17 +1529,29 @@ export default function App() {
         lastSpecialDayRef.current = day;
         return buildInformantCase();
       }
-    }
-    // 15 % : un ancien client revient (jamais le dernier du jour, une fois par jour).
-    if (!isLastClient && day >= 3 && lastReturnDayRef.current !== day && Math.random() < 0.15) {
-      const pool = registry.filter((e) => e.castId && (e.result === 'deal' || e.result === 'walk') && e.day <= day - 2);
-      if (pool.length > 0) {
-        const back = buildReturningCase(pool[Math.floor(Math.random() * pool.length)]);
-        if (back) {
-          lastReturnDayRef.current = day;
-          return back;
-        }
+      if (cityHeat >= 55 && Math.random() < 0.3) {
+        lastSpecialDayRef.current = day;
+        return buildEventCase('checkpoint');
       }
+      if (cash >= 3000 && day >= 4 && day - lastHoldupDayRef.current >= 6 && Math.random() < 0.25) {
+        lastSpecialDayRef.current = day;
+        lastHoldupDayRef.current = day;
+        return buildEventCase('holdup');
+      }
+    }
+    // 30 % : un client de ta saga revient (jamais le dernier du jour, une fois par jour).
+    if (!isLastClient && lastReturnDayRef.current !== day && Math.random() < 0.3) {
+      const due = pickDue(sagas, day, Math.random);
+      const back = due ? buildSagaCase(due) : null;
+      if (back) {
+        lastReturnDayRef.current = day;
+        return back;
+      }
+    }
+    // Trouvaille rare (1 chance sur 50 par client, au plus une par semaine) : une pièce légendaire bradée par quelqu'un qui ignore sa valeur.
+    if (!isLastClient && day >= 4 && day - lastWindfallDayRef.current >= 6 && Math.random() < 0.02) {
+      lastWindfallDayRef.current = day;
+      return generateWindfallCase(day, cityHeat, gameLocale);
     }
     const activeCount = arcNotes.filter((n) => !n.resolved).length;
     const seenIds = new Set(arcNotes.map((n) => n.arcId));
@@ -1495,6 +1567,74 @@ export default function App() {
       currentDistrict.multiplier,
       gameLocale,
     );
+  };
+
+  // Coups de théâtre à choix (jamais de chrono) : contrôle de police quand le Heat monte, braquage quand la caisse est pleine.
+  const buildEventCase = (event: 'checkpoint' | 'holdup'): ProceduralCase => {
+    const base = generateProceduralCase(day, 0, undefined, currentDistrict.multiplier, gameLocale);
+    const isCheck = event === 'checkpoint';
+    return {
+      ...base,
+      id: `event-${event}-${Date.now()}`,
+      isTrap: false,
+      isBoss: false,
+      bossKind: undefined,
+      arcId: undefined,
+      arcStep: undefined,
+      requiresItemKey: undefined,
+      item: { ...base.item, name: isCheck ? tt('Contrôle de police', 'Police check', 'Control policial') : tt('Braquage', 'Holdup', 'Atraco'), modifier: undefined },
+      initialPrice: 0,
+      floorPrice: 0,
+      initialGauges: { peur: 0, colere: 0, mefiance: 30 },
+      openingLine: isCheck
+        ? tt('Deux voitures banalisées se garent devant la boutique. Un agent frappe à la vitre : « Contrôle. On peut entrer ? »', 'Two unmarked cars park outside. An officer knocks on the glass: "Routine check. May we come in?"', 'Dos coches camuflados aparcan frente a la tienda. Un agente golpea el cristal: «Control. ¿Podemos pasar?»')
+        : tt('La porte s’ouvre d’un coup. Un type cagoulé braque le comptoir : « La caisse. Maintenant. »', 'The door bursts open. A masked man levels a gun at the counter: "The register. Now."', 'La puerta se abre de golpe. Un encapuchado apunta al mostrador: «La caja. Ahora.»'),
+      openingTell: isCheck ? tt('Le Heat a fini par attirer du monde.', 'The Heat finally drew attention.', 'El Heat acabó atrayendo atención.') : tt('Ta caisse bien garnie ne passait pas inaperçue.', 'Your full register did not go unnoticed.', 'Tu caja llena no pasaba desapercibida.'),
+      special: { kind: 'event', event },
+    };
+  };
+
+  const resolveEvent = (choice: 'a' | 'b' | 'c') => {
+    const sp = currentCase.special;
+    if (outcome !== 'active' || sp?.kind !== 'event' || !lockAction(`event-${currentCase.id}`)) return;
+    const clampHeat = (d: number) => setCityHeat((h) => Math.max(0, Math.min(100, h + d)));
+    let msg = '';
+    if (sp.event === 'checkpoint') {
+      const bribe = Math.min(2000, Math.max(300, Math.round((cash * 0.05) / 50) * 50));
+      if (choice === 'a') {
+        if (cash < bribe) { setError(tt(`Il te faut ${mny(bribe)}.`, `You need ${mny(bribe)}.`, `Necesitas ${mny(bribe)}.`)); return; }
+        setCash((c) => c - bribe);
+        clampHeat(-20);
+        msg = tt(`Tu glisses ${mny(bribe)} : ils repartent. Heat −20 %.`, `You slip them ${mny(bribe)}: they leave. Heat −20%.`, `Les das ${mny(bribe)}: se van. Heat −20 %.`);
+      } else {
+        clampHeat(10);
+        const lost = inventory.filter((i) => !i.arcItemKey && i.secretState !== 'open');
+        if (lost.length > 0 && Math.random() < 0.4) {
+          const it = lost[Math.floor(Math.random() * lost.length)];
+          setInventory((inv) => inv.filter((i) => i.id !== it.id));
+          msg = tt(`Tu fais profil bas, mais ils repartent avec ${it.name}. Heat +10 %.`, `You keep a low profile, but they leave with ${it.name}. Heat +10%.`, `Mantienes un perfil bajo, pero se llevan ${it.name}. Heat +10 %.`);
+        } else {
+          msg = tt('Tu fais profil bas : ils ne trouvent rien et repartent. Heat +10 %.', 'You keep a low profile: they find nothing and leave. Heat +10%.', 'Mantienes un perfil bajo: no encuentran nada y se van. Heat +10 %.');
+        }
+      }
+    } else if (choice === 'a') {
+      const loss = Math.round((cash * 0.15) / 50) * 50;
+      setCash((c) => Math.max(0, c - loss));
+      msg = tt(`Tu cèdes ${mny(loss)} (15 % de la caisse). Il disparaît dans la nuit.`, `You hand over ${mny(loss)} (15% of the register). He vanishes into the night.`, `Cedes ${mny(loss)} (15 % de la caja). Desaparece en la noche.`);
+    } else if (choice === 'b') {
+      clampHeat(5);
+      msg = tt('Tu déclenches la porte blindée : il détale. Heat +5 %.', 'You trigger the armored door: he bolts. Heat +5%.', 'Activas la puerta blindada: sale corriendo. Heat +5 %.');
+    } else if (Math.random() < 0.5) {
+      msg = tt('Tu lui tiens tête sans trembler : il bat en retraite, personne n’a perdu un dollar.', 'You stare him down: he backs off, nobody lost a dollar.', 'Le plantas cara sin temblar: retrocede, nadie perdió un dólar.');
+    } else {
+      const loss = Math.round((cash * 0.3) / 50) * 50;
+      setCash((c) => Math.max(0, c - loss));
+      sound.playDanger();
+      msg = tt(`Le bluff rate : il vide ${mny(loss)} (30 % de la caisse).`, `The bluff fails: he empties ${mny(loss)} (30% of the register).`, `El farol falla: vacía ${mny(loss)} (30 % de la caja).`);
+    }
+    setHistory((prev) => [...prev, { role: 'npc', content: msg }]);
+    setTell(msg);
+    setOutcome('quitte_la_boutique');
   };
 
   const leaveSpecial = () => {
@@ -1576,6 +1716,22 @@ export default function App() {
     setCurrentCase((c) => ({ ...c, special: { ...sp, patience, used } }));
     setHistory((prev) => [...prev, { role: 'npc', content: tt('« Ça sent le bluff. Je connais ce marché. »', '"Smells like a bluff. I know this market."', '«Huele a farol. Conozco este mercado.»') }]);
     setTell(tt('Il plisse les yeux : mauvais argument, il perd patience.', 'He narrows his eyes: bad argument, he loses patience.', 'Entrecierra los ojos: mal argumento, pierde paciencia.'));
+  };
+
+  // Service demandé par un client de saga (épisodes 3 et 4) : l'aider rapproche, refuser refroidit.
+  const resolveFavor = (helped: boolean) => {
+    if (!favor || !lockAction(`favor-${favor.castId}`)) return;
+    if (helped) {
+      if (cash < favor.cost) {
+        setError(tt(`Il te faut ${mny(favor.cost)}.`, `You need ${mny(favor.cost)}.`, `Necesitas ${mny(favor.cost)}.`));
+        return;
+      }
+      setCash((c) => c - favor.cost);
+      appendHistory('sell', tt(`Service rendu à ${favor.name}`, `Favor for ${favor.name}`, `Favor a ${favor.name}`), -favor.cost);
+    }
+    setSagas((all) => (all[favor.castId] ? { ...all, [favor.castId]: applyFavor(all[favor.castId], helped) } : all));
+    setSagaNote(helped ? tt('Tu l’as aidé : ça restera dans sa mémoire.', 'You helped: it will stay in memory.', 'Lo ayudaste: quedará en su memoria.') : tt('Tu as refusé : ça restera dans sa mémoire aussi.', 'You refused: that will stay in memory too.', 'Te negaste: también quedará en su memoria.'));
+    setFavor(null);
   };
 
   const acceptBuyerOffer = () => {
@@ -1707,7 +1863,9 @@ export default function App() {
       .then((r) => r.json())
       .then((h) => setHighlight(h?.line ? h : null))
       .catch(() => setHighlight(null));
+    track('daily_start');
     void fetchHistory();
+    fetch('/api/league').then((r) => r.json()).then((l) => setLeague(l?.standings ? l : null)).catch(() => setLeague(null));
 
     // Le serveur ouvre la partie dès le début : il compte les tours de négociation.
     dailyRunRef.current = null;
@@ -1770,6 +1928,7 @@ export default function App() {
     setVengeance([]);
     setAscensionLevel(0);
     setMaxDaySurvived(0);
+    setSagas((a) => rebaseSagas(a));
     setTab('counter');
     startNewCase(generateProceduralCase(1, 15, undefined, 1, gameLocale));
   };
@@ -1777,6 +1936,7 @@ export default function App() {
   // Reprise au dernier palier atteint : mêmes remises à zéro qu'un nouveau départ, mais au jour du chapitre validé.
   const restartFromCheckpoint = () => {
     const cp = chapterStart(bestDay);
+    track('checkpoint_restart', cp);
     setDay(cp);
     setCash(checkpointCash(cp, ascMod?.rentMult ?? 1));
     setDebt(0);
@@ -1796,6 +1956,7 @@ export default function App() {
     setArcNotes([]);
     setVengeance([]);
     setMaxDaySurvived((prev) => Math.max(prev, cp));
+    setSagas((a) => rebaseSagas(a, cp));
     setGameOverReason(null);
     setTab('counter');
     startNewCase(generateProceduralCase(cp, 15, undefined, currentDistrict.multiplier, gameLocale));
@@ -1943,6 +2104,7 @@ export default function App() {
 
       if (res.scripted && !scriptedNoticeRef.current) {
         scriptedNoticeRef.current = true;
+        track('scripted_mode');
         setError(tt('IA indisponible ou quota du jour atteint : les vendeurs répondent en mode scripté. Le Pass Syndicat débloque l’IA sans limite.', 'AI unavailable or daily quota reached: sellers now answer in scripted mode. The Syndicate Pass unlocks unlimited AI.', 'IA no disponible o cuota diaria alcanzada: los vendedores responden en modo guionizado. El Pase del Sindicato desbloquea la IA sin límite.'));
       }
       const nextGauges: Gauges = {
@@ -2151,7 +2313,7 @@ export default function App() {
           }
         } else if (res.action_speciale === 'quitte_la_boutique') {
           if (jokerIds.includes('vautour')) {
-            setCash((c) => c + 150);
+            setCash((c) => c + (hasCombo(jokerIds, 'vautour', 'fantome') ? 400 : 150));
           }
           // Revenge: faction remembers rejection
           if (!currentCase.isDailyContract && !currentCase.isBoss) {
@@ -2413,7 +2575,7 @@ export default function App() {
       return inventory.length === 0 && remaining < 350 ? 350 : remaining;
     });
     if (jokerIds.includes('assurance') || barCool > 0) {
-      setCityHeat((h) => Math.max(0, h - (jokerIds.includes('assurance') ? 10 : 0) - barCool));
+      setCityHeat((h) => Math.max(0, h - (jokerIds.includes('assurance') ? 10 : 0) - (hasCombo(jokerIds, 'assurance', 'reseau') ? 10 : 0) - barCool));
     }
     // Traceurs GPS : +12 % de Heat par pièce encore au coffre (nettoyer les neutralise).
     const activeTrackers = inventory.filter(
@@ -2435,6 +2597,7 @@ export default function App() {
     setJokerIds(nextJokers);
     setJokerDraft(null);
 
+    let heistText: string | null = null;
     // Heat >= 80 : descente de police. Le risque devient une vraie perte.
     const raidProtected = activeCodexPerks.includes('Brouillage Total');
     if (cityHeat >= 80 && !raidProtected) {
@@ -2445,7 +2608,7 @@ export default function App() {
       // double-fond joker: save 2 most valuable items from raid
       if (jokerIds.includes('double-fond') || jokerId === 'double-fond') {
         const sorted = [...inventory].sort((a, b) => b.paid - a.paid);
-        setInventory(sorted.slice(0, 2));
+        setInventory(sorted.slice(0, hasCombo([...jokerIds, jokerId], 'double-fond', 'collectionneur') ? 3 : 2));
       } else {
         setInventory([]);
       }
@@ -2460,6 +2623,12 @@ export default function App() {
         return;
       }
     } else {
+      // Une caisse bien garnie attire les braqueurs (la porte blindée et le compte suisse protègent).
+      if (Math.random() < heistRisk(cash, day, upgrades.armoredDoor)) {
+        const loss = heistLoss(cash, Math.random);
+        setCash((c) => Math.max(0, c - loss));
+        heistText = tt(`Braquage de nuit : ${mny(loss)} envolés. Une caisse bien garnie attire du monde.`, `Night robbery: ${mny(loss)} gone. A full register attracts company.`, `Atraco nocturno: ${mny(loss)} desaparecidos. Una caja llena atrae visitas.`);
+      }
       const seasonCool = seasonState.level >= 10 ? 3 : 0;
       setCityHeat((h) => Math.max(0, h - 12 - seasonCool));
       const morningDividend =
@@ -2476,6 +2645,11 @@ export default function App() {
       } else {
         setRaidNote(null);
       }
+    }
+
+    if (heistText) {
+      const ht = heistText;
+      setRaidNote((p) => (p ? `${p} ` : '') + ht);
     }
 
     const nextDay = day + 1;
@@ -2594,6 +2768,7 @@ export default function App() {
     setSoldCategories({});
     setRerollsLeft(baseRerolls);
     setRaidNote(null);
+    setSagas((a) => rebaseSagas(a));
     setGameOverReason(null);
     setTab('counter');
     startNewCase(generateProceduralCase(1, 15, lastMemory || undefined, currentDistrict.multiplier, gameLocale));
@@ -2788,7 +2963,7 @@ export default function App() {
             <ul className="list-disc space-y-1 pl-4">
               {(gameLocale === 'en'
                 ? [
-                    'Rent rises every night ($500 + $350 per day) and cash in hand is taxed. Check the “Rent” figure at the top before each night.',
+                    'Rent rises every night ($300 + $350 per day) and cash in hand is taxed. Check the “Rent” figure at the top before each night.',
                     'Buy well under the street value shown under the item: pressure the seller with your own words, not just the tools.',
                     'Flip fast when you are short on cash; clean items (−$250) and sell at auction when you can afford to wait.',
                     'Open the ✦ false-bottom pieces in the Vault: a solved riddle pays cash, XP or lowers Heat.',
@@ -2796,14 +2971,14 @@ export default function App() {
                   ]
                 : gameLocale === 'es'
                   ? [
-                      'El alquiler sube cada noche (500 $ + 350 $ por día) y el efectivo en mano paga impuestos. Mira la cifra «Alquiler» arriba antes de cada noche.',
+                      'El alquiler sube cada noche (300 $ + 350 $ por día) y el efectivo en mano paga impuestos. Mira la cifra «Alquiler» arriba antes de cada noche.',
                       'Compra muy por debajo del valor de calle que aparece bajo el objeto: presiona al vendedor con tus palabras, no solo con las herramientas.',
                       'Revende rápido si andas corto de efectivo; limpia las piezas (−250 $) y véndelas en subasta cuando puedas esperar.',
                       'Abre las piezas ✦ de doble fondo en la caja fuerte: un acertijo resuelto paga efectivo, XP o baja el Heat.',
                       'Guarda efectivo en la cuenta suiza: sobrevive a la ruina y te deja volver a empezar.',
                     ]
                   : [
-                      'Le loyer monte chaque soir (500 $ + 350 $ par jour) et le cash en main est taxé. Regarde le chiffre « Loyer » en haut avant chaque nuit.',
+                      'Le loyer monte chaque soir (300 $ + 350 $ par jour) et le cash en main est taxé. Regarde le chiffre « Loyer » en haut avant chaque nuit.',
                       'Achète bien sous la valeur de rue affichée sous l’objet : mets la pression avec tes mots, pas seulement avec les outils.',
                       'Revends vite quand tu manques de cash ; nettoie les pièces (−250 $) et passe-les aux enchères quand tu peux attendre.',
                       'Ouvre les pièces ✦ à double fond au coffre : une énigme résolue rapporte du cash, de l’XP ou baisse le Heat.',
@@ -2899,6 +3074,7 @@ export default function App() {
                 setArcNotes([]);
                 setVengeance([]);
                 setMaxDaySurvived(0);
+                setSagas((a) => rebaseSagas(a));
                 setGameOverReason(null);
                 setTab('counter');
                 startNewCase(generateProceduralCase(1, 15, undefined, 1, gameLocale));
@@ -3212,7 +3388,7 @@ export default function App() {
           tr('Au comptoir, négocie avec tes mots et achète sous la valeur de rue.', 'At the counter, negotiate with your own words and buy under street value.', 'En el mostrador, negocia con tus palabras y compra por debajo del valor de calle.'),
           tr('Ici, nettoie ou revends tes pièces : vente rapide si tu manques de cash, enchères si tu peux attendre.', 'Here, clean or sell your pieces: quick sale if you are short on cash, auction if you can wait.', 'Aquí, limpia o vende tus piezas: venta rápida si andas corto de efectivo, subasta si puedes esperar.'),
           tr('Une pièce à double fond cache une énigme : la résoudre rapporte du cash, de l’XP ou baisse le Heat.', 'A false-bottom piece hides a riddle: solving it pays cash, XP or lowers Heat.', 'Una pieza con doble fondo esconde un acertijo: resolverlo da efectivo, XP o baja el Heat.'),
-          tr(`Chaque soir, paye le loyer : 500 $ + 350 $ par jour + un impôt sur ton cash (${money(rentShare)} ce soir). Sinon, la boutique est saisie.`, `Every night, pay the rent: $500 + $350 per day + a tax on your cash (${money(rentShare)} tonight). Otherwise the shop is seized.`, `Cada noche, paga el alquiler: 500 $ + 350 $ por día + un impuesto sobre tu efectivo (${money(rentShare)} esta noche). Si no, te embargan la tienda.`),
+          tr(`Chaque soir, paye le loyer : 300 $ + 350 $ par jour + un impôt sur ton cash (${money(rentShare)} ce soir). Sinon, la boutique est saisie.`, `Every night, pay the rent: $300 + $350 per day + a tax on your cash (${money(rentShare)} tonight). Otherwise the shop is seized.`, `Cada noche, paga el alquiler: 300 $ + 350 $ por día + un impuesto sobre tu efectivo (${money(rentShare)} esta noche). Si no, te embargan la tienda.`),
           tr('Le compte suisse met ton argent à l’abri de la ruine (10 % de frais).', 'The Swiss account keeps your money safe from a bust (10% fee).', 'La cuenta suiza pone tu dinero a salvo de la ruina (10 % de comisión).'),
         ];
         const ghost = 'border border-white/15 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-zinc-200 hover:border-amber-400/60 hover:text-amber-300 disabled:opacity-40 transition-colors';
@@ -3323,6 +3499,15 @@ export default function App() {
                       ? tr(`Liquidités insuffisantes en caisse (${money(cash)} dispo). Vends une pièce ou puise dans le compte suisse.`, `Insufficient vault cash (${money(cash)} available). Liquidate a piece or tap Swiss funds.`, `Efectivo insuficiente (${money(cash)} disponible). Vende una pieza o retira de la cuenta suiza.`)
                       : tr(`Reste net en caisse après paiement : ${money(cash - dailyRent)}`, `Net remaining in cash after payment: ${money(cash - dailyRent)}`, `Restante neto en caja tras el pago: ${money(cash - dailyRent)}`)}
                   </p>
+                  {heistRisk(cash, day, upgrades.armoredDoor) >= 0.1 && (
+                    <p className="rounded border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-[11px] leading-snug text-amber-200">
+                      {tr(
+                        `Ta caisse (${money(cash)}) attire les braqueurs : ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)} % de risque cette nuit, 12 à 25 % de la caisse. Mets du cash en Suisse ou installe la porte blindée.`,
+                        `Your register (${money(cash)}) attracts robbers: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)}% risk tonight, 12-25% of the cash. Move cash to Switzerland or install the armored door.`,
+                        `Tu caja (${money(cash)}) atrae a los ladrones: ${Math.round(heistRisk(cash, day, upgrades.armoredDoor) * 100)} % de riesgo esta noche, 12-25 % de la caja. Pasa efectivo a Suiza o instala la puerta blindada.`,
+                      )}
+                    </p>
+                  )}
                   {cityHeat >= 75 && (
                     <p className="rounded border border-red-500/40 bg-red-950/40 px-2 py-1.5 text-[11px] leading-snug text-red-300">
                       {tr(
@@ -3716,6 +3901,7 @@ export default function App() {
                           <span className="block truncate text-xs text-zinc-500">
                             {localizeArchetype(r.job, L)} · {tr('Jour', 'Day', 'Día')} {r.day}
                           </span>
+                          {r.castId && sagas[r.castId] && <span className="block truncate text-[11px] text-violet-300">{sagaLabel(sagas[r.castId])}</span>}
                         </span>
                         <span className={`shrink-0 text-xs ${r.result === 'deal' ? 'text-emerald-400' : 'text-red-400'}`}>{label}</span>
                       </li>
@@ -4012,7 +4198,7 @@ export default function App() {
                     />
                   </button>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-1.5 sm:flex-wrap sm:gap-x-2 sm:gap-y-0 max-sm:truncate">
+                    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:gap-x-2 sm:gap-y-0">
                       {currentCase.isBoss && (
                         <span className="bg-red-600/90 px-1 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-white sm:text-[11px] shrink-0">
                           BOSS · {currentCase.bossTitle}
@@ -4027,6 +4213,16 @@ export default function App() {
                           {inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                             ? tt('RACHAT', 'BUYBACK', 'RECOMPRA')
                             : tt('PISTE PERDUE', 'LOST LEAD', 'PISTA PERDIDA')}
+                        </span>
+                      )}
+                      {currentCase.windfall && (
+                        <span className="shrink-0 max-sm:order-last border border-emerald-400/60 bg-emerald-950/70 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-emerald-200 sm:text-[11px]">
+                          ★ {tt('Trouvaille', 'Windfall', 'Hallazgo')}
+                        </span>
+                      )}
+                      {currentCase.saga && (
+                        <span className="shrink-0 max-sm:order-last max-sm:max-w-full max-sm:truncate border border-violet-400/50 bg-violet-950/60 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-violet-200 sm:text-[11px]">
+                          {currentCase.saga.ally ? '★' : `${tt('Ép.', 'Ep.', 'Ep.')} ${currentCase.saga.episode}/${SAGA_EPISODES}`} · {currentCase.saga.chapter}
                         </span>
                       )}
                       <span className="truncate font-[family-name:var(--font-display)] text-base tracking-wider text-zinc-100 uppercase sm:shrink-0 sm:overflow-visible sm:whitespace-nowrap sm:text-3xl">
@@ -4057,7 +4253,7 @@ export default function App() {
                             ? (inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                                 ? tt(currentCase.gender === 'f' ? 'Elle paie pour reprendre' : 'Il paie pour reprendre', currentCase.gender === 'f' ? 'She pays to retrieve' : 'He pays to retrieve', currentCase.gender === 'f' ? 'Ella paga para recuperar' : 'Él paga para recuperar')
                                 : tt('Pièce manquante', 'Missing item', 'Pieza faltante'))
-                            : currentCase.special?.kind === 'buyer' ? tt('Il propose', 'He offers', 'Ofrece') : currentCase.special ? tt('Indic', 'Informant', 'Confidente') : currentCase.gender === 'f' ? t.askingShe : t.askingHe}
+                            : currentCase.special?.kind === 'buyer' ? tt('Il propose', 'He offers', 'Ofrece') : currentCase.special ? (currentCase.special.kind === 'event' ? tt('Alerte', 'Alert', 'Alerta') : tt('Indic', 'Informant', 'Confidente')) : currentCase.gender === 'f' ? t.askingShe : t.askingHe}
                         </span>
                         <span className="font-[family-name:var(--font-display)] text-xl sm:text-4xl leading-none tracking-wider text-amber-300">
                           {currentCase.arcStep === 2
@@ -4562,6 +4758,27 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+                    {league && league.standings.length > 0 && (() => {
+                      const tierName: Record<string, string> = { master: tt('Maître', 'Master', 'Maestro'), gold: tt('Or', 'Gold', 'Oro'), silver: tt('Argent', 'Silver', 'Plata'), bronze: tt('Bronze', 'Bronze', 'Bronce') };
+                      const left = Math.max(0, new Date(league.endsAt).getTime() - Date.now());
+                      const dLeft = Math.floor(left / 86_400_000);
+                      const hLeft = Math.floor((left % 86_400_000) / 3_600_000);
+                      return (
+                        <div className="space-y-0.5 border-t border-white/10 pt-1">
+                          <p className="flex justify-between text-[9px] uppercase tracking-wider text-violet-300">
+                            <span>{tt('Ligue de la semaine', 'Weekly league', 'Liga semanal')}</span>
+                            <span className="text-zinc-500">{tt('fin dans', 'ends in', 'termina en')} {dLeft}{tt('j', 'd', 'd')} {hLeft}h</span>
+                          </p>
+                          {league.standings.slice(0, 5).map((e) => (
+                            <div key={e.pseudo} className="flex justify-between gap-2 text-zinc-400">
+                              <span className="truncate">#{e.rank} {e.pseudo}</span>
+                              <span className="shrink-0 text-zinc-300">{mny(e.total)} · <span className="text-violet-300">{tierName[e.tier]}</span></span>
+                            </div>
+                          ))}
+                          <p className="text-[9px] leading-snug text-zinc-500">{tt('Les paliers (Maître, Or, Argent, Bronze) se jouent sur les marges de tes contrats quotidiens de la semaine.', 'Tiers (Master, Gold, Silver, Bronze) are decided by your weekly daily-contract margins.', 'Los rangos (Maestro, Oro, Plata, Bronce) se deciden por los márgenes de tus contratos diarios de la semana.')}</p>
+                        </div>
+                      );
+                    })()}
                     {highlight && (
                       <p className="border-l border-amber-400/60 pl-2 text-[11px] italic leading-snug text-zinc-300">
                         <span className="block text-[9px] not-italic uppercase tracking-wider text-amber-300">
@@ -4863,6 +5080,24 @@ export default function App() {
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
             <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
+                {outcome !== 'active' && (sagaNote || favor) && (
+                  <div className="mb-2 space-y-1.5 border border-amber-500/30 bg-amber-500/5 p-2 font-mono text-[11px] leading-snug text-amber-100">
+                    {sagaNote && <p>{sagaNote}</p>}
+                    {favor && (
+                      <>
+                        <p>{sagaFavor(gameLocale, favor.name, mny(favor.cost))}</p>
+                        <div className="flex gap-2">
+                          <button type="button" disabled={cash < favor.cost} onClick={() => resolveFavor(true)} className="brass flex-1 px-2 py-1.5 font-bold uppercase text-[#1a1206] disabled:opacity-40">
+                            {tt(`Lui avancer ${mny(favor.cost)}`, `Lend ${mny(favor.cost)}`, `Prestar ${mny(favor.cost)}`)}
+                          </button>
+                          <button type="button" onClick={() => resolveFavor(false)} className="border border-white/20 bg-black/60 px-3 py-1.5 uppercase text-zinc-300 hover:border-white/40">
+                            {tt('Refuser', 'Refuse', 'Rechazar')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 {outcome !== 'active' ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 py-1">
                     <div className="flex items-center gap-2 font-mono text-xs sm:text-sm">
@@ -5010,6 +5245,23 @@ export default function App() {
                         <button type="button" onClick={leaveSpecial} className="w-full border border-white/20 bg-black/60 px-3 py-2 font-mono text-[11px] uppercase text-zinc-300 hover:border-white/40">
                           {tt('Pas besoin de toi', 'No thanks', 'No te necesito')}
                         </button>
+                      </div>
+                    );
+                  }
+                  if (sp.kind === 'event') {
+                    const bribe = Math.min(2000, Math.max(300, Math.round((cash * 0.05) / 50) * 50));
+                    const btn = 'brass px-2 py-2.5 font-mono text-xs font-bold uppercase text-[#1a1206] disabled:opacity-40';
+                    const ghost = 'border border-white/20 bg-black/60 px-2 py-2.5 font-mono text-xs uppercase text-zinc-200 hover:border-white/40 disabled:opacity-40';
+                    return sp.event === 'checkpoint' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" disabled={cash < bribe} onClick={() => resolveEvent('a')} className={btn}>{tt(`Graisser la patte ${mny(bribe)} · Heat −20 %`, `Bribe ${mny(bribe)} · Heat −20%`, `Sobornar ${mny(bribe)} · Heat −20 %`)}</button>
+                        <button type="button" onClick={() => resolveEvent('b')} className={ghost}>{tt('Profil bas · Heat +10 %, 40 % de perdre une pièce', 'Low profile · Heat +10%, 40% to lose a piece', 'Perfil bajo · Heat +10 %, 40 % de perder una pieza')}</button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        <button type="button" onClick={() => resolveEvent('a')} className={ghost}>{tt('Payer 15 % de la caisse', 'Pay 15% of the register', 'Pagar el 15 % de la caja')}</button>
+                        <button type="button" disabled={!upgrades.armoredDoor} onClick={() => resolveEvent('b')} className={btn}>{upgrades.armoredDoor ? tt('Porte blindée · gratuit', 'Armored door · free', 'Puerta blindada · gratis') : tt('Porte blindée (non installée)', 'Armored door (not installed)', 'Puerta blindada (sin instalar)')}</button>
+                        <button type="button" onClick={() => resolveEvent('c')} className={ghost}>{tt('Bluffer · 50 % : rien ou −30 %', 'Bluff · 50%: nothing or −30%', 'Farolear · 50 %: nada o −30 %')}</button>
                       </div>
                     );
                   }
@@ -5474,6 +5726,14 @@ export default function App() {
               <li><span className="text-orange-400">{t.anger}</span> — {tt('trop haute, il claque la porte.', 'too high and he walks out.', 'demasiado alta y se va dando un portazo.')}</li>
               <li><span className="text-sky-300">{t.suspicion}</span> — {tt('trop haute, il flaire le piège ou part.', 'too high and he smells a trap or leaves.', 'demasiado alta y huele la trampa o se va.')}</li>
             </ul>
+            {activeCombos(jokerIds).length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-violet-300">{tt('Combos actifs', 'Active combos', 'Combos activos')}</h4>
+                {activeCombos(jokerIds).map((c) => (
+                  <p key={c.id} className="border border-violet-400/40 bg-violet-950/40 px-2 py-1.5 text-xs leading-snug text-violet-100"><span className="font-bold">{c.name[gameLocale]}</span> — {c.desc[gameLocale]}</p>
+                ))}
+              </div>
+            )}
             <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Tes atouts', 'Your jokers', 'Tus comodines')} ({jokerIds.length})</h4>
             {jokerIds.length === 0 ? (
               <p className="text-xs leading-relaxed text-zinc-400">{tt('Aucun pour l’instant. Tu en choisis un parmi trois à chaque nuit payée : ils changent tes règles (prix, jauges, revente).', 'None yet. You pick one of three after each paid night: they change your rules (price, gauges, resale).', 'Ninguno por ahora. Eliges uno de tres tras cada noche pagada: cambian tus reglas (precio, medidores, reventa).')}</p>
@@ -5539,6 +5799,9 @@ export default function App() {
                   </div>
                 ) : (
                   <p className="text-zinc-500">{tt('Parle-lui encore un peu : son tempérament se devine à ses réactions (3 échanges).', 'Keep talking: his temperament shows in his reactions (3 exchanges).', 'Sigue hablando: su temperamento se ve en sus reacciones (3 intercambios).')}</p>
+                )}
+                {currentCase.castId && sagas[currentCase.castId] && (
+                  <p><span className="text-violet-300">{tt('Votre histoire', 'Your story', 'Vuestra historia')}</span> {sagaLabel(sagas[currentCase.castId])}</p>
                 )}
                 {castChar && history.length >= FLAW_REVEAL_TURNS ? (
                   <>
@@ -5651,6 +5914,11 @@ export default function App() {
                       <h3 className="text-sm font-semibold text-zinc-100 group-hover:text-amber-300 transition-colors">
                         {locJk.name}
                       </h3>
+                      {comboCompletedBy(jk.id, jokerIds) && (
+                        <p className="border border-violet-400/50 bg-violet-950/50 px-2 py-1 font-mono text-[10px] leading-snug text-violet-200">
+                          ✦ {tt('COMBO', 'COMBO', 'COMBO')} · {comboCompletedBy(jk.id, jokerIds)!.name[gameLocale]} : {comboCompletedBy(jk.id, jokerIds)!.desc[gameLocale]}
+                        </p>
+                      )}
                       <p className="text-xs text-zinc-400 leading-relaxed">{locJk.desc}</p>
                     </div>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between">
@@ -5835,6 +6103,20 @@ export default function App() {
                 <span className="text-zinc-600">/admin →</span>
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const next = !telemetryOn;
+                setTelemetryOn(next);
+                localStorage.setItem('fence_telemetry', next ? '1' : '0');
+              }}
+              title={tt('Compteurs anonymes (jour atteint, abandons…), aucune donnée personnelle.', 'Anonymous counters (day reached, drop-offs…), no personal data.', 'Contadores anónimos (día alcanzado, abandonos…), sin datos personales.')}
+              className={`flex w-full items-center justify-between rounded border px-2.5 py-1.5 text-[11px] transition-colors ${telemetryOn ? 'border-amber-400/40 bg-amber-400/10 text-amber-300' : 'border-white/5 bg-black/40 text-zinc-500'}`}
+            >
+              <span>{tt('Statistiques anonymes', 'Anonymous stats', 'Estadísticas anónimas')}</span>
+              <span className="text-[9px] font-bold uppercase">{telemetryOn ? 'ON' : 'OFF'}</span>
+            </button>
 
             {/* Career Summary Ticker */}
             <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-zinc-500">

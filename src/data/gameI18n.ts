@@ -245,7 +245,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `ARRIÈRE-BOUTIQUE · NUIT ${d}`,
     syndicateLedger: 'REGISTRE & TAXE DU SYNDICAT',
     taxSub: (rentShare, auctions) =>
-      `Taxe : 500 $ + 350 $/j + impôt progressif sur le cash (8 % → 25 %) (${rentShare} $)` +
+      `Taxe : 300 $ + 350 $/j + impôt progressif sur le cash (8 % → 25 %) (${rentShare} $)` +
       (auctions > 0 ? ` · ${auctions} enchère(s) ce soir` : ''),
     eventLabel: 'ÉVÉNEMENT',
     raidAlert: 'ALERTE RAID : la police passe cette nuit (saisie + 30 % caisse).',
@@ -508,7 +508,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `BACKROOM · NIGHT ${d}`,
     syndicateLedger: 'SYNDICATE LEDGER & TAX',
     taxSub: (rentShare, auctions) =>
-      `Tax: $500 + $350/day + progressive tax on cash (8% → 25%) ($${rentShare})` +
+      `Tax: $300 + $350/day + progressive tax on cash (8% → 25%) ($${rentShare})` +
       (auctions > 0 ? ` · ${auctions} auction(s) tonight` : ''),
     eventLabel: 'EVENT',
     raidAlert: 'RAID ALERT: Police patrol tonight (seizure + 30% cash cut).',
@@ -771,7 +771,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `TRASHO TIENDA · NOCHE ${d}`,
     syndicateLedger: 'REGISTRO Y TRIBUTO DEL SINDICATO',
     taxSub: (rentShare, auctions) =>
-      `Tributo: 500 $ + 350 $/día + impuesto progresivo sobre la caja (8 % → 25 %) (${rentShare} $)` +
+      `Tributo: 300 $ + 350 $/día + impuesto progresivo sobre la caja (8 % → 25 %) (${rentShare} $)` +
       (auctions > 0 ? ` · ${auctions} subasta(s) esta noche` : ''),
     eventLabel: 'EVENTO',
     raidAlert: 'ALERTA REDADA: La policía pasa esta noche (confiscación + 30 % caja).',

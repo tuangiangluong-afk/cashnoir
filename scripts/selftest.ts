@@ -4,14 +4,19 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/services/llm';
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
-import { chapterStart, checkpointCash } from '../src/data/checkpoints';
+import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from '../src/data/checkpoints';
+import { heistRisk, heistLoss } from '../src/data/risk';
+import { COMBOS, activeCombos, comboCompletedBy } from '../src/data/combos';
+import { JOKER_POOL } from '../src/data/jokers';
+import { applyEncounter, applyFavor, isDue, pickDue, trustTone, SAGA_EPISODES, type SagaState } from '../src/data/saga';
+import { sagaOpening, sagaTell, sagaChapter, sagaEnding } from '../src/data/sagaText';
 import { isInjection, evaluatePsychoTriggers } from '../src/data/psychology';
 import { localizeCastText } from '../src/data/castI18n';
 import { localizeArchetype, localizeItemName, localizeFaction } from '../src/data/noirLocalization';
 import { localizeItemText } from '../src/data/itemsI18n';
 import { CAST_ROSTER, PORTRAIT_OF } from '../src/data/cast';
 import { checkSecret, secretContent, rollSecretId, secretAnswer, secretReward } from '../src/data/secrets';
-import { generateProceduralCase, generateDailyContract, setPlayerCashHint } from '../src/data/generator';
+import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint } from '../src/data/generator';
 import { SEASON_EPISODES, episodesUnlocked, daysUntilEpisode } from '../src/data/seasons';
 import { COLLECTIONS_DATA } from '../src/data/codex';
 import { localizeSeasonEpisode } from '../src/data/noirLocalization';
@@ -301,8 +306,8 @@ for (const msg of [
   check('palier : avant le jour 6, on repart du jour 1', chapterStart(0) === 1 && chapterStart(5) === 1);
   check('palier : jour 6 à 10 -> reprise au jour 6', chapterStart(6) === 6 && chapterStart(10) === 6);
   check('palier : jour 11 -> reprise au jour 11, jour 31 -> 31', chapterStart(11) === 11 && chapterStart(31) === 31);
-  check('palier : caisse = premier loyer + 15% taxe + 1 500 $ fonds de roulement', checkpointCash(1) === 2500 && checkpointCash(6) === 4100 && checkpointCash(11) === 6100 && checkpointCash(21) === 10150);
-  check('palier : avec loyer d’ascension (1.5x), caisse adaptée au premier loyer', checkpointCash(11, 1.5) === 8400);
+  check('palier : caisse = premier loyer + 15% taxe + 1 500 $ fonds de roulement', checkpointCash(1) === 2500 && checkpointCash(6) === 3850 && checkpointCash(11) === 5850 && checkpointCash(21) === 9900);
+  check('palier : avec loyer d’ascension (1.5x), caisse adaptée au premier loyer', checkpointCash(11, 1.5) === 8050);
   let mono = true;
   for (let d = 1; d < 200; d++) if (chapterStart(d + 1) < chapterStart(d)) mono = false;
   check('palier : jamais décroissant quand le record monte', mono);
@@ -329,6 +334,82 @@ for (const msg of [
   // Parsing des montants en lettres avec tranches de 50
   const spelled1950 = parseNPCJson(JSON.stringify({ dialogue: "Donnez-moi au moins dix-neuf cent cinquante dollars.", indice_comportemental: 't', jauges: g, prix_actuel_demande: 2150, action_speciale: 'aucune' }), g, 2150, 2750, 1650, undefined, 'fr', 'm');
   check('parseSpelledPrices détecte les tranches de 50 (dix-neuf cent cinquante -> 1950)', spelled1950.prix_actuel_demande === 1950, `prix=${spelled1950.prix_actuel_demande}`);
+}
+
+// Début de partie plus doux : loyer de base 300 $ (3 premières nuits = 1 950 $ < 2 500 $ de capital), moins de pièges aux jours 2-3.
+{
+  const rent = (d: number) => RENT_BASE + (d - 1) * RENT_SLOPE;
+  check('loyer des 3 premières nuits < capital de départ', rent(1) + rent(2) + rent(3) < 2500, String(rent(1) + rent(2) + rent(3)));
+  let traps = 0;
+  const N = 600;
+  for (let i = 0; i < N; i++) if (generateProceduralCase(2, 20, undefined, 1, 'fr').isTrap) traps += 1;
+  check('jour 2 : moins de 22 % de pièges', traps / N < 0.22, `${Math.round((100 * traps) / N)} %`);
+}
+
+// Sagas clients : relation, série de 5 épisodes, dénouement (allié / ennemi / neutre), textes complets en 3 langues.
+{
+  let s: SagaState | undefined;
+  s = applyEncounter(s, 'c001', 1, 'deal', 0.2);
+  check('saga : première rencontre = met 1, confiance +10', s.met === 1 && s.trust === 10);
+  check('saga : pas due avant 2 jours, due après', !isDue(s, 2) && isDue(s, 3));
+  check('saga : plumé (marge ≥ 40 %) refroidit', applyEncounter(undefined, 'c002', 1, 'deal', 0.5).trust < 0);
+  check('saga : braquage = −25', applyEncounter(undefined, 'c003', 1, 'gun', 0).trust === -25);
+  for (let i = 2; i <= 5; i++) s = applyEncounter(s, 'c001', i * 3, 'deal', 0.2);
+  check('saga : 5 épisodes → dénouement allié avec une bonne relation', s.met === SAGA_EPISODES && s.end === 'ally', JSON.stringify(s));
+  check('saga : un allié revient après 5 jours', isDue(s, s.lastDay + 5) && !isDue(s, s.lastDay + 4));
+  let e: SagaState | undefined;
+  for (let i = 1; i <= 5; i++) e = applyEncounter(e, 'c009', i * 3, 'deal', 0.6);
+  check('saga : toujours plumé → ennemi', e!.end === 'enemy' && !isDue(e!, 99));
+  let n: SagaState | undefined;
+  for (let i = 1; i <= 5; i++) n = applyEncounter(n, 'c010', i * 3, i % 2 ? 'deal' : 'walk', 0.2);
+  check('saga : relation tiède → départ neutre', n!.end === 'gone');
+  check('saga : faveur aidée / refusée', applyFavor({ castId: 'x', met: 2, trust: 0, lastDay: 1 }, true).trust === 25 && applyFavor({ castId: 'x', met: 2, trust: 0, lastDay: 1 }, false).trust === -15);
+  const pool: Record<string, SagaState> = { a: { castId: 'a', met: 1, trust: 0, lastDay: 1 }, b: { castId: 'b', met: 3, trust: 0, lastDay: 1 } };
+  let b = 0;
+  for (let i = 0; i < 500; i++) if (pickDue(pool, 10, Math.random)?.castId === 'b') b += 1;
+  check('saga : les séries avancées reviennent plus souvent', b > 250, `b=${b}/500`);
+  check('saga : tonalités de relation', trustTone(80) === 'devoted' && trustTone(0) === 'neutral' && trustTone(-80) === 'hostile');
+  let miss = 0;
+  for (const prof of ['gambler', 'exec', 'cop', 'rich_kid', 'broker', 'smuggler', 'heiress', 'priest', 'hacker']) {
+    for (const loc of ['fr', 'en', 'es'] as const) {
+      for (let ep = 2; ep <= 5; ep++) {
+        const t = sagaOpening(prof, ep, loc, 0, 'X', '1 $');
+        if (!t.includes('X') || !t.includes('1 $') || /\{\w+\}/.test(t)) miss += 1;
+        if (!sagaTell(ep, loc, 'f') || /\{\w+\}/.test(sagaTell(ep, loc, 'm')) || !sagaChapter(ep, loc)) miss += 1;
+      }
+    }
+  }
+  for (const loc of ['fr', 'en', 'es'] as const) for (const end of ['ally', 'enemy', 'gone'] as const) if (/\{\w+\}/.test(sagaEnding(end, loc, 'Z', 'f'))) miss += 1;
+  check('saga : 9 profils × 4 épisodes × 3 langues, sans trou ni variable oubliée', miss === 0, `trous=${miss}`);
+}
+
+// Risque de braquage lié à la richesse.
+{
+  check('braquage : aucun risque sous le seuil', heistRisk(5000, 10, false) === 0);
+  check('braquage : le risque monte avec la caisse et plafonne à 60 %', heistRisk(40000, 10, false) > heistRisk(20000, 10, false) && heistRisk(900000, 10, false) <= 0.6);
+  check('braquage : la porte blindée réduit le risque de 60 %', Math.abs(heistRisk(40000, 10, true) - heistRisk(40000, 10, false) * 0.4) < 1e-9);
+  const l = heistLoss(40000, () => 0.5);
+  check('braquage : perte entre 12 et 25 % de la caisse', l >= 4800 && l <= 10000, String(l));
+}
+
+// Combos d'atouts : atouts réels, une seule synergie par paire, tirage mis en avant.
+{
+  const ids = new Set(JOKER_POOL.map((j) => j.id));
+  check('combos : tous les atouts cités existent', COMBOS.every((c) => ids.has(c.a) && ids.has(c.b)));
+  check('combos : aucune paire en double', new Set(COMBOS.map((c) => [c.a, c.b].sort().join('+'))).size === COMBOS.length);
+  check('combos : détection et mise en avant', activeCombos(['negociateur', 'intimidation']).length === 1 && comboCompletedBy('intimidation', ['negociateur'])?.id === 'parrain' && !comboCompletedBy('radar', ['negociateur']));
+  check('combos : textes FR/EN/ES complets', COMBOS.every((c) => (['fr', 'en', 'es'] as const).every((l) => c.name[l] && c.desc[l])));
+}
+
+// Trouvaille rare : pièce légendaire ou mythique bradée, jamais un piège.
+{
+  let bad = 0;
+  for (let i = 0; i < 80; i++) {
+    const c = generateWindfallCase(4 + (i % 20), 30, (['fr', 'en', 'es'] as const)[i % 3]);
+    const r = c.item.rarity;
+    if (!c.windfall || c.isTrap || (r !== 'legendaire' && r !== 'mythique') || c.initialPrice > c.streetValue * 0.08 || c.initialPrice < c.floorPrice || c.streetValue < 4000) bad += 1;
+  }
+  check('trouvaille : pièce légendaire bradée (≤ 8 % de la valeur de rue), jamais un piège', bad === 0, `anomalies=${bad}/80`);
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

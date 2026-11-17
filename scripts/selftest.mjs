@@ -32,6 +32,8 @@ const check = (name, ok, detail = '') => {
   else { failed = true; console.error(`  ✗ ${name}${detail ? ` — ${detail}` : ''}`); }
 };
 const { buildDailyContract } = await import(join(root, 'server/daily.mjs'));
+const { computeLeague, weekStart, tierOf } = await import(join(root, 'server/league.mjs'));
+const { recordEvent, EVENTS } = await import(join(root, 'server/telemetry.mjs'));
 const date = new Date().toISOString().slice(0, 10);
 const c = buildDailyContract(date);
 const mock = (peur, price = c.initialPrice) => JSON.stringify({ dialogue: 'Hm.', indice_comportemental: 'tic', jauges: { peur, colere: 10, mefiance: 30 }, prix_actuel_demande: price, action_speciale: 'aucune' });
@@ -79,6 +81,33 @@ try {
   // Un faux ticket est refusé
   check('faux ticket refusé', (await post('/api/run/deal', { runId: 'x', ticket: 'abc.def', paid: 1 }, '10.0.0.3')).status === 401);
 
+
+  // Ligue hebdomadaire : semaine ISO, cumul des marges, paliers.
+  {
+    const wed = new Date('2026-03-18T12:00:00Z'); // un mercredi
+    check('ligue : la semaine commence le lundi 00:00 UTC', weekStart(wed).toISOString() === '2026-03-16T00:00:00.000Z');
+    const db = { '2026-03-15': [{ pseudo: 'old', margin: 999999 }], '2026-03-16': [{ pseudo: 'A', margin: 500 }, { pseudo: 'B', margin: 300 }], '2026-03-17': [{ pseudo: 'A', margin: 400 }, { pseudo: 'C', margin: 50 }] };
+    const lg = computeLeague(db, wed);
+    check('ligue : cumul sur la semaine, dimanche précédent exclu', lg.standings[0].pseudo === 'A' && lg.standings[0].total === 900 && !lg.standings.some((s) => s.pseudo === 'old'));
+    check('ligue : classement trié et paliers cohérents', lg.standings.map((s) => s.pseudo).join() === 'A,B,C' && lg.standings[0].tier === 'master' && tierOf(10, 10) === 'bronze' && tierOf(4, 20) === 'gold' && tierOf(4, 10) === 'silver');
+    check('ligue : fin de semaine le lundi suivant', lg.endsAt === '2026-03-23T00:00:00.000Z');
+    const live = await (await fetch(`${B}/api/league`)).json();
+    check('/api/league répond', Array.isArray(live.standings) && typeof live.endsAt === 'string');
+  }
+
+  // Statistiques anonymes : liste blanche, valeurs bornées, agrégats seulement.
+  {
+    const st = {};
+    check('stats : événement inconnu refusé', !recordEvent(st, '2026-03-18', 'hack<script>', 1) && Object.keys(st).length === 0);
+    check('stats : date invalide refusée', !recordEvent(st, 'nope', 'game_over', 1));
+    recordEvent(st, '2026-03-18', 'game_over', 7);
+    recordEvent(st, '2026-03-18', 'game_over', 12);
+    recordEvent(st, '2026-03-18', 'game_over', 99999999);
+    const e = st['2026-03-18'].game_over;
+    check('stats : agrégat (nombre, somme, max) avec valeur plafonnée', e.n === 3 && e.max === 10000 && e.sum === 10019, JSON.stringify(e));
+    check('stats : /api/stats fermé sans clé admin', (await fetch(`${B}/api/stats`)).status === 404);
+    check('stats : liste blanche non vide', EVENTS.size >= 8);
+  }
   // Quota quotidien et plafond de sortie
   check('fournisseur factice désactivé hors NPC_MOCK', true);
 } catch (e) {

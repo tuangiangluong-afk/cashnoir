@@ -1,3 +1,5 @@
+import { computeLeague } from './league.mjs';
+import { recordEvent } from './telemetry.mjs';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -259,6 +261,23 @@ function verifyToken(token) {
   } catch {
     return null;
   }
+}
+
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+let eventStats = {};
+try {
+  eventStats = JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8')) || {};
+} catch {
+  eventStats = {};
+}
+let eventsTimer = null;
+function scheduleEventsWrite() {
+  if (eventsTimer) return;
+  eventsTimer = setTimeout(() => {
+    eventsTimer = null;
+    fs.promises.writeFile(EVENTS_FILE, JSON.stringify(eventStats)).catch((e) => console.warn('[stats] écriture échouée:', e.message));
+  }, 5000);
+  eventsTimer.unref();
 }
 
 /* ------------------------------------------------------------------ */
@@ -566,6 +585,30 @@ export async function handleRequest(req, res) {
         return;
       }
       sendJson(res, 200, data);
+      return;
+    }
+
+    /* ---------------- Statistiques anonymes (compteurs agrégés) ---------------- */
+    if (req.method === 'POST' && url.pathname === '/api/event') {
+      const body = await readJson(req);
+      if (recordEvent(eventStats, today(), String(body?.name || ''), body?.v)) scheduleEventsWrite();
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/api/stats') {
+      const key = process.env.ADMIN_KEY;
+      if (!key || req.headers['x-admin-key'] !== key) {
+        sendJson(res, 404, { error: 'Introuvable.' });
+        return;
+      }
+      sendJson(res, 200, eventStats);
+      return;
+    }
+
+    /* ---------------- Ligue hebdomadaire ---------------- */
+    if (req.method === 'GET' && url.pathname === '/api/league') {
+      sendJson(res, 200, computeLeague(loadLeaderboard()));
       return;
     }
 

@@ -26,6 +26,8 @@ export interface ProceduralItem {
 
 export interface ProceduralCase {
   id: string;
+  /** Trouvaille rare (pièce légendaire bradée par un vendeur qui ignore sa valeur). */
+  windfall?: boolean;
   castId?: string;
   gender: 'm' | 'f';
   isDailyContract?: boolean;
@@ -61,9 +63,12 @@ export interface ProceduralCase {
   arcRewardHeat?: number;
   arcResolution?: string;
   /** Client spécial : acheteur (le joueur vend une pièce du coffre) ou indic (vend de la discrétion). */
+  /** Épisode d'une saga client (2 à 5) ; `ally` = visite d'un allié fidèle (pièce à prix d'ami). */
+  saga?: { episode: number; ally?: boolean; chapter: string };
   special?:
     | { kind: 'buyer'; itemId: string; ceiling: number; offer: number; patience: number; used?: string[] }
-    | { kind: 'informant' };
+    | { kind: 'informant' }
+    | { kind: 'event'; event: 'checkpoint' | 'holdup' };
 }
 
 const FIRST_NAMES = [
@@ -415,6 +420,8 @@ export function buildCase(
     isDaily?: boolean;
     idSuffix: string;
     priceOverride?: DailyPriceOverride;
+    /** Trouvaille rare : un vendeur ignore la vraie valeur d'une pièce légendaire et la cède pour presque rien. */
+    windfall?: boolean;
     districtMultiplier?: number;
     locale?: Locale;
   },
@@ -442,7 +449,9 @@ export function buildCase(
   }
   const itemPool = options.isDaily
     ? ITEMS_POOL
-    : [...ITEMS_POOL, ...EXTRA_ITEMS_POOL, ...availableCodex, ...PROCEDURAL_ITEMS_CATALOG, ...customItems];
+    : options.windfall
+      ? CODEX_POOL.filter((c) => c.rarity === 'legendaire' || c.rarity === 'mythique')
+      : [...ITEMS_POOL, ...EXTRA_ITEMS_POOL, ...availableCodex, ...PROCEDURAL_ITEMS_CATALOG, ...customItems];
   const arch = (castChar
     ? PSYCHO_PROFILES.find((p) => p.id === castChar.profileId) || PSYCHO_PROFILES[0]
     : archPool[Math.floor(rand() * archPool.length)]) as Partial<PsychoProfile> & {
@@ -453,7 +462,7 @@ export function buildCase(
   // Difficulté adaptative : jamais de pièce hors de portée du cash (hors contrat quotidien : parité serveur).
   const preRamp = !options.isDaily && options.day <= 3 && (options.districtMultiplier ?? 1) === 1 ? [0.12, 0.3, 0.6][options.day - 1] : 1;
   const preMult = (1 + (options.day - 1) * 0.12) * (options.districtMultiplier ?? 1) * preRamp;
-  const affordCap = !options.isDaily && playerCashHint > 0 ? Math.max(1200, playerCashHint * 2.2 + 800) : Infinity;
+  const affordCap = !options.isDaily && !options.windfall && playerCashHint > 0 ? Math.max(1200, playerCashHint * 2.2 + 800) : Infinity;
   const affordable = itemPool.filter((i) => (i as { baseValue: number }).baseValue * preMult <= affordCap);
   const drawPool = affordable.length >= 5 ? affordable : [...itemPool].sort((a, b) => (a as { baseValue: number }).baseValue - (b as { baseValue: number }).baseValue).slice(0, 12);
   const itemTpl = drawPool[Math.floor(rand() * drawPool.length)] as (typeof ITEMS_POOL)[number] & {
@@ -473,12 +482,12 @@ export function buildCase(
       : arch.trait;
 
   // À partir du Jour 2 (ou si Heat >= 40), les infiltrés apparaissent et durcissent au fil des jours
-  const trapChance = options.day >= 4 ? 0.36 : 0.28;
-  const isTrap = !options.isDaily && (options.day >= 2 || options.cityHeat >= 40) && rand() < trapChance;
+  const trapChance = options.day >= 4 ? 0.36 : options.day === 3 ? 0.22 : 0.15;
+  const isTrap = !options.isDaily && !options.windfall && (options.day >= 2 || options.cityHeat >= 40) && rand() < trapChance;
   const subtleTrap = isTrap && options.day >= 4 && rand() < 0.5;
 
   // Modificateur de pièce (jamais sur le contrat quotidien : parité serveur).
-  const modifierRoll = !options.isDaily && !isTrap && options.day >= 3 ? rand() : -1;
+  const modifierRoll = !options.isDaily && !isTrap && !options.windfall && options.day >= 3 ? rand() : -1;
   const modifier: ItemModifier | undefined =
     modifierRoll >= 0 && modifierRoll < 0.12
       ? 'traceur'
@@ -520,6 +529,7 @@ export function buildCase(
   const multiplier = (1 + (options.day - 1) * 0.12) * (options.districtMultiplier ?? 1) * starterScale;
   const streetValue =
     options.priceOverride?.streetValue ??
+    (options.windfall ? Math.max(4000, Math.round((itemTpl.baseValue * (1 + (options.day - 1) * 0.05)) / 50) * 50) : undefined) ??
     Math.round((itemTpl.baseValue * multiplier * (modifier === 'collection' ? 1.35 : 1)) / 50) *
       50;
   // ATTENTION : ne JAMAIS tirer de rand() ici pour un contrat quotidien,
@@ -527,12 +537,14 @@ export function buildCase(
   const trapPriceRatio = options.isDaily ? 0.35 : 0.55 + rand() * 0.3;
   const initialPrice =
     options.priceOverride?.initialPrice ??
+    (options.windfall ? Math.max(150, Math.round((streetValue * 0.06) / 50) * 50) : undefined) ??
     (isTrap
       ? Math.round((streetValue * trapPriceRatio) / 50) * 50
       : Math.round((streetValue * (0.65 + rand() * 0.25)) / 50) * 50);
   const dayTightness = !options.isDaily ? Math.min(0.14, Math.max(0, options.day - 2) * 0.03) : 0;
   const floorPrice =
     options.priceOverride?.floorPrice ??
+    (options.windfall ? Math.max(100, Math.round((initialPrice * 0.5) / 50) * 50) : undefined) ??
     Math.round((streetValue * (0.14 + dayTightness + rand() * 0.1)) / 50) * 50;
 
   const locale: Locale = options.locale || 'fr';
@@ -587,8 +599,19 @@ export function buildCase(
       : normalOpenings[Math.floor(rand() * normalOpenings.length)];
   }
 
+  if (options.windfall) {
+    openingLine =
+      locale === 'en'
+        ? `I found ${itemName} clearing out my uncle's flat. No idea what it's worth. ${formattedPrice} dollars?`
+        : locale === 'es'
+          ? `Encontré ${itemName} vaciando el piso de mi tío. Ni idea de lo que vale. ¿${formattedPrice} dólares?`
+          : `J'ai trouvé ${itemName} en vidant l'appartement de mon oncle. Aucune idée de ce que ça vaut. ${formattedPrice} $ ?`;
+  }
+
   let openingTell: string;
-  if (isTrap) {
+  if (options.windfall) {
+    openingTell = locale === 'en' ? 'Someone who has no idea what is in his hands.' : locale === 'es' ? 'Alguien que no sabe lo que tiene entre las manos.' : 'Quelqu’un qui ne sait pas ce qu’il tient entre les mains.';
+  } else if (isTrap) {
     openingTell = gender === 'f'
       ? "Son regard ne cille pas et elle garde son col relevé près du menton."
       : "Son regard ne cligne pas et il garde son col relevé près du menton.";
@@ -678,6 +701,7 @@ TES RÈGLES STRICTES :
     castId: castChar?.id,
     gender,
     isDailyContract: options.isDaily,
+    windfall: options.windfall,
     isTrap,
     trapReason: isTrap ? 'Opération Souricière (Agent infiltré)' : undefined,
     name,
@@ -746,6 +770,11 @@ export function generateProceduralCase(
     districtMultiplier,
     locale,
   });
+}
+
+export function generateWindfallCase(day: number, cityHeat: number, locale: Locale = 'fr'): ProceduralCase {
+  const seed = Date.now() ^ Math.floor(Math.random() * 0xffffffff);
+  return buildCase(mulberry32(seed), { day, cityHeat, isDaily: false, windfall: true, idSuffix: `wf${day}-${seed.toString(36).slice(0, 4)}`, locale });
 }
 
 const SEEN_KEY = 'fence_seen_cast';
