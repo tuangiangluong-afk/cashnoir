@@ -6401,11 +6401,11 @@ export default function App() {
                 </p>
                 <div className="border-t border-red-500/20 pt-2 text-[11px] font-mono space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-400">{tt('Si gardée au coffre :', 'If kept in vault:', 'Si la guardas:')}</span>
-                    <span className="text-emerald-400 font-bold">+7 500 $ {tt('prime + baisse Heat', 'bounty + Heat drop', 'recompensa')}</span>
+                    <span className="text-zinc-400">{tt('Si gardée au coffre :', 'If kept in vault:', 'Si se guarda en caja :')}</span>
+                    <span className="text-emerald-400 font-bold">+7 500 $ {tt('prime + baisse Heat', 'bounty + Heat drop', 'recompensa + baja de Heat')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-400">{tt('Si liquidée maintenant :', 'If liquidated now:', 'Si la liquidas:')}</span>
+                    <span className="text-zinc-400">{tt('Si liquidée maintenant :', 'If liquidated now:', 'Si se liquida ahora :')}</span>
                     <span className="text-red-400 font-bold">{tt('Intrigue DÉFINITIVEMENT rompue', 'Story arc PERMANENTLY broken', 'Trama PERMANENTEMENTE rota')}</span>
                   </div>
                 </div>
