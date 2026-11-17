@@ -7,8 +7,10 @@ export function chapterStart(bestDay: number): number {
   return bestDay > CHAPTER_DAYS ? Math.floor((bestDay - 1) / CHAPTER_DAYS) * CHAPTER_DAYS + 1 : 1;
 }
 
-/** Caisse de reprise : le premier loyer du chapitre (500 + 350 par jour) * multiplicateur de loyer (ascension) + 15 % pour la taxe du Syndicat, jamais moins que le départ classique. */
+/** Caisse de reprise : premier loyer du chapitre (500 + 350 par jour) * multiplicateur de loyer (ascension) + 15 % taxe + fonds de roulement de 1 500 $ pour pouvoir acheter sans banqueroute immédiate. */
 export function checkpointCash(day: number, rentMult = 1): number {
+  if (day <= 1) return 2500;
   const baseRent = (500 + (day - 1) * 350) * rentMult;
-  return Math.max(2500, Math.round((baseRent * 1.15) / 50) * 50);
+  const workingCapital = 1500;
+  return Math.max(2500, Math.round((baseRent * 1.15 + workingCapital) / 50) * 50);
 }

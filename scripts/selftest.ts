@@ -301,8 +301,8 @@ for (const msg of [
   check('palier : avant le jour 6, on repart du jour 1', chapterStart(0) === 1 && chapterStart(5) === 1);
   check('palier : jour 6 à 10 -> reprise au jour 6', chapterStart(6) === 6 && chapterStart(10) === 6);
   check('palier : jour 11 -> reprise au jour 11, jour 31 -> 31', chapterStart(11) === 11 && chapterStart(31) === 31);
-  check('palier : caisse = premier loyer du chapitre, jamais sous 2 500 $', checkpointCash(1) === 2500 && checkpointCash(6) === 2600 && checkpointCash(11) === 4600 && checkpointCash(21) === 8650);
-  check('palier : avec loyer d’ascension (1.5x), caisse adaptée au premier loyer', checkpointCash(11, 1.5) === 6900);
+  check('palier : caisse = premier loyer + 15% taxe + 1 500 $ fonds de roulement', checkpointCash(1) === 2500 && checkpointCash(6) === 4100 && checkpointCash(11) === 6100 && checkpointCash(21) === 10150);
+  check('palier : avec loyer d’ascension (1.5x), caisse adaptée au premier loyer', checkpointCash(11, 1.5) === 8400);
   let mono = true;
   for (let d = 1; d < 200; d++) if (chapterStart(d + 1) < chapterStart(d)) mono = false;
   check('palier : jamais décroissant quand le record monte', mono);

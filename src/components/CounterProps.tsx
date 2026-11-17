@@ -34,7 +34,8 @@ export function itemKindFor(name: string): ItemVisualKind {
   if (/icône|icone/.test(n)) return 'icon';
   if (/calice/.test(n)) return 'chalice';
   if (/masque/.test(n)) return 'mask';
-  if (/drone|imsi|scanner|boîtier|boitier|antenne/.test(n)) return 'drone';
+  if (/\bdrone\b/.test(n)) return 'drone';
+  if (/imsi|scanner|boîtier|boitier|antenne|routeur/.test(n)) return 'case';
   if (/chevalière|chevaliere|bague|diadème|diademe/.test(n)) return 'ring';
   if (/dossier|manuscrit|carte\s*militaire|protocole/.test(n)) return 'dossier';
   if (/gilet|pare-balles|kevlar/.test(n)) return 'kevlar';

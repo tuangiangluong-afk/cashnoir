@@ -2032,6 +2032,22 @@ export default function App() {
             sound.playDanger();
             triggerShake();
             setCityHeat((h) => Math.min(100, h + 30));
+            const trapRevealMsg = tt(
+              '« Brigade Financière, les mains bien à plat sur le zinc ! Vos billets sont marqués et la transaction vient d’être filmée. Ne bougez plus. »',
+              '« Financial Crimes Division, flat hands on the counter! These bills are marked and the transaction was just recorded. Don’t move. »',
+              '« ¡Brigada Financiera, las manos sobre el mostrador! Tus billetes están marcados y la transacción acaba de ser grabada. No te muevas. »',
+            );
+            setHistory((prev) => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].role === 'npc') {
+                  updated[i] = { ...updated[i], content: trapRevealMsg };
+                  break;
+                }
+              }
+              return updated;
+            });
+            speakNPC(trapRevealMsg, { peur: 10, colere: 80, mefiance: 95 });
             setRaidNote(
               tt(`PIÈGE ! ${currentCase.name} était un agent infiltré (${currentCase.item.name}). Heat +30% !`, `TRAP! ${currentCase.name} was an undercover agent (${currentCase.item.name}). Heat +30%!`, `¡TRAMPA! ${currentCase.name} era un agente encubierto (${currentCase.item.name}). ¡Heat +30 %!`),
             );
@@ -2802,10 +2818,10 @@ export default function App() {
             )}
           </div>
           {chapterStart(bestDay) > 1 && (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <button
                 onClick={restartFromCheckpoint}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold py-2.5 rounded-md text-sm"
+                className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold py-2.5 rounded-md text-sm transition-colors"
               >
                 {tt(
                   `Reprendre au jour ${chapterStart(bestDay)} (${mny(
@@ -2817,6 +2833,16 @@ export default function App() {
                   `Reanudar en el día ${chapterStart(bestDay)} (${mny(
                     checkpointCash(chapterStart(bestDay), ascMod?.rentMult ?? 1),
                   )} en caja)`,
+                )}
+              </button>
+              <button
+                onClick={resetEmpire}
+                className="w-full border border-white/20 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-100 font-semibold py-2 rounded-md text-sm transition-colors"
+              >
+                {tt(
+                  `Recommencer au jour 1 (Nouveau départ · +${mny(legacyBonus)} bonus)`,
+                  `Restart from Day 1 (Fresh start · +${mny(legacyBonus)} bonus)`,
+                  `Empezar desde el Día 1 (Nuevo comienzo · +${mny(legacyBonus)} bonus)`,
                 )}
               </button>
               <p className="text-[11px] leading-snug text-zinc-500">
@@ -3508,24 +3534,34 @@ export default function App() {
                           </div>
 
                           {/* Boutons d'action */}
-                          <div className="flex flex-wrap items-center gap-2 shrink-0">
-                            {!item.cleaned && (
-                              <button onClick={() => cleanItem(item.id)} className={ghost}>
-                                {t.cleanBtn}
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {!item.cleaned && (
+                                <button onClick={() => cleanItem(item.id)} className={ghost}>
+                                  {t.cleanBtn}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => sellItem(item.id, 'fast')}
+                                title={tr('Liquidation discrète immédiate : refroidit le Heat (-5%), aucune pénalité de saturation.', 'Immediate quiet liquidation: cools Heat (-5%), no saturation penalty.', 'Liquidación discreta inmediata: baja el Heat (-5 %), sin penalización de saturación.')}
+                                className="border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-900/60 rounded transition-colors"
+                              >
+                                {t.fastSellBtn(formatMoney(fastPayout, L))}
                               </button>
-                            )}
-                            <button
-                              onClick={() => sellItem(item.id, 'fast')}
-                              className="border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-900/60 rounded transition-colors"
-                            >
-                              {t.fastSellBtn(formatMoney(fastPayout, L))}
-                            </button>
-                            <button
-                              onClick={() => sellItem(item.id, 'auction')}
-                              className="brass px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1a1206] transition-transform hover:scale-105"
-                            >
-                              {t.auctionBtn(formatMoney(auctionPayout, L))}
-                            </button>
+                              <button
+                                onClick={() => sellItem(item.id, 'auction')}
+                                title={tr('Enchère clandestine : gros cash mais sature dès la 2e de la nuit, et attire la police (+18% Heat si non nettoyé).', 'Underground auction: big cash but market saturates after the 1st/night, +18% Heat if not cleaned.', 'Subasta clandestina: mucho efectivo pero satura tras la 1ª de la noche, +18% Heat si no está limpio.')}
+                                className="brass px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1a1206] transition-transform hover:scale-105"
+                              >
+                                {t.auctionBtn(formatMoney(auctionPayout, L))}
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-500">
+                              <span className="text-emerald-400/80">⚡ {tr('-5% Heat · Discret', '-5% Heat · Discreet', '-5% Heat · Discreto')}</span>
+                              <span className={!item.cleaned ? 'text-red-400/80' : 'text-amber-400/80'}>
+                                🏛 {item.cleaned ? tr('Cote haute · 1/nuit max', 'Top price · 1/night max', 'Tope precio · 1/noche max') : tr('+18% Heat si sale', '+18% Heat if dirty', '+18% Heat si está sucia')}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
@@ -4703,7 +4739,7 @@ export default function App() {
                   );
                 })()}
 
-                {(error || (cash < askedPrice && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2) || cash < 1000) && (
+                {(error || ((cash < askedPrice || cash < 1000) && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2)) && (
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-1.5 border border-amber-500/40 bg-[#16120d]/95 px-2 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs text-amber-200 shadow-lg">
                     <span className="text-[10px] sm:text-[11px]">
                       {error || (cash < askedPrice
