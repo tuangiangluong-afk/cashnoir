@@ -308,5 +308,17 @@ for (const msg of [
   check('palier : jamais décroissant quand le record monte', mono);
 }
 
+// Accord dans le dialogue : jamais de deal sur un refus qui contient « c'est bon », « laissez-moi partir » ou « vendu ».
+{
+  const g = { peur: 10, colere: 20, mefiance: 40 };
+  const raw = (d: string, a = 'aucune') => JSON.stringify({ dialogue: d, indice_comportemental: 't', jauges: g, prix_actuel_demande: 2000, action_speciale: a });
+  for (const d of ["C'est bon, j'ai compris : 2 000 $, pas un de moins.", 'Laissez-moi partir, je trouverai un autre acheteur.', "Je l'ai jamais vendu sous 2 000 $."]) {
+    check(`refus non pris pour un accord : « ${d} »`, parseNPCJson(raw(d), g, 2000, 2000, 900, 1400, 'fr', 'm').action_speciale !== 'deal_accepte');
+  }
+  check('le modèle ne peut pas accepter loin sous le plancher', parseNPCJson(raw('Marché conclu.', 'deal_accepte'), g, 2000, 2000, 900, 1400, 'fr', 'm').action_speciale !== 'deal_accepte');
+  const floor = computeDynamicFloor(2000, 900, 10);
+  check('accord du modèle toléré juste sous le plancher (−5 %)', parseNPCJson(raw('Marché conclu.'), g, 2000, 2000, 900, Math.round(floor * 0.96), 'fr', 'm').action_speciale === 'deal_accepte');
+}
+
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);
 process.exit(failed ? 1 : 0);

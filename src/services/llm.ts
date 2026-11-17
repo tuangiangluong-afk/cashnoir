@@ -317,7 +317,8 @@ export function parseNPCJson(
   const dialogueAgreed =
     playerOffer !== undefined &&
     !lowball &&
-    /(?:vous avez raison|laissez-moi (?:juste )?partir|c'est (?:parfait|d'accord|bon)|marché conclu|on est d'accord|d'accord pour|vendu|trato hecho|de acuerdo|deal done|it's yours|take it and let me go|agreed)/i.test(
+    // Accord explicite seulement : « vendu », « c'est bon » ou « laissez-moi partir » apparaissent aussi dans des refus.
+    /(?:march[ée] conclu|affaire conclue|c'est d'accord|topons l[àa]|it'?s a deal|deal done|you'?ve got a deal|trato hecho|hecho,? trato)/i.test(
       rawDialogue,
     );
 
@@ -328,18 +329,18 @@ export function parseNPCJson(
     (playerOffer >= dynamicFloor ||
       playerOffer >= nextPrice ||
       (hasConcededInDialogue && mentionedPrice && playerOffer >= mentionedPrice) ||
-      (action === 'deal_accepte' && !lowball) ||
-      dialogueAgreed);
+      // Accord du modèle (action ou phrase) : toléré à 5 % sous le plancher, jamais au-delà (sinon le modèle se fait manipuler).
+      ((action === 'deal_accepte' || dialogueAgreed) && !lowball && playerOffer >= dynamicFloor * 0.95));
 
-  // Ne jamais annuler une acceptation du vendeur sauf en cas d'insulte / lowball abusif
-  if (action === 'deal_accepte' && (playerOffer === undefined || lowball)) {
+  // Une acceptation du modèle n'est valable que si l'offre tient (plancher, ou 5 % sous le plancher avec accord explicite).
+  if (action === 'deal_accepte' && (playerOffer === undefined || lowball || !offerOk)) {
     action = 'aucune';
   }
 
   if (
     !lowball &&
     playerOffer !== undefined &&
-    (offerOk || action === 'deal_accepte' || dialogueAgreed) &&
+    offerOk &&
     fallbackGauges.colere < 78
   ) {
     forcedOutcome = 'deal';
