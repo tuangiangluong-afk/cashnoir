@@ -295,7 +295,7 @@ export default function App() {
       'Hors-RP détecté': ['Out-of-character detected', 'Fuera de personaje detectado'],
       'Scanner Police': ['Police scanner', 'Escáner policial'],
       'Marquage UV': ['UV marking', 'Marcado UV'],
-      'Indice Loupe': ['Loupe clue', 'Pista de lupa'],
+      'Indice Loupe': ['Magnifier clue', 'Pista de lupa'],
       'Répétition': ['Repetition', 'Repetición'],
     };
     return label.split(' · ').map((l) => (gameLocale === 'fr' ? l : D[l]?.[gameLocale === 'en' ? 0 : 1] ?? l)).join(' · ');
@@ -4298,11 +4298,39 @@ export default function App() {
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                     </div>
-                    <div onClick={() => window.matchMedia('(max-width: 639px)').matches && setShowItemSheet(true)} className="max-lg:[@media(max-height:520px)]:hidden max-sm:cursor-pointer flex min-w-0 flex-col items-start gap-0 font-mono text-[9.5px] uppercase tracking-wider sm:flex-row sm:items-center sm:gap-1.5 sm:text-[11px]">
-                      <span className="sm:hidden max-w-full text-zinc-400 truncate">
+                    <div className="flex flex-col gap-0.5 sm:hidden font-mono text-[9.5px] uppercase tracking-wider">
+                      <span className="max-w-full text-zinc-400 truncate">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
-                                            <span className="max-w-full truncate text-amber-400/90 font-medium">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic(10);
+                          setShowItemSheet(true);
+                        }}
+                        className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-black/60 px-2 py-0.5 text-left active:scale-95 transition-transform max-w-full"
+                      >
+                        <img
+                          src={`/assets/items/${itemKindFor(localizeItemName(currentCase.item.name, gameLocale))}.webp`}
+                          alt=""
+                          className="h-5 w-7 object-contain mix-blend-lighten shrink-0"
+                          onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                        />
+                        <span className="truncate text-[10px] font-semibold text-amber-300">
+                          {currentCase.arcStep === 2 && !inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                            ? tt(`Recherche : ${localizeItemName(currentCase.item.name, gameLocale)}`, `Searching: ${localizeItemName(currentCase.item.name, gameLocale)}`, `Buscando: ${localizeItemName(currentCase.item.name, gameLocale)}`)
+                            : localizeItemName(currentCase.item.name, gameLocale)}
+                        </span>
+                        <span className="shrink-0 text-[9px] font-mono text-zinc-400">
+                          ~{mny(currentCase.streetValue)}
+                        </span>
+                        <span className="shrink-0 text-[9px] font-mono font-bold text-amber-400 underline flex items-center gap-0.5 ml-auto">
+                          <Search className="h-2.5 w-2.5 inline" /> {inspected || uvScanned ? '✓' : tt('Examiner', 'Inspect', 'Examinar')}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex min-w-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider">
+                      <span className="max-w-full truncate text-amber-400/90 font-medium">
                         {currentCase.arcStep === 2 && !inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                           ? tt(`Recherche : ${localizeItemName(currentCase.item.name, gameLocale)}`, `Searching: ${localizeItemName(currentCase.item.name, gameLocale)}`, `Buscando: ${localizeItemName(currentCase.item.name, gameLocale)}`)
                           : `${localizeItemName(currentCase.item.name, gameLocale)} · ${localizeFaction(currentCase.faction, gameLocale)}`}
@@ -5141,9 +5169,11 @@ export default function App() {
                             }}
                             className="border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-200 hover:bg-emerald-500/35 active:scale-95 transition-transform"
                           >
-                            {gameLocale === 'en'
-                              ? `Sell ${localizeItemName(inventory[0].name, gameLocale)} (+$${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)})`
-                              : `Vendre ${inventory[0].name} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`}
+                            {tt(
+                              `Vendre ${localizeItemName(inventory[0].name, gameLocale)} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`,
+                              `Sell ${localizeItemName(inventory[0].name, gameLocale)} (+$${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)})`,
+                              `Vender ${localizeItemName(inventory[0].name, gameLocale)} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`
+                            )}
                           </button>
                         )}
                         {swissBank >= 500 && (
@@ -5463,8 +5493,8 @@ export default function App() {
                           disabled={Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract)}
                           title={
                             weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract
-                              ? tt('Loupe fêlée cette semaine', 'Cracked loupe this week', 'Lupa rota esta semana')
-                              : tt('Examiner la pièce à la loupe', 'Examine the piece with the loupe', 'Examinar la pieza con la lupa')
+                              ? tt('Loupe fêlée cette semaine', 'Cracked magnifier this week', 'Lupa rota esta semana')
+                              : tt('Examiner la pièce à la loupe', 'Examine the piece with the magnifier', 'Examinar la pieza con la lupa')
                           }
                           className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all disabled:opacity-40 ${
                             inspected
@@ -5789,7 +5819,7 @@ export default function App() {
             </div>
             <ol className="space-y-1.5 text-xs leading-relaxed text-zinc-300">
               <li><span className="text-amber-400">1.</span> {tt('Négocie avec tes mots (ou les boutons) : achète sous la valeur de rue.', 'Negotiate in your own words (or with the buttons): buy under street value.', 'Negocia con tus palabras (o con los botones): compra por debajo del valor de calle.')}</li>
-              <li><span className="text-amber-400">2.</span> {tt('Loupe, UV et Radio révèlent la pièce et le piège. Un infiltré démasqué rapporte une prime.', 'Loupe, UV and Radio reveal the piece and the trap. Exposing an undercover agent pays a bounty.', 'Lupa, UV y Radio revelan la pieza y la trampa. Desenmascarar a un infiltrado da una prima.')}</li>
+              <li><span className="text-amber-400">2.</span> {tt('Loupe, UV et Radio révèlent la pièce et le piège. Un infiltré démasqué rapporte une prime.', 'Magnifier, UV and Radio reveal the piece and the trap. Exposing an undercover agent pays a bounty.', 'Lupa, UV y Radio revelan la pieza y la trampa. Desenmascarar a un infiltrado da una prima.')}</li>
               <li><span className="text-amber-400">3.</span> {tt('Au Coffre : nettoie, revends, paie le loyer du soir (affiché en haut).', 'In the Vault: clean, resell, pay tonight’s rent (shown at the top).', 'En la Caja: limpia, revende, paga el alquiler de esta noche (arriba).')}</li>
             </ol>
             <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
@@ -5926,14 +5956,89 @@ export default function App() {
               <button type="button" onClick={() => setShowItemSheet(false)} className="p-1 text-zinc-500">✕</button>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-zinc-300">{localizeItemText(currentCase.item.surfaceDesc, gameLocale)}</p>
-            <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs">
-              <div className={inspected ? 'text-amber-200' : 'text-zinc-500'}>
-                <span className="font-bold uppercase text-amber-400">{t.loupe}</span>{' : '}
-                {inspected ? localizeItemText(currentCase.item.hiddenClue, gameLocale) : tt('Pas encore examinée. Touche Loupe.', 'Not examined yet. Tap Loupe.', 'Aún sin examinar. Toca Lupa.')}
+            {outcome === 'active' && !currentCase.special && (
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(15);
+                    doLoupe();
+                  }}
+                  disabled={Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract)}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-mono text-xs uppercase tracking-wider font-semibold transition-all active:scale-95 ${
+                    inspected
+                      ? 'border border-amber-400 bg-amber-500/25 text-amber-200'
+                      : 'border border-[#4a3a22] bg-[#16120d] text-[#c9a25f] hover:border-amber-400'
+                  }`}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span>{inspected ? tt('Examiné ✓', 'Inspected ✓', 'Examinado ✓') : t.loupe}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(15);
+                    doUv();
+                  }}
+                  disabled={Boolean(nightEvent?.disableUv && !currentCase.isDailyContract)}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-mono text-xs uppercase tracking-wider font-semibold transition-all active:scale-95 ${
+                    uvScanned
+                      ? 'border border-sky-400 bg-sky-500/25 text-sky-200'
+                      : 'border border-[#2c3a4a] bg-[#0f141c] text-[#7fb4d8] hover:border-sky-400'
+                  }`}
+                >
+                  <Flashlight className="h-3.5 w-3.5" />
+                  <span>{uvScanned ? tt('Scanné ✓', 'Scanned ✓', 'Escaneado ✓') : t.uv}</span>
+                </button>
               </div>
-              <div className={uvScanned ? 'text-sky-300' : 'text-zinc-500'}>
-                <span className="font-bold uppercase text-sky-400">{t.uv}</span>{' : '}
-                {uvScanned ? localizeItemText(currentCase.item.uvClue, gameLocale) : tt('Pas encore passée à la lampe UV.', 'Not swept with the UV lamp yet.', 'Aún sin pasar la lámpara UV.')}
+            )}
+
+            <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs">
+              <div className={`p-2.5 rounded-lg border ${inspected ? 'border-amber-500/40 bg-amber-950/20 text-amber-200' : 'border-white/5 bg-black/40 text-zinc-500'}`}>
+                <div className="font-bold uppercase text-amber-400 text-[11px] flex items-center justify-between">
+                  <span className="flex items-center gap-1"><Search className="h-3 w-3" /> {t.loupe}</span>
+                  {inspected && <span className="text-[10px] text-amber-300">✓ {tt('Révélé', 'Revealed', 'Revelado')}</span>}
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed">
+                  {inspected ? localizeItemText(currentCase.item.hiddenClue, gameLocale) : tt('Pas encore examinée. Touche le bouton Loupe ci-dessus.', 'Not examined yet. Tap the Magnifier button above.', 'Aún sin examinar. Toca el botón Lupa arriba.')}
+                </p>
+                {inspected && outcome === 'active' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowItemSheet(false);
+                      confrontWithClue(false);
+                    }}
+                    disabled={loading || grilled.loupe}
+                    className="mt-2 border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase text-amber-300 hover:bg-amber-500/35"
+                  >
+                    {t.clueGrill}
+                  </button>
+                )}
+              </div>
+
+              <div className={`p-2.5 rounded-lg border ${uvScanned ? 'border-sky-500/40 bg-sky-950/20 text-sky-200' : 'border-white/5 bg-black/40 text-zinc-500'}`}>
+                <div className="font-bold uppercase text-sky-400 text-[11px] flex items-center justify-between">
+                  <span className="flex items-center gap-1"><Flashlight className="h-3 w-3" /> {t.uv}</span>
+                  {uvScanned && <span className="text-[10px] text-sky-300">✓ {tt('Scanné', 'Scanned', 'Escaneado')}</span>}
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed">
+                  {uvScanned ? localizeItemText(currentCase.item.uvClue, gameLocale) : tt('Pas encore passée à la lampe UV. Touche le bouton UV ci-dessus.', 'Not swept with the UV lamp yet. Tap the UV button above.', 'Aún sin pasar la lámpara UV. Toca el botón UV arriba.')}
+                </p>
+                {uvScanned && outcome === 'active' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowItemSheet(false);
+                      confrontWithClue(true);
+                    }}
+                    disabled={loading || grilled.uv}
+                    className="mt-2 border border-sky-400/50 bg-sky-500/20 px-2 py-1 text-[10px] font-bold uppercase text-sky-200 hover:bg-sky-500/35"
+                  >
+                    {t.clueGrill}
+                  </button>
+                )}
               </div>
             </div>
           </div>
