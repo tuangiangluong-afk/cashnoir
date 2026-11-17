@@ -866,6 +866,7 @@ export default function App() {
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [pendingSellConfirm, setPendingSellConfirm] = useState<{ item: BoughtItem; mode: 'fast' | 'auction' } | null>(null);
+  const [pendingDirtyAuction, setPendingDirtyAuction] = useState<BoughtItem | null>(null);
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(() => {
     return localStorage.getItem('fence_haptics') !== '0';
   });
@@ -2534,13 +2535,19 @@ export default function App() {
     );
   };
 
-  const sellItem = (itemId: string, mode: 'fast' | 'auction', forceConfirmed = false) => {
-    const target = inventory.find((i) => i.id === itemId);
+  const sellItem = (itemId: string, mode: 'fast' | 'auction', forceConfirmed = false, overrideItem?: BoughtItem) => {
+    const target = overrideItem || inventory.find((i) => i.id === itemId);
     if (!target) return;
 
     if (target.arcItemKey && !forceConfirmed) {
       triggerHaptic([20, 50, 20]);
       setPendingSellConfirm({ item: target, mode });
+      return;
+    }
+
+    if (mode === 'auction' && !target.cleaned && !forceConfirmed) {
+      triggerHaptic([20, 50, 20]);
+      setPendingDirtyAuction(target);
       return;
     }
 
@@ -3811,6 +3818,61 @@ export default function App() {
                 <span className="text-[10px] text-zinc-500">{tr('Nettoie pour revendre aux enchères ou liquide en direct', 'Clean for auctions or fast sell for instant cash', 'Limpia para subastas o vende rápido')}</span>
               </div>
 
+              {/* Arbitrage Marché : Vente Rapide vs Enchères Nocturnes */}
+              <div className="rounded-xl border border-white/10 bg-[#0e1017] p-3.5 space-y-3 font-mono text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${auctionsToday === 0 ? 'bg-emerald-400' : auctionsToday === 1 ? 'bg-amber-400' : 'bg-red-400'}`} />
+                    <span className="font-bold uppercase tracking-wider text-zinc-200">
+                      {tr('Salle des Ventes Nocturnes', 'Night Auction House', 'Sala de Subastas Nocturnas')}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                    auctionsToday === 0
+                      ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
+                  }`}>
+                    {auctionsToday === 0
+                      ? tr('Marché Ouvert · 1/1 créneau au prix fort', 'Market Open · 1/1 slot at top price', 'Mercado Abierto · 1/1 cupo al tope')
+                      : tr(`Saturé (${auctionsToday} faite(s)) · Malus -${auctionsToday === 1 ? '25' : '45'}%`, `Saturated (${auctionsToday} done) · Malus -${auctionsToday === 1 ? '25' : '45'}%`, `Saturado (${auctionsToday} hecha(s)) · Malus -${auctionsToday === 1 ? '25' : '45'}%`)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-sans">
+                  <div className="rounded-lg bg-black/40 border border-emerald-500/20 p-2.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-300 flex items-center gap-1 font-mono">
+                        ⚡ {tr('Vente Rapide', 'Quick Sale', 'Venta Rápida')}
+                      </span>
+                      <span className="text-[10px] text-emerald-400/90 font-mono font-bold">{tr('Illimitée · Immédiat', 'Unlimited · Instant', 'Ilimitada · Inmediata')}</span>
+                    </div>
+                    <p className="text-zinc-400 leading-snug">
+                      {tr(
+                        'Revente de rue sans risque. Rend du cash tout de suite et refroidit la police (−5% Heat). Idéal si le loyer approche ou sur petites pièces.',
+                        'Street liquidation with zero risk. Delivers instant cash and cools police (-5% Heat). Ideal when rent is due or on cheap items.',
+                        'Liquidación callejera sin riesgo. Entrega efectivo inmediato y enfría a la policía (-5% Heat). Ideal si vence el alquiler o con piezas baratas.'
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-black/40 border border-amber-500/20 p-2.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-300 flex items-center gap-1 font-mono">
+                        🏛 {tr('Enchères Clandestines', 'Night Auctions', 'Subastas Clandestinas')}
+                      </span>
+                      <span className="text-[10px] text-amber-400/90 font-mono font-bold">{tr('1 seule/nuit · Cote +20%', '1/night only · Top +20%', '1 sola/noche · Tope +20%')}</span>
+                    </div>
+                    <p className="text-zinc-400 leading-snug">
+                      {tr(
+                        'Prix maximal aux collectionneurs. Attention : sature dès la 2e de la nuit (-25%) et EXIGE une pièce nettoyée (sinon +18% Heat policier) !',
+                        'Top price from private collectors. Beware: saturates after the 1st (-25%) and REQUIRES a cleaned item (otherwise +18% Police Heat)!',
+                        'Tope de precio con coleccionistas. Cuidado: satura tras la 1ª (-25%) y EXIGE pieza limpia (¡si no, +18% Heat policial)!'
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {inventory.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-8 text-center space-y-3">
                   <p className="text-sm font-semibold text-zinc-300">{t.vaultEmpty}</p>
@@ -3887,7 +3949,11 @@ export default function App() {
                           <div className="flex flex-col items-end gap-1.5 shrink-0">
                             <div className="flex flex-wrap items-center gap-2">
                               {!item.cleaned && (
-                                <button onClick={() => cleanItem(item.id)} className={ghost}>
+                                <button
+                                  onClick={() => cleanItem(item.id)}
+                                  className={ghost}
+                                  title={tr('Efface les traces (-250 $, -8% Heat) pour débloquer la cote maximale aux enchères.', 'Wipe traces (-$250, -8% Heat) to unlock max auction price.', 'Borra las huellas (-250 $, -8% Heat) para desbloquear precio tope en subasta.')}
+                                >
                                   {t.cleanBtn}
                                 </button>
                               )}
@@ -3901,16 +3967,32 @@ export default function App() {
                               <button
                                 onClick={() => sellItem(item.id, 'auction')}
                                 title={tr('Enchère clandestine : gros cash mais sature dès la 2e de la nuit, et attire la police (+18% Heat si non nettoyé).', 'Underground auction: big cash but market saturates after the 1st/night, +18% Heat if not cleaned.', 'Subasta clandestina: mucho efectivo pero satura tras la 1ª de la noche, +18% Heat si no está limpio.')}
-                                className="brass px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1a1206] transition-transform hover:scale-105"
+                                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-transform hover:scale-105 cursor-pointer ${
+                                  auctionsToday >= 1
+                                    ? 'border border-amber-500/50 bg-amber-950/40 text-amber-200 hover:bg-amber-900/60'
+                                    : !item.cleaned
+                                      ? 'border border-red-500/50 bg-red-950/40 text-red-200 hover:bg-red-900/60'
+                                      : 'brass text-[#1a1206]'
+                                }`}
                               >
                                 {t.auctionBtn(formatMoney(auctionPayout, L))}
                               </button>
                             </div>
                             <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-500">
                               <span className="text-emerald-400/80">⚡ {tr('-5% Heat · Discret', '-5% Heat · Discreet', '-5% Heat · Discreto')}</span>
-                              <span className={!item.cleaned ? 'text-red-400/80' : 'text-amber-400/80'}>
-                                🏛 {item.cleaned ? tr('Cote haute · 1/nuit max', 'Top price · 1/night max', 'Tope precio · 1/noche max') : tr('+18% Heat si sale', '+18% Heat if dirty', '+18% Heat si está sucia')}
-                              </span>
+                              {auctionsToday >= 1 ? (
+                                <span className="text-amber-400 font-bold">
+                                  🏛 {tr(`Saturé (-${auctionsToday === 1 ? '25' : '45'}%)`, `Saturated (-${auctionsToday === 1 ? '25' : '45'}%)`, `Saturado (-${auctionsToday === 1 ? '25' : '45'}%)`)}
+                                </span>
+                              ) : !item.cleaned ? (
+                                <span className="text-red-400 font-bold">
+                                  🏛 {tr('+18% Heat si sale', '+18% Heat if dirty', '+18% Heat si está sucia')}
+                                </span>
+                              ) : (
+                                <span className="text-amber-400 font-bold">
+                                  🏛 {tr('Cote Max (+20%) · 1/nuit', 'Top Price (+20%) · 1/night', 'Tope Precio (+20%) · 1/noche')}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -6491,6 +6573,164 @@ export default function App() {
                   className="w-full border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 py-2.5 px-3 rounded-lg text-xs font-semibold text-red-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>{tt('Vendre quand même', 'Sell Anyway', 'Vender de todos modos')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modal Alerte Vente aux Enchères Pièce Sale (+18% Heat) */}
+      {pendingDirtyAuction && (() => {
+        const item = pendingDirtyAuction;
+        const kind = itemKindFor(item.name);
+        const dirtyPayout = getAuctionPayout(item);
+        const cleanPayout = getAuctionPayout({ ...item, cleaned: true });
+        const fastPayout = getFastSellPayout(item);
+        const cleanCost = jokerIds.includes('blanchisseur-express') ? 0 : 250;
+        const canClean = cash >= cleanCost;
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-in fade-in duration-150"
+            onClick={() => setPendingDirtyAuction(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-red-500/50 bg-[#0c0d12] p-5 shadow-[0_0_50px_rgba(239,68,68,0.25)] space-y-4 font-mono animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Top Bar / Badge */}
+              <div className="flex items-center justify-between border-b border-red-500/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/20 border border-red-400/40 text-red-300">
+                    <Flame className="h-3.5 w-3.5 text-red-300" />
+                  </span>
+                  <span className="text-xs font-bold tracking-wider text-red-300 uppercase">
+                    {tt('Alerte Police · Pièce Non Nettoyée', 'Police Alert · Uncleaned Item', 'Alerta Policial · Pieza No Limpia')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(10);
+                    setPendingDirtyAuction(null);
+                  }}
+                  className="text-zinc-500 hover:text-zinc-200 text-xs p-1 transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Thumbnail + Item details */}
+              <div className="flex items-center gap-3.5 rounded-xl border border-white/10 bg-black/60 p-3">
+                <div className="relative h-14 w-16 shrink-0 rounded-lg bg-black/80 border border-white/10 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                  <img
+                    src={`/assets/items/${kind}.webp`}
+                    alt={item.name}
+                    className="h-full w-full object-contain mix-blend-lighten drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="text-xs font-bold text-amber-200 truncate">
+                    « {localizeItemName(item.name, gameLocale)} »
+                  </div>
+                  <div className="text-[10px] text-zinc-400 flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-500/30 font-bold uppercase text-[9px]">
+                      {tt('Sale / Traçable', 'Dirty / Traceable', 'Sucia / Rastreable')}
+                    </span>
+                    <span>·</span>
+                    <span className="text-zinc-300">{localizeFaction(item.faction, gameLocale)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Explication du Danger */}
+              <div className="rounded-xl border border-red-500/30 bg-red-950/25 p-3.5 space-y-2 text-xs">
+                <div className="text-red-300 font-semibold flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                  <span>🚨</span>
+                  <span>{tt('Surveillance des Enchères Clandestines', 'Underground Auction Surveillance', 'Vigilancia de Subastas Clandestinas')}</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed font-sans">
+                  {tt(
+                    "Cette pièce porte encore des traces ou numéros de série identifiables. La police surveille la salle des ventes : la liquider aux enchères sans la nettoyer fera bondir ton Heat de +18 % !",
+                    'This item still bears serial numbers or traceable marks. Police monitor underground auctions: selling it uncleaned will immediately spike your Heat by +18%!',
+                    'Esta pieza aún lleva números de serie o marcas rastreables. La policía vigila la sala de subastas: ¡liquidarla sin limpiarla aumentará tu Heat un +18 %!'
+                  )}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2 pt-1 font-mono">
+                {/* Option 1 : Nettoyer d'abord & Vendre au prix fort (Recommandé) */}
+                <button
+                  type="button"
+                  disabled={!canClean}
+                  onClick={() => {
+                    triggerHaptic(20);
+                    sound.playDealSuccess();
+                    setCash((c) => c - cleanCost);
+                    setCityHeat((h) => Math.max(0, h - 8));
+                    const cleanedItem: BoughtItem = { ...item, cleaned: true, hotLevel: 'TIÈDE' };
+                    setInventory((inv) => inv.map((it) => (it.id === item.id ? cleanedItem : it)));
+                    setPendingDirtyAuction(null);
+                    sellItem(item.id, 'auction', true, cleanedItem);
+                  }}
+                  className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-transform cursor-pointer ${
+                    canClean
+                      ? 'brass text-[#1a1206] hover:scale-[1.02]'
+                      : 'border border-zinc-800 bg-zinc-900/50 text-zinc-500 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>🧼</span>
+                    <span>{tt(`Nettoyer (−${cleanCost} $) & Enchères`, `Clean (−$${cleanCost}) & Auction`, `Limpiar (−${cleanCost} $) y Subasta`)}</span>
+                  </span>
+                  <span className="font-bold text-[11px]">
+                    +{formatMoney(cleanPayout, gameLocale)} $
+                  </span>
+                </button>
+                {!canClean && (
+                  <p className="text-[10px] text-red-400/90 text-center font-sans">
+                    {tt(`Cash insuffisant pour nettoyer (${cleanCost} $ requis / tu as ${cash} $).`, `Not enough cash to clean ($${cleanCost} required / you have $${cash}).`, `Efectivo insuficiente para limpiar (${cleanCost} $ requeridos / tienes ${cash} $).`)}
+                  </p>
+                )}
+
+                {/* Option 2 : Vente rapide discrète (Alternative sûre) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(15);
+                    setPendingDirtyAuction(null);
+                    sellItem(item.id, 'fast');
+                  }}
+                  className="w-full border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/60 py-2.5 px-3 rounded-lg text-xs font-semibold text-emerald-200 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>{tt('Passer en Vente Rapide (−5% Heat)', 'Switch to Quick Sale (−5% Heat)', 'Pasar a Venta Rápida (−5% Heat)')}</span>
+                  </span>
+                  <span className="font-mono font-bold text-[11px]">
+                    +{formatMoney(fastPayout, gameLocale)} $
+                  </span>
+                </button>
+
+                {/* Option 3 : Vendre telle quelle (+18% Heat) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic([30, 60]);
+                    setPendingDirtyAuction(null);
+                    sellItem(item.id, 'auction', true);
+                  }}
+                  className="w-full border border-red-500/30 bg-red-950/20 hover:bg-red-900/40 py-2 px-3 rounded-lg text-[11px] font-semibold text-red-300 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>{tt('Vendre quand même (+18% Heat)', 'Sell Anyway (+18% Heat)', 'Vender de todos modos (+18% Heat)')}</span>
+                  </span>
+                  <span className="font-mono text-zinc-400">
+                    +{formatMoney(dirtyPayout, gameLocale)} $
+                  </span>
                 </button>
               </div>
             </div>
