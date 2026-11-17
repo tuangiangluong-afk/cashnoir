@@ -1077,9 +1077,10 @@ export default function App() {
   };
 
   const toggleMute = () => {
-    sound.muted = !muted;
-    setMuted(!muted);
-    if (muted) ambience.stop();
+    const nextMuted = !muted;
+    sound.muted = nextMuted;
+    setMuted(nextMuted);
+    if (nextMuted) ambience.stop();
   };
 
   // Rappel Contrat 24h : sans service worker ni push, la seule fenêtre utile
@@ -1104,21 +1105,10 @@ export default function App() {
     }
   }, []);
 
-  // Démarre la pluie + le néon au premier geste (politique d'autoplay des navigateurs).
+  // Quitter le jeu coupe l'ambiance si elle a été sollicitée.
   useEffect(() => {
-    if (muted || !routePath.startsWith('/play')) return;
-    const start = () => {
-      ambience.start();
-      window.removeEventListener('pointerdown', start);
-    };
-    window.addEventListener('pointerdown', start);
-    return () => window.removeEventListener('pointerdown', start);
+    if (muted || !routePath.startsWith('/play')) ambience.stop();
   }, [muted, routePath]);
-
-  // Quitter le jeu (retour au site vitrine) coupe l'ambiance.
-  useEffect(() => {
-    if (!routePath.startsWith('/play')) ambience.stop();
-  }, [routePath]);
 
   // Registre des clients : une entrée par client, ajoutée quand l'issue est connue.
   useEffect(() => {
@@ -1200,14 +1190,13 @@ export default function App() {
     return line.replace(new RegExp(`(?<!\\d)${grouped}(?!\\d)`), formatMoney(to, gameLocale));
   };
 
-  const startNewCase = (nextCase: ProceduralCase) => {
-    setCurrentCase(nextCase);
+  const startNewCase = (nextCase: ProceduralCase, activeJokers: string[] = jokerIds) => {
     setMobileNotebookOpen(false);
-    const armedWeapons = jokerIds.includes('vitrine-armee')
+    const armedWeapons = activeJokers.includes('vitrine-armee')
       ? inventory.filter((it) => it.category === 'Armement').length
       : 0;
     const fearBonus =
-      (jokerIds.includes('intimidation') ? 15 : 0) +
+      (activeJokers.includes('intimidation') ? 15 : 0) +
       armedWeapons * 15 +
       (!nextCase.isDailyContract ? (nightEvent?.bonusFear ?? 0) : 0) +
       (weeklyChallenge.modifier.fearBoost ?? 0);
@@ -1241,11 +1230,24 @@ export default function App() {
     });
     // Negociateur joker + Faction rank discount
     const facPriceMult = facRank?.priceMult ?? 1;
-    const negoMult = jokerIds.includes('negociateur') ? 0.9 : 1;
+    const negoMult = activeJokers.includes('negociateur') ? 0.9 : 1;
     const priceAfterNego =
       facPriceMult !== 1 || negoMult !== 1
         ? Math.round((nextCase.initialPrice * negoMult * facPriceMult) / 50) * 50
         : nextCase.initialPrice;
+
+    // Aligne la fiche de cas (prix initial, prompt système et réplique d'ouverture) sur le prix remisé
+    const fixedOpening = fixOpeningPrice(nextCase.openingLine, nextCase.initialPrice, priceAfterNego);
+    const adjustedPrompt = priceAfterNego !== nextCase.initialPrice
+      ? nextCase.systemPrompt.replace(new RegExp(`\\b${nextCase.initialPrice}\\b`, 'g'), String(priceAfterNego))
+      : nextCase.systemPrompt;
+
+    setCurrentCase({
+      ...nextCase,
+      initialPrice: priceAfterNego,
+      openingLine: fixedOpening,
+      systemPrompt: adjustedPrompt,
+    });
     setAskedPrice(priceAfterNego);
     setPriceTrail([priceAfterNego]);
     setPsychoAudit([
@@ -1269,7 +1271,7 @@ export default function App() {
     setTell(revenge?.flavorText ?? nextCase.openingTell);
     // Collectionneur joker or Codex Œil d'Expert perk: detect contrefacon on sight
     if (
-      (jokerIds.includes('collectionneur') || activeCodexPerks.includes('Œil d’Expert')) &&
+      (activeJokers.includes('collectionneur') || activeCodexPerks.includes('Œil d’Expert')) &&
       nextCase.item.modifier === 'contrefacon'
     ) {
       setTell((prev) => prev + tt(' [EXPERT] Tu repères une contrefaçon au premier coup d’œil.', ' [EXPERT] You spot a forgery at first glance.', ' [EXPERTO] Detectas una falsificación a primera vista.'));
@@ -1279,9 +1281,9 @@ export default function App() {
     setUvScanned(false);
     setPhantomDone(false);
     setRadioOpen(false);
-    setHistory([{ role: 'npc', content: fixOpeningPrice(nextCase.openingLine, nextCase.initialPrice, priceAfterNego) }]);
+    setHistory([{ role: 'npc', content: fixedOpening }]);
     setError(null);
-    setOfferAmount(Math.max(150, Math.min(cash, Math.round((nextCase.initialPrice * 0.8) / 50) * 50)));
+    setOfferAmount(Math.max(150, Math.min(cash, Math.round((priceAfterNego * 0.8) / 50) * 50)));
     setBuyerAsk(-1);
   };
 
@@ -2388,7 +2390,8 @@ export default function App() {
 
   const pickJokerAndAdvance = (jokerId: string) => {
     sound.playDealSuccess();
-    setJokerIds((prev) => (prev.includes(jokerId) ? prev : [...prev, jokerId]));
+    const nextJokers = jokerIds.includes(jokerId) ? jokerIds : [...jokerIds, jokerId];
+    setJokerIds(nextJokers);
     setJokerDraft(null);
 
     // Heat >= 80 : descente de police. Le risque devient une vraie perte.
@@ -2448,6 +2451,7 @@ export default function App() {
     setTab('counter');
     startNewCase(
       generateProceduralCase(nextDay, cityHeat, lastMemory || undefined, currentDistrict.multiplier, gameLocale),
+      nextJokers,
     );
   };
 

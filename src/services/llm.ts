@@ -138,11 +138,11 @@ export function parseNPCJson(
     Math.max(floorPrice, Math.round(Number(parsed.prix_actuel_demande ?? currentPrice))),
   );
 
-  // Extrait tout prix de concession ou contre-offre mentionné textuellement par le NPC
+  // Extrait tout prix de concession ou contre-offre mentionné textuellement par le NPC (support $2,200 et 2 200 $)
   const dialoguePriceMatches = Array.from(
-    String(parsed.dialogue || '').matchAll(/(?:^|[^\d])(\d[\d\s\u202f\u00a0]{1,6})\s*(?:\$|dollars?)/gi),
+    String(parsed.dialogue || '').matchAll(/(?:\$\s*(\d[\d,\s\u202f\u00a0]{1,8})|(\d[\d,\s\u202f\u00a0]{1,8})\s*(?:\$|dollars?))/gi),
   )
-    .map((m) => Number(m[1].replace(/[\s\u202f\u00a0]/g, '')))
+    .map((m) => Number((m[1] || m[2]).replace(/[\s\u202f\u00a0,\.]/g, '')))
     .filter((n) => Number.isFinite(n) && n >= floorPrice && n <= initialPrice);
   const mentionedPrice = dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
   const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice < currentPrice);

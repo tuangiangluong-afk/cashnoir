@@ -35,49 +35,8 @@ class Ambience {
   }
 
   start() {
-    if (this.playing) return;
-    const ctx = this.ensureCtx();
-    if (!ctx) return;
-    this.playing = true;
-
-    const buffer = this.noiseBuffer(ctx);
-
-    // --- Pluie sur vitre : cristalline, feutrée, sans bourdonnement électrique ---
-    const rain = ctx.createBufferSource();
-    rain.buffer = buffer;
-    rain.loop = true;
-
-    // Filtre passe-haut strict à 900 Hz pour éliminer tout bruit sourd ou rumble
-    const rainHigh = ctx.createBiquadFilter();
-    rainHigh.type = 'highpass';
-    rainHigh.frequency.value = 950;
-
-    // Filtre passe-bande centré sur le clapotis de pluie sur le verre (2 400 Hz)
-    const rainFilter = ctx.createBiquadFilter();
-    rainFilter.type = 'bandpass';
-    rainFilter.frequency.value = 2400;
-    rainFilter.Q.value = 0.65;
-
-    this.rainGain = ctx.createGain();
-    this.rainGain.gain.value = 0.0001;
-    this.rainGain.gain.exponentialRampToValueAtTime(0.065, ctx.currentTime + 2.0);
-
-    // Ondulation très lente du rideau de pluie
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.frequency.value = 0.06;
-    lfoGain.gain.value = 0.015;
-    lfo.connect(lfoGain);
-    lfoGain.connect(this.rainGain.gain);
-
-    rain.connect(rainHigh);
-    rainHigh.connect(rainFilter);
-    rainFilter.connect(this.rainGain);
-    this.rainGain.connect(ctx.destination);
-
-    rain.start();
-    lfo.start();
-    this.nodes = [rain, lfo];
+    // Désactivé : évite le souffle / grésillement procédural continu perçu comme un bug sonore ou du bruit parasite.
+    this.stop();
   }
 
   stop() {
