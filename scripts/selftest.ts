@@ -138,7 +138,7 @@ for (const msg of [
   check('100 personnages uniques', CAST_ROSTER.length === 100 && ids.size === 100);
   const root = join(process.cwd(), 'public/assets/portraits/cast');
   const onDisk = [...new Set(Object.values(PORTRAIT_OF))].filter((f) => existsSync(join(root, `${f}.webp`)));
-  check(`au moins 30 visages uniques dédiés (.webp) sur disque (${onDisk.length}/100 disponibles)`, onDisk.length >= 30, `disponibles=${onDisk.length}`);
+  check(`100 visages uniques dédiés (.webp) sur disque (${onDisk.length}/100 disponibles)`, onDisk.length === 100, `disponibles=${onDisk.length}`);
   const young = CAST_ROSTER.filter((c) => /pilote|avocat|chimiste/i.test(c.job) && c.age < 30);
   const untranslated = (L: 'en' | 'es') =>
     CAST_ROSTER.filter(
