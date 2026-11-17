@@ -477,12 +477,12 @@ export function ClientBust({
               setPortrait('none');
             }
           }}
-          className={`pointer-events-none absolute inset-0 h-full w-full object-cover object-[50%_16%] lg:object-contain lg:object-bottom mix-blend-lighten transition-opacity duration-500 ${
+          className={`pointer-events-none absolute inset-0 h-full w-full object-contain object-top sm:object-cover sm:object-[50%_18%] lg:object-contain lg:object-bottom mix-blend-lighten transition-opacity duration-500 ${
             portrait === 'ok' ? 'opacity-95' : 'opacity-0'
           }`}
           style={{
-            WebkitMaskImage: 'radial-gradient(ellipse 62% 76% at 50% 48%, #000 40%, transparent 92%)',
-            maskImage: 'radial-gradient(ellipse 62% 76% at 50% 48%, #000 40%, transparent 92%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, #000 0%, #000 85%, transparent 100%)',
           }}
         />
       )}

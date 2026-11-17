@@ -253,7 +253,7 @@ export function CounterItemProp({
             alt={name}
             draggable={false}
             onError={() => setImgOk(false)}
-            className="h-16 w-28 object-contain mix-blend-lighten drop-shadow-[0_18px_12px_rgba(0,0,0,0.95)] sm:h-28 sm:w-40"
+            className="h-11 w-16 sm:h-28 sm:w-40 object-contain mix-blend-lighten drop-shadow-[0_18px_12px_rgba(0,0,0,0.95)]"
             style={{
               WebkitMaskImage: 'radial-gradient(circle at 50% 50%, #000 58%, transparent 98%)',
               maskImage: 'radial-gradient(circle at 50% 50%, #000 58%, transparent 98%)',
@@ -264,22 +264,27 @@ export function CounterItemProp({
             kind={kind}
             inspected={inspected}
             uvScanned={uvScanned}
-            className="h-14 w-24 sm:h-20 sm:w-32 drop-shadow-[0_16px_12px_rgba(0,0,0,0.95)]"
+            className="h-10 w-16 sm:h-20 sm:w-32 drop-shadow-[0_16px_12px_rgba(0,0,0,0.95)]"
           />
         )}
       </div>
 
       {/* Légende sobre sans encart avec libellé explicite de revente rue */}
-      <div className="mt-0.5 font-mono text-[10px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+      <div className="mt-0.5 font-mono text-[9px] sm:text-[10px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
         <span className="hidden text-zinc-200 sm:inline">{name}</span>
         {streetValue ? (
-          <span className="block text-center font-semibold text-emerald-400 sm:ml-1.5 sm:inline">
-            {locale === 'en'
-              ? `(Street Value: ~$${streetValue.toLocaleString('en-US')})`
-              : locale === 'es'
-                ? `(Valor reventa calle: ~${streetValue.toLocaleString('es-ES')} $)`
-                : `(Valeur revente rue : ~${streetValue.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} $)`}
-          </span>
+          <>
+            <span className="hidden sm:inline font-semibold text-emerald-400 sm:ml-1.5">
+              {locale === 'en'
+                ? `(Street Value: ~$${streetValue.toLocaleString('en-US')})`
+                : locale === 'es'
+                  ? `(Valor reventa calle: ~${streetValue.toLocaleString('es-ES')} $)`
+                  : `(Valeur revente rue : ~${streetValue.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} $)`}
+            </span>
+            <span className="block text-center font-semibold text-emerald-400 sm:hidden">
+              {locale === 'en' ? `~$${(streetValue / 1000).toFixed(1)}k` : `~${(streetValue / 1000).toFixed(1)}k $`}
+            </span>
+          </>
         ) : null}
       </div>
     </button>

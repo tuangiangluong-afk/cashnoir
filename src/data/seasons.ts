@@ -3,6 +3,8 @@
  * Chaque saison possède une vraie histoire en 4 épisodes jouables + 30 paliers d'XP.
  */
 
+import { MORE_EPISODES } from './seasonsMore';
+
 export interface SeasonReward {
   level: number;
   title: string;
@@ -48,7 +50,7 @@ export const SEASON_REWARDS: SeasonReward[] = [
   { level: 30, title: 'Légende du Syndicat', perkDesc: '+500 $ de dividende chaque matin' },
 ];
 
-export const SEASON_EPISODES: SeasonEpisode[] = [
+const BASE_EPISODES: SeasonEpisode[] = [
   // SAISON 1 — Nuits de Sang sur les Docks
   {
     id: 's1-e1',
@@ -158,6 +160,21 @@ export const SEASON_EPISODES: SeasonEpisode[] = [
     unlockCodexId: 'hardware-wallet-2011',
   },
 ];
+
+/** Campagne complète : 24 épisodes (6 saisons de 4), classés dans l'ordre de l'histoire. */
+export const SEASON_EPISODES: SeasonEpisode[] = [...BASE_EPISODES, ...MORE_EPISODES].sort(
+  (a, b) => a.seasonNumber - b.seasonNumber || a.episodeNumber - b.episodeNumber,
+);
+
+/** Épisodes de départ puis un de plus chaque semaine : la campagne s'étale sur ~6 mois. */
+export const STARTING_EPISODES = 4;
+export function episodesUnlocked(daysSinceStart: number, total = SEASON_EPISODES.length): number {
+  return Math.min(total, STARTING_EPISODES + Math.floor(Math.max(0, daysSinceStart) / 7));
+}
+/** Jours à attendre avant l'épisode d'index `index` (0 = déjà débloqué). */
+export function daysUntilEpisode(index: number, daysSinceStart: number): number {
+  return Math.max(0, (index - STARTING_EPISODES + 1) * 7 - Math.max(0, daysSinceStart));
+}
 
 export function getCurrentSeason(dateStr: string): SeasonInfo {
   const d = new Date(dateStr);

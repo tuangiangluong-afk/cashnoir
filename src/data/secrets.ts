@@ -55,12 +55,77 @@ const shiftWord = (w: string, k: number) =>
 export const normalizeAnswer = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 
+// ---- Énigmes générées : mots parallèles (même index = même idée dans les 3 langues), nombres tirés au hasard.
+const WORDS: Record<Locale, string[]> = {
+  fr: ['COFFRE', 'CASINO', 'PORT', 'CLINIQUE', 'GARAGE', 'SUISSE', 'CASIER', 'DOSSIER', 'MINUIT', 'TRAFIC', 'BRIGADE', 'PARRAIN', 'BANQUE', 'GALERIE', 'TAMPON', 'ALIBI'],
+  en: ['SAFE', 'CASINO', 'DOCK', 'CLINIC', 'GARAGE', 'SWISS', 'LOCKER', 'DOSSIER', 'MIDNIGHT', 'TRAFFIC', 'SQUAD', 'GODFATHER', 'BANK', 'GALLERY', 'STAMP', 'ALIBI'],
+  es: ['CAJA', 'CASINO', 'MUELLE', 'CLINICA', 'GARAJE', 'SUIZA', 'TAQUILLA', 'EXPEDIENTE', 'MEDIANOCHE', 'TRAFICO', 'BRIGADA', 'PADRINO', 'BANCO', 'GALERIA', 'SELLO', 'COARTADA'],
+};
+const SEQUENCES: { seq: number[]; next: number }[] = [
+  { seq: [1, 4, 9, 16], next: 25 },
+  { seq: [1, 3, 6, 10], next: 15 },
+  { seq: [3, 6, 12, 24], next: 48 },
+  { seq: [1, 2, 3, 5, 8], next: 13 },
+  { seq: [7, 11, 15, 19], next: 23 },
+  { seq: [2, 6, 12, 20], next: 30 },
+  { seq: [5, 10, 20, 40], next: 80 },
+  { seq: [100, 90, 79, 67], next: 54 },
+];
+const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+const rint = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+/** Tire une énigme : ~30 % des pièces (jamais les pièges) ont un double fond. L'id encode tous les paramètres. */
 export function rollSecretId(): string | undefined {
-  // ~30 % des pièces (jamais les pièges) ont un double fond.
-  return Math.random() < 0.3 ? RIDDLES[Math.floor(Math.random() * RIDDLES.length)].id : undefined;
+  if (Math.random() >= 0.3) return undefined;
+  const kind = pick(['caesar', 'caesar', 'reverse', 'a1z26', 'seq', 'roman', 'math'] as const);
+  const reward = pick([`cash~${rint(3, 6) * 100}`, `cash~${rint(3, 6) * 100}`, `xp~${rint(2, 4) * 100}`, `heat~${rint(10, 14)}`]);
+  const w = Math.floor(Math.random() * WORDS.fr.length);
+  switch (kind) {
+    case 'caesar': return `d~caesar~${w}~${rint(2, 8)}~${reward}`;
+    case 'reverse': return `d~reverse~${w}~0~${reward}`;
+    case 'a1z26': return `d~a1z26~${w}~0~${reward}`;
+    case 'seq': return `d~seq~${rint(0, SEQUENCES.length - 1)}~0~${reward}`;
+    case 'roman': return `d~roman~${rint(12, 89)}~0~${reward}`;
+    default: return `d~math~${rint(3, 9)}.${rint(3, 9)}.${rint(5, 30)}.${rint(1, 9)}~0~${reward}`;
+  }
 }
 
-const find = (id: string) => RIDDLES.find((r) => r.id === id);
+function parseDynamic(id: string): Riddle | undefined {
+  const [d, kind, a, b, rk, ra] = id.split('~');
+  if (d !== 'd') return undefined;
+  const reward = { kind: rk as 'cash' | 'xp' | 'heat', amount: Number(ra) };
+  if (!['cash', 'xp', 'heat'].includes(reward.kind) || !Number.isFinite(reward.amount)) return undefined;
+  const words = (): Record<Locale, string> | undefined => {
+    const i = Number(a);
+    return WORDS.fr[i] ? { fr: WORDS.fr[i], en: WORDS.en[i], es: WORDS.es[i] } : undefined;
+  };
+  switch (kind) {
+    case 'caesar':
+    case 'reverse':
+    case 'a1z26': {
+      const w = words();
+      return w ? { id, kind, words: w, shift: Number(b), reward } : undefined;
+    }
+    case 'seq': {
+      const q = SEQUENCES[Number(a)];
+      return q ? { id, kind: 'seq', seq: q.seq, n: q.next, reward } : undefined;
+    }
+    case 'roman': return { id, kind: 'roman', n: Number(a), reward };
+    case 'math': {
+      const [x, y, z, t] = a.split('.').map(Number);
+      return [x, y, z, t].every(Number.isFinite) ? { id, kind: 'math', expr: `${x} × ${y} + ${z} − ${t}`, n: x * y + z - t, reward } : undefined;
+    }
+    default: return undefined;
+  }
+}
+
+const find = (id: string) => RIDDLES.find((r) => r.id === id) ?? parseDynamic(id);
+
+/** Réponse attendue (réservé aux tests automatiques). */
+export function secretAnswer(id: string, L: Locale): string | undefined {
+  const r = find(id);
+  return r ? (r.words ? r.words[L] : String(r.n)) : undefined;
+}
 
 export function secretContent(id: string, L: Locale): { note: string; hint: string } | null {
   const r = find(id);

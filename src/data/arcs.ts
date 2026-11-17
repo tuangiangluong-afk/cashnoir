@@ -1,3 +1,4 @@
+import { localizeArcText } from './arcsI18n';
 import { type ProceduralCase, getGenderFromName } from './generator';
 import type { Locale } from './seoContent';
 import { GAME_UI } from './gameI18n';
@@ -430,6 +431,7 @@ export function buildArcStep1Case(
   const floorPrice = Math.round((s.baseFloor * districtMultiplier) / 50) * 50;
   const streetValue = Math.round((s.baseStreet * districtMultiplier) / 50) * 50;
   const langRule = GAME_UI[locale].langPromptDirective;
+  const loc = (x: string) => localizeArcText(x, locale);
 
   return {
     id: `arc-${arc.id}-1-${Date.now()}`,
@@ -439,9 +441,9 @@ export function buildArcStep1Case(
     name: s.name,
     age: s.age,
     faction: s.faction,
-    archetype: s.archetype,
-    openingLine: s.openingLine,
-    openingTell: s.openingTell,
+    archetype: loc(s.archetype),
+    openingLine: loc(s.openingLine),
+    openingTell: loc(s.openingTell),
     initialPrice,
     floorPrice,
     streetValue,
@@ -449,18 +451,18 @@ export function buildArcStep1Case(
     item: {
       name: s.itemName,
       category: s.category,
-      surfaceDesc: s.surfaceDesc,
-      hiddenClue: s.hiddenClue,
-      uvClue: s.uvClue,
+      surfaceDesc: loc(s.surfaceDesc),
+      hiddenClue: loc(s.hiddenClue),
+      uvClue: loc(s.uvClue),
       clueTag: s.clueTag,
       hotLevel: 'BRÛLANT',
     },
-    policeRadioBrief: s.policeRadioBrief,
+    policeRadioBrief: loc(s.policeRadioBrief),
     arcId: arc.id,
     arcStep: 1,
     arcTitle: arc.title,
     arcItemKey: arc.itemKey,
-    arcClueNote: arc.clueNote,
+    arcClueNote: loc(arc.clueNote),
     systemPrompt: `You are ${s.name}, ${s.age} years old, ${s.archetype}, tied to ${s.faction}.
 STORY ARC CONTEXT (${arc.title} — Act 1): ${s.storyContext}
 You want to sell: ${s.itemName}. Asking price: $${initialPrice}, bottom floor: $${floorPrice}.
@@ -482,6 +484,7 @@ export function buildArcStep2Case(
   const streetValue = Math.round((s.baseStreet * districtMultiplier) / 50) * 50;
   const rewardCash = Math.round((s.rewardCash * districtMultiplier) / 50) * 50;
   const langRule = GAME_UI[locale].langPromptDirective;
+  const loc = (x: string) => localizeArcText(x, locale);
 
   return {
     id: `arc-${arc.id}-2-${Date.now()}`,
@@ -491,9 +494,9 @@ export function buildArcStep2Case(
     name: s.name,
     age: s.age,
     faction: s.faction,
-    archetype: s.archetype,
-    openingLine: hasRequiredItem ? s.openingWithItem : s.openingWithoutItem,
-    openingTell: s.openingTell,
+    archetype: loc(s.archetype),
+    openingLine: loc(hasRequiredItem ? s.openingWithItem : s.openingWithoutItem),
+    openingTell: loc(s.openingTell),
     initialPrice,
     floorPrice,
     streetValue,
@@ -501,20 +504,20 @@ export function buildArcStep2Case(
     item: {
       name: s.itemName,
       category: s.category,
-      surfaceDesc: s.surfaceDesc,
-      hiddenClue: s.hiddenClue,
-      uvClue: s.uvClue,
+      surfaceDesc: loc(s.surfaceDesc),
+      hiddenClue: loc(s.hiddenClue),
+      uvClue: loc(s.uvClue),
       clueTag: s.clueTag,
       hotLevel: 'TIÈDE',
     },
-    policeRadioBrief: s.policeRadioBrief,
+    policeRadioBrief: loc(s.policeRadioBrief),
     arcId: arc.id,
     arcStep: 2,
     arcTitle: arc.title,
     requiresItemKey: arc.itemKey,
     arcRewardCash: rewardCash,
     arcRewardHeat: s.rewardHeatDelta,
-    arcResolution: s.resolutionText,
+    arcResolution: loc(s.resolutionText),
     systemPrompt: `You are ${s.name}, ${s.age} years old, ${s.archetype}, tied to ${s.faction}.
 STORY ARC CONTEXT (${arc.title} — Act 2 / Climax): ${s.storyContext}
 The player ${hasRequiredItem ? 'STILL HAS the piece on their shelf and can deliver it for $' + rewardCash : 'ALREADY SOLD the item elsewhere (cold trail)'}.

@@ -147,9 +147,30 @@ const T: Record<string, { en: string; es: string }> = {
   'Explose si tu la traites de script kiddie ou d’amatrice.': { en: 'Explodes if you call her a script kiddie or an amateur.', es: 'Explota si la llamas aficionada o script kiddie.' },
 };
 
+// Personnages générés : faille = « Pressé(e) par son secret : … » + ligne rouge générique.
+const SECRET_I18N: Record<string, { en: string; es: string }> = {
+  'doit quitter le territoire par cargo avant 06h00 demain matin.': { en: 'has to leave the country by cargo ship before 6:00 a.m. tomorrow.', es: 'tiene que salir del país en carguero antes de las 6:00 de mañana.' },
+  'a subtilisé la pièce dans le bureau privé d’un client trop confiant.': { en: 'lifted the piece from an overtrusting client’s private office.', es: 'sustrajo la pieza del despacho privado de un cliente demasiado confiado.' },
+  'un créancier retient sa voiture en otage à deux rues d’ici.': { en: 'a creditor is holding their car hostage two streets away.', es: 'un acreedor retiene su coche como rehén a dos calles de aquí.' },
+  'la pièce vient d’un héritage contesté dont personne n’a l’inventaire.': { en: 'the piece comes from a contested inheritance nobody has an inventory of.', es: 'la pieza viene de una herencia en disputa de la que nadie tiene inventario.' },
+  'a effacé les caméras de surveillance pendant exactement quatre minutes.': { en: 'wiped the surveillance cameras for exactly four minutes.', es: 'borró las cámaras de vigilancia durante exactamente cuatro minutos.' },
+  'cache une double vie qui s’effondrera au moindre scandale public.': { en: 'hides a double life that would collapse at the slightest public scandal.', es: 'oculta una doble vida que se derrumbaría ante el mínimo escándalo público.' },
+  'doit payer une caution judiciaire en liquide avant l’ouverture du greffe.': { en: 'has to pay a court bail in cash before the registry opens.', es: 'debe pagar una fianza judicial en efectivo antes de que abra el registro.' },
+  'a trouvé la pièce dans une saisie douanière mal scellée.': { en: 'found the piece in a badly sealed customs seizure.', es: 'encontró la pieza en una incautación aduanera mal precintada.' },
+};
+T['Explose si tu l’insultes ou le traites de menteur.'] = { en: 'Explodes if you insult him or call him a liar.', es: 'Explota si lo insultas o lo llamas mentiroso.' };
+T['Explose si tu l’insultes ou la traites de menteuse.'] = { en: 'Explodes if you insult her or call her a liar.', es: 'Explota si la insultas o la llamas mentirosa.' };
+
 /** Texte de personnage : renvoie la traduction si elle existe, sinon le français d'origine. */
 export function localizeCastText(fr: string, locale: Locale): string {
-  return locale === 'fr' ? fr : (T[fr]?.[locale] ?? fr);
+  if (locale === 'fr') return fr;
+  if (T[fr]) return T[fr][locale];
+  const m = /^Pressée? par son secret : (.*)$/.exec(fr);
+  if (m && SECRET_I18N[m[1]]) {
+    const fem = fr.startsWith('Pressée');
+    return locale === 'en' ? `Pressured by a secret: ${SECRET_I18N[m[1]].en}` : `${fem ? 'Presionada' : 'Presionado'} por su secreto: ${SECRET_I18N[m[1]].es}`;
+  }
+  return fr;
 }
 
 // Collections du Codex (titres, descriptions, atouts). Clé = français d'origine.

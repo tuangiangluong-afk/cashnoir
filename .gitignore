@@ -10,6 +10,8 @@ server/data/
 *.log
 scene-*.png
 .claude/
+graphify-out/
+public/assets/admin_*.png
 
 
 .vercel

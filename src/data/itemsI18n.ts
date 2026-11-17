@@ -1,8 +1,12 @@
 import type { Locale } from './seoContent';
+import { COLLECTIONS_DATA } from './codex';
+import { localizeCodexItem } from './codexI18n';
+import { localizeCodexText } from './castI18n';
 
 // Textes d'objets du catalogue (noms de base, aspect, indice Loupe, indice UV). Clé = français d'origine.
 const rows: [string, string, string][] = [
   // Noms de base manquants dans ITEM_BASE_TRANSLATIONS
+  ['Revolver .357 de Collection', 'Collector’s .357 revolver', 'Revólver .357 de colección'],
   ['Katana ancien forgé main', 'Antique hand-forged katana', 'Katana antiguo forjado a mano'],
   ['Œuf émaillé impérial', 'Imperial enamel egg', 'Huevo esmaltado imperial'],
   ['Violoncelle ancien verni ambre', 'Antique amber-varnished cello', 'Violonchelo antiguo barnizado en ámbar'],
@@ -120,13 +124,155 @@ const rows: [string, string, string][] = [
 
 /** Les 20 noms de base ajoutés ici (les 20 premières lignes), à fusionner dans ITEM_BASE_TRANSLATIONS. */
 export const ITEM_BASE_EXTRA: Record<string, { en: string; es: string }> = Object.fromEntries(
-  rows.slice(0, 20).map(([fr, en, es]) => [fr, { en, es }]),
+  rows.slice(0, 21).map(([fr, en, es]) => [fr, { en, es }]),
 );
 
 const MAP = new Map(rows.map(([fr, en, es]) => [fr, { en, es }]));
 
+// ---- Compléments : noms de base manquants, aspects, indices Loupe et UV des objets non-Codex.
+const NAME_ROWS: [string, string, string][] = [
+  ['Fusil de chasse scié', 'Sawed-off hunting shotgun', 'Escopeta de caza recortada'],
+  ['Icône byzantine volée au musée', 'Byzantine icon stolen from the museum', 'Icono bizantino robado del museo'],
+  ['Liasses de faux billets qualité AAA', 'Bundles of AAA-grade counterfeit bills', 'Fajos de billetes falsos de calidad AAA'],
+  ['Carte d’identité militaire falsifiée', 'Forged military ID card', 'Carné militar falsificado'],
+  ['Violoncelle miniature Stradivarius (contrefait)', 'Miniature Stradivarius cello (counterfeit)', 'Violonchelo en miniatura Stradivarius (falsificado)'],
+  ['Boîtier de surveillance WiFi modifié', 'Modified WiFi surveillance box', 'Caja de vigilancia WiFi modificada'],
+  ['Plaque d’immatriculation diplomatique', 'Diplomatic license plate', 'Matrícula diplomática'],
+];
+export const ITEM_NAME_EXTRA: Record<string, { en: string; es: string }> = Object.fromEntries(
+  NAME_ROWS.map(([fr, en, es]) => [fr, { en, es }]),
+);
+
+const MORE_ROWS: [string, string, string][] = [
+  // Aspects
+  ['Billets de 200 € impeccables, empilés sous film thermo-soudé.', 'Flawless €200 bills stacked under heat-sealed film.', 'Billetes de 200 € impecables, apilados bajo film termosellado.'],
+  ['Boîtier lourd, gravure personnalisée effacée à la lime.', 'Heavy case, custom engraving filed away.', 'Caja pesada, grabado personalizado borrado con lima.'],
+  ['Double canon scié à la meuleuse, crosse entourée de scotch noir.', 'Double barrel cut off with a grinder, stock wrapped in black tape.', 'Doble cañón cortado con amoladora, culata envuelta en cinta negra.'],
+  ['Billets de 100 € marqués en bande de banque (change noir ~30 %).', 'Bank-banded €100 bills, marked (black-market exchange ~30%).', 'Billetes de 100 € marcados con banda bancaria (cambio negro ~30 %).'],
+  ['Peinture à l’huile découpée au cutter hors de son cadre.', 'Oil painting cut out of its frame with a box cutter.', 'Óleo cortado de su marco con un cúter.'],
+  ['Smartphone blindé sans carte SIM apparente, écran fissuré.', 'Armored smartphone with no visible SIM card, cracked screen.', 'Smartphone blindado sin tarjeta SIM visible, pantalla rota.'],
+  ['Canon chromé, crosse en noyer usée par la sueur.', 'Chrome barrel, walnut grip worn by sweat.', 'Cañón cromado, empuñadura de nogal gastada por el sudor.'],
+  ['Routeur noir sans marque, antennes soudées à la main, ventilateur bruyant.', 'Unbranded black router, hand-soldered antennas, noisy fan.', 'Router negro sin marca, antenas soldadas a mano, ventilador ruidoso.'],
+  ['Panneau de bois doré à la feuille, visage peint à la tempera, 40 cm.', 'Gold-leaf wood panel, tempera-painted face, 40 cm.', 'Tabla dorada a la hoja, rostro pintado al temple, 40 cm.'],
+  ['Valise médicale grise qui vibre légèrement sur batterie.', 'Grey medical case humming slightly on battery.', 'Maletín médico gris que vibra levemente con la batería.'],
+  ['Clé blindée en titane, LED rouge fixe, connecteur tordu.', 'Armored titanium key, steady red LED, bent connector.', 'Llave blindada de titanio, LED rojo fijo, conector torcido.'],
+  ['Badge rigide format carte de crédit, hologramme Défense nationale.', 'Rigid credit-card-size badge, National Defense hologram.', 'Tarjeta rígida tamaño tarjeta de crédito, holograma de Defensa Nacional.'],
+  ['Pierre translucide irrégulière dans un sachet antistatique froissé.', 'Irregular translucent stone in a crumpled antistatic bag.', 'Piedra translúcida irregular en una bolsa antiestática arrugada.'],
+  ['Boîtier en platine, bracelet alligator arraché au fermoir.', 'Platinum case, alligator strap torn from the clasp.', 'Caja de platino, correa de cocodrilo arrancada del cierre.'],
+  ['Livret officiel neuf sans photo, puce biométrique intacte.', 'New official booklet without a photo, biometric chip intact.', 'Libreto oficial nuevo sin foto, chip biométrico intacto.'],
+  ['Etui rigide cabossé, instrument verni, étiquette Stradivarius 1721.', 'Dented hard case, varnished instrument, Stradivarius 1721 label.', 'Estuche rígido abollado, instrumento barnizado, etiqueta Stradivarius 1721.'],
+  ['Plaque verte CMD avec liseré doré, boulons encore vissés.', 'Green CMD plate with gold trim, bolts still screwed in.', 'Placa verde CMD con ribete dorado, tornillos aún puestos.'],
+  ['Lingot poinçonné dont le numéro de fondeur a été meulé.', 'Hallmarked ingot whose smelter number has been ground off.', 'Lingote punzonado cuyo número de fundidor ha sido lijado.'],
+  // Indices Loupe
+  ['Un billet en surface porte un numéro de série identique au suivant.', 'A bill on top carries the same serial number as the next one.', 'Un billete de la superficie lleva el mismo número de serie que el siguiente.'],
+  ['Un traceur GPS est collé sous la doublure : +12 % de Heat chaque nuit tant qu\'elle reste au coffre.', 'A GPS tracker is stuck under the lining: +12% Heat every night while it stays in the vault.', 'Hay un rastreador GPS pegado bajo el forro: +12 % de Heat cada noche mientras siga en la caja fuerte.'],
+  ['Pièce de collection authentifiée : elle se revendra 35 % plus cher, mais le vendeur le sait et se méfie.', 'Authenticated collector’s piece: it will resell 35% higher, but the seller knows it and is wary.', 'Pieza de colección autenticada: se revenderá un 35 % más cara, pero el vendedor lo sabe y desconfía.'],
+  ['CONTREFAÇON : gravure laser trop nette, métal trop léger. Elle ne vaut que 40 % de sa valeur rue.', 'COUNTERFEIT: laser engraving too crisp, metal too light. It is worth only 40% of its street value.', 'FALSIFICACIÓN: grabado láser demasiado nítido, metal demasiado ligero. Solo vale el 40 % de su valor de calle.'],
+  ['Du sang séché dans les maillons et le bracelet est cassé net comme arraché.', 'Dried blood in the links and the strap is snapped clean as if torn off.', 'Sangre seca en los eslabones y la correa está rota limpiamente, como arrancada.'],
+  ['Peinture verte de fourgon blindé écaillée sur le canon.', 'Green armored-van paint flaking off the barrel.', 'Pintura verde de furgón blindado descascarillada en el cañón.'],
+  ['Les numéros de série se suivent exactement : cash de rançon ou braquage de DAB.', 'The serial numbers run in exact sequence: ransom cash or an ATM heist.', 'Los números de serie se suceden exactamente: dinero de rescate o atraco a un cajero.'],
+  ['Bords déchirés à la va-vite ; tampon d’assurance privée au dos.', 'Edges torn in a hurry; private insurance stamp on the back.', 'Bordes rasgados a toda prisa; sello de seguro privado en el dorso.'],
+  ['Coque arrière forcée au tournevis : trace de sang sec sur le capteur d’empreinte.', 'Back shell pried open with a screwdriver: dried blood on the fingerprint sensor.', 'Carcasa trasera forzada con un destornillador: sangre seca en el sensor de huellas.'],
+  ['Numéro de série intact : arme déclarée volée au stand de tir municipal.', 'Serial number intact: weapon reported stolen from the municipal shooting range.', 'Número de serie intacto: arma denunciada como robada en el campo de tiro municipal.'],
+  ['Encore chaud ; cartouche bloquée dans la chambre gauche.', 'Still warm; cartridge jammed in the left chamber.', 'Aún caliente; cartucho atascado en la recámara izquierda.'],
+  ['Étiquette d’inventaire muséal arrachée : reste le code-barres collé au dos.', 'Museum inventory label torn off: the barcode is still stuck on the back.', 'Etiqueta de inventario del museo arrancada: queda el código de barras pegado en el dorso.'],
+  ['Autocollant DGSI arraché sur la face arrière.', 'Intelligence-service sticker torn off the back.', 'Pegatina de los servicios de inteligencia arrancada en la parte trasera.'],
+  ['Étiquette de la Clinique Saint-Luc arrachée. Il reste 2h d’autonomie sur la batterie.', 'Saint-Luc Clinic label torn off. The battery has 2 hours left.', 'Etiqueta de la Clínica Saint-Luc arrancada. A la batería le quedan 2 horas.'],
+  ['Fichiers judiciaires chiffrés AES-256 : dossiers d’instruction et écoutes du parquet.', 'AES-256 encrypted court files: investigation dossiers and prosecutor wiretaps.', 'Archivos judiciales cifrados con AES-256: sumarios de instrucción y escuchas de la fiscalía.'],
+  ['Taches d’humidité d’un conduit d’aération de musée.', 'Damp stains from a museum ventilation duct.', 'Manchas de humedad de un conducto de ventilación de museo.'],
+  ['Le code d’unité ne correspond à aucun régiment répertorié.', 'The unit code matches no listed regiment.', 'El código de unidad no corresponde a ningún regimiento registrado.'],
+  ['La photo est collée par-dessus une autre : les bords gondolent.', 'The photo is glued over another one: the edges are warping.', 'La foto está pegada sobre otra: los bordes se abarquillan.'],
+  ['Traces de coupe au cutter sur le cadre d’origine encore visible.', 'Box-cutter marks visible on the original frame.', 'Marcas de cúter visibles en el marco original.'],
+  ['Inclusions rouges visibles à la loupe : traces de sang humain piégé dans le cristal.', 'Red inclusions visible under the loupe: traces of human blood trapped in the crystal.', 'Inclusiones rojas visibles con la lupa: restos de sangre humana atrapados en el cristal.'],
+  ['Numéro de mouvement limé à la hâte ; rayure profonde sur le verre saphir.', 'Movement number filed off in a hurry; deep scratch on the sapphire crystal.', 'Número de movimiento limado a toda prisa; arañazo profundo en el cristal de zafiro.'],
+  ['Numéro de lot manquant d’une valise volée à l’aéroport.', 'Lot number missing from a suitcase stolen at the airport.', 'Falta el número de lote de una maleta robada en el aeropuerto.'],
+  ['Deux douilles percutées encore dans le barillet. Odeur de poudre fraîche.', 'Two fired casings still in the cylinder. Smell of fresh powder.', 'Dos casquillos percutidos aún en el tambor. Olor a pólvora fresca.'],
+  ['Le vernis sent le polyuréthane industriel, pas la gomme-laque.', 'The varnish smells of industrial polyurethane, not shellac.', 'El barniz huele a poliuretano industrial, no a goma laca.'],
+  ['Le papier crisse un poil trop fort : pas de fibres de coton, impression offset.', 'The paper crackles a touch too loudly: no cotton fibers, offset printing.', 'El papel cruje un poco demasiado: sin fibras de algodón, impresión offset.'],
+  ['Les boulons portent des traces de peinture de carrosserie arrachée à la hâte.', 'The bolts carry traces of bodywork paint torn off in a hurry.', 'Los tornillos llevan restos de pintura de carrocería arrancada a toda prisa.'],
+  ['Message non lu sur l’écran verrouillé : "Si les photos sortent avant 6h, on te retrouve."', 'Unread message on the lock screen: "If the photos leak before 6, we find you."', 'Mensaje sin leer en la pantalla de bloqueo: «Si las fotos salen antes de las 6, te encontramos.»'],
+  ['Poussière de coffre-fort encore coincée dans les angles.', 'Safe dust still caught in the corners.', 'Polvo de caja fuerte aún atrapado en las esquinas.'],
+  ['Coin supérieur légèrement brûlé par une lampe à souder.', 'Upper corner slightly scorched by a blowtorch.', 'Esquina superior ligeramente quemada por un soplete.'],
+  ['Le coin d’un billet est taché d’encre rose de cartouche antivol.', 'A bill’s corner is stained with pink anti-theft cartridge ink.', 'La esquina de un billete está manchada con tinta rosa de cartucho antirrobo.'],
+  ['Le numéro correspond à une ambassade fermée depuis 2 ans.', 'The number belongs to an embassy closed for 2 years.', 'El número corresponde a una embajada cerrada desde hace 2 años.'],
+  ['Certificat Kimberley absent : pierre de zone de conflit probable.', 'Kimberley certificate missing: probably a conflict-zone stone.', 'Falta el certificado Kimberley: probable piedra de zona de conflicto.'],
+  ['Autocollant CONFIDENTIEL DÉFENSE gratté au couteau.', 'CONFIDENTIAL DEFENSE sticker scraped off with a knife.', 'Pegatina de CONFIDENCIAL DEFENSA rascada con un cuchillo.'],
+  ['Le cadenas a été coupé à la pince monseigneur.', 'The padlock was cut with a crowbar-style bolt cutter.', 'El candado fue cortado con una cizalla.'],
+  ['Poids légèrement inférieur (965 g) : traces de limaille fraîche.', 'Slightly underweight (965 g): traces of fresh filings.', 'Peso ligeramente inferior (965 g): restos de limaduras frescas.'],
+  ['Le mouvement fait un bruit anormal : un micro-traceur a été collé sous le cadran.', 'The movement makes an odd noise: a micro-tracker was stuck under the dial.', 'El mecanismo hace un ruido anormal: hay un micro-rastreador pegado bajo la esfera.'],
+  ['Firmware custom : intercepte le trafic réseau dans un rayon de 200 m.', 'Custom firmware: intercepts network traffic within a 200 m radius.', 'Firmware personalizado: intercepta el tráfico de red en un radio de 200 m.'],
+  // Indices UV
+  ['SOUS UV : Objet appât marqué par la Brigade Financière ! Ce client est un infiltré.', 'UNDER UV: Bait item marked by the Financial Crimes Squad! This client is an undercover agent.', 'BAJO UV: ¡Objeto cebo marcado por la Brigada Financiera! Este cliente es un infiltrado.'],
+  ['Sous UV : marquage fluorescent de la Brigade Financière sur chaque billet.', 'Under UV: Financial Crimes Squad fluorescent marking on every bill.', 'Bajo UV: marcado fluorescente de la Brigada Financiera en cada billete.'],
+  ['Sous UV : signature invisible d’expertise d’un collectionneur assassiné.', 'Under UV: invisible appraisal signature of a murdered collector.', 'Bajo UV: firma invisible de tasación de un coleccionista asesinado.'],
+  ['Sous UV : autocollant de scellé judiciaire gratté à la lame de rasoir.', 'Under UV: court seal sticker scraped off with a razor blade.', 'Bajo UV: pegatina de precinto judicial rascada con una cuchilla.'],
+  ['Sous UV : empreinte partielle sur le ruban adhésif.', 'Under UV: partial fingerprint on the adhesive tape.', 'Bajo UV: huella parcial en la cinta adhesiva.'],
+  ['Sous UV : numéro de série des services de renseignement gravé au laser.', 'Under UV: intelligence-service serial number laser-engraved.', 'Bajo UV: número de serie de los servicios de inteligencia grabado con láser.'],
+  ['Sous UV : code-barres hospitalier signalé volé cette nuit.', 'Under UV: hospital barcode reported stolen tonight.', 'Bajo UV: código de barras hospitalario denunciado como robado esta noche.'],
+  ['Sous UV : l’hologramme est un simple sticker chinois qui se décolle.', 'Under UV: the hologram is a cheap sticker that peels off.', 'Bajo UV: el holograma es una simple pegatina barata que se despega.'],
+  ['Sous UV : tampon d’expertise du Louvre sous la dorure.', 'Under UV: Louvre appraisal stamp under the gilding.', 'Bajo UV: sello de tasación del Louvre bajo el dorado.'],
+  ['Sous UV : résidus de tir (GSR) sur toute la crosse.', 'Under UV: gunshot residue (GSR) all over the grip.', 'Bajo UV: restos de disparo (GSR) por toda la empuñadura.'],
+  ['Sous UV : colle moderne fluorescente aux jointures (anachronisme).', 'Under UV: fluorescent modern glue at the joints (anachronism).', 'Bajo UV: pegamento moderno fluorescente en las uniones (anacronismo).'],
+  ['Sous UV : trace de marqueur chimique anti-casse de banque.', 'Under UV: trace of bank anti-theft chemical marker.', 'Bajo UV: resto de marcador químico antirrobo bancario.'],
+  ['Sous UV : résidu médico-légal sur le fermoir + traceur passif.', 'Under UV: forensic residue on the clasp + passive tracker.', 'Bajo UV: residuo forense en el cierre + rastreador pasivo.'],
+  ['Sous UV : filigrane consulaire authentique (valeur énorme en fuite).', 'Under UV: authentic consular watermark (enormous value on the run).', 'Bajo UV: filigrana consular auténtica (valor enorme en fuga).'],
+  ['Sous UV : empreinte latente du greffier sur le capuchon.', 'Under UV: the clerk’s latent fingerprint on the cap.', 'Bajo UV: huella latente del secretario judicial en el capuchón.'],
+  ['Sous UV : résidu d’ADN sur la boucle déployante.', 'Under UV: DNA residue on the deployant buckle.', 'Bajo UV: resto de ADN en la hebilla desplegable.'],
+  ['Gravure intérieure à peine lisible : "Ministère — 2024".', 'Inner engraving barely legible: "Ministry — 2024".', 'Grabado interior apenas legible: «Ministerio — 2024».'],
+  ['L’étiquette intérieure est imprimée au laser — un vrai Strad est manuscrit.', 'The inner label is laser-printed — a real Strad is handwritten.', 'La etiqueta interior está impresa con láser: un Strad auténtico es manuscrito.'],
+  ['Sous UV : le filigrane ne fluoresce pas du tout — impression jet d’encre.', 'Under UV: the watermark does not fluoresce at all — inkjet printing.', 'Bajo UV: la filigrana no fluorece en absoluto: impresión de inyección de tinta.'],
+  ['Sous UV : fluorescence bleue intense — diamant naturel, pas synthétique.', 'Under UV: intense blue fluorescence — natural diamond, not synthetic.', 'Bajo UV: fluorescencia azul intensa: diamante natural, no sintético.'],
+  ['Sous UV : micro-gravure du Quai d’Orsay authentique — volée au stock.', 'Under UV: authentic Quai d’Orsay micro-engraving — stolen from stock.', 'Bajo UV: micrograbado auténtico del Quai d’Orsay: robado del almacén.'],
+];
+for (const [fr, en, es] of MORE_ROWS) MAP.set(fr, { en, es });
+
+// Textes issus du Codex : « Provenance tracée … », « signature de lot … », « provenance — lore ».
+const RARITY_WORDS: Record<string, { en: string; es: string }> = {
+  COMMUN: { en: 'COMMON', es: 'COMÚN' },
+  INSOLITE: { en: 'UNUSUAL', es: 'INSÓLITA' },
+  RARE: { en: 'RARE', es: 'RARA' },
+  EPIQUE: { en: 'EPIC', es: 'ÉPICA' },
+  LEGENDAIRE: { en: 'LEGENDARY', es: 'LEGENDARIA' },
+  MYTHIQUE: { en: 'MYTHIC', es: 'MÍTICA' },
+};
+let codexProv: Map<string, { en: string; es: string }> | null = null;
+let codexLore: Map<string, { en: string; es: string }> | null = null;
+function codexMaps() {
+  if (!codexProv || !codexLore) {
+    codexProv = new Map();
+    codexLore = new Map();
+    for (const col of COLLECTIONS_DATA) {
+      for (const it of col.items) {
+        const en = localizeCodexItem(it, 'en');
+        const es = localizeCodexItem(it, 'es');
+        codexProv.set(it.provenance, { en: en.provenance, es: es.provenance });
+        codexLore.set(it.lore, { en: en.lore, es: es.lore });
+      }
+    }
+  }
+  return { prov: codexProv, lore: codexLore };
+}
+
 /** Traduit un texte d'objet du catalogue (nom de base, aspect, indice Loupe/UV) ; sinon renvoie le français. */
 export function localizeItemText(fr: string, locale: Locale): string {
+  if (locale !== 'fr') {
+    const { prov, lore } = codexMaps();
+    const direct = lore.get(fr);
+    if (direct) return direct[locale];
+    let m = /^Provenance tracée : (.+)\. Pièce recherchée du Codex \(([A-Z]+)\)\.$/.exec(fr);
+    if (m && prov.get(m[1])) {
+      const r = RARITY_WORDS[m[2]]?.[locale] ?? m[2];
+      return locale === 'en' ? `Traced provenance: ${prov.get(m[1])!.en}. Wanted Codex piece (${r}).` : `Procedencia rastreada: ${prov.get(m[1])!.es}. Pieza buscada del Códice (${r}).`;
+    }
+    m = /^Sous UV : signature de lot (.+) \((.+)\)\.$/.exec(fr);
+    if (m) {
+      const col = localizeCodexText(m[1], locale);
+      const pv = prov.get(m[2])?.[locale] ?? m[2];
+      return locale === 'en' ? `Under UV: lot signature ${col} (${pv}).` : `Bajo UV: firma de lote ${col} (${pv}).`;
+    }
+    m = /^(.+) — (.+)$/.exec(fr);
+    if (m && prov.get(m[1]) && lore.get(m[2])) return `${prov.get(m[1])![locale]} — ${lore.get(m[2])![locale]}`;
+  }
   if (locale !== 'fr' && fr.startsWith('SOUS UV : marquage fluorescent partiel')) {
     return locale === 'en'
       ? 'Under UV: partial fluorescent marking. Impossible to tell — recent seizure, or a Squad bait.'

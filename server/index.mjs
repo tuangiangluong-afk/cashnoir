@@ -5,6 +5,8 @@ import path from 'node:path';
 
 import { buildDailyContract } from './daily.mjs';
 import { handleAuthAndProfileRoutes } from './auth-profiles.mjs';
+import { localizeServerError, requestLocale } from './i18n.mjs';
+import { handleAdminRoutes } from './admin.mjs';
 
 /* ------------------------------------------------------------------ */
 /* 1. Chargement de .env.local / .env (aucune dépendance externe)      */
@@ -38,17 +40,21 @@ loadEnvFiles(['.env.local', '.env']);
 const PORT = Number(process.env.PORT || 3001);
 const ALLOWED_ORIGINS = (
   process.env.ALLOWED_ORIGIN ||
-  'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173'
+  'https://cashnoir.app,https://cashnoir-nine.vercel.app,https://cashnoir-app.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173'
 )
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 const ALLOWED_ORIGIN = ALLOWED_ORIGINS[0];
-const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+const TRUST_PROXY = process.env.TRUST_PROXY === '1' || Boolean(process.env.VERCEL);
 
-const DATA_DIR = path.resolve('server/data');
+const DATA_DIR = process.env.VERCEL ? path.resolve('/tmp/data') : path.resolve('server/data');
 const LEADERBOARD_FILE = path.join(DATA_DIR, 'leaderboard.json');
-fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+} catch {
+  // Ignorer si en lecture seule
+}
 
 // SESSION_SECRET aléatoire = tokens invalidés à chaque redémarrage. On prévient
 // explicitement au lieu de laisser croire que le paywall fonctionne.
@@ -60,7 +66,8 @@ if (!SESSION_SECRET) {
   );
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const GEMINI_FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
@@ -127,12 +134,13 @@ function baseHeaders(res) {
 
 function sendJson(res, status, data, extraHeaders = {}) {
   baseHeaders(res);
+  if (data && typeof data.error === 'string') data = { ...data, error: localizeServerError(data.error, res.gameLocale || 'fr') };
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Game-Locale, X-Admin-Key, Authorization',
     'Access-Control-Max-Age': '600',
     ...extraHeaders,
   });
@@ -194,6 +202,14 @@ function safeEqualHex(a, b) {
 }
 
 const STRIPE_TOLERANCE_S = 300;
+
+// Cookie `Secure` dès que la requête arrive en HTTPS (directement ou derrière un proxy de confiance).
+const secureFlag = (req) =>
+  req.socket?.encrypted || (process.env.TRUST_PROXY === '1' && req.headers['x-forwarded-proto'] === 'https') ? '; Secure' : '';
+
+// Une session Stripe payée ne peut débloquer le Pass que quelques fois (évite de partager un lien de retour).
+const passClaims = new Map();
+const MAX_CLAIMS_PER_SESSION = 3;
 const PASS_DURATION_MS = 30 * 24 * 3600 * 1000;
 
 // Modèles Ollama autorisés : on ne laisse pas le navigateur choisir n'importe quoi.
@@ -295,7 +311,12 @@ const MAX_SUBMITS_PER_DAY = 2;
 
 // Anti-drain tokens LLM : 20 messages/jour en gratuit quand Stripe est actif.
 const FREE_DAILY_NPC_LIMIT = Number(process.env.FREE_DAILY_NPC_LIMIT || 60);
+const PASS_DAILY_NPC_LIMIT = Number(process.env.PASS_DAILY_NPC_LIMIT || 400);
+// Interrupteur d'urgence : nombre total de répliques IA servies par jour, tous joueurs confondus.
+const GLOBAL_DAILY_NPC_LIMIT = Number(process.env.GLOBAL_DAILY_NPC_LIMIT || 5000);
 const npcDailyByIp = new Map();
+let npcDayStamp = '';
+let npcGlobalToday = 0;
 
 function hasValidPassCookie(req) {
   const cookie = req.headers.cookie || '';
@@ -306,6 +327,33 @@ function hasValidPassCookie(req) {
 
 // Parties en cours : le serveur garde la marge, le client ne la fournit jamais.
 const runs = new Map();
+
+/** Miroir de computeDynamicFloor (src/services/llm.ts) : plus le vendeur a peur, plus son plancher baisse. */
+function dynamicFloor(initialPrice, floorPrice, peur) {
+  const ratio = Math.min(1, Math.max(0, peur / 85));
+  const ceiling = initialPrice * 0.85;
+  const raw = ceiling - ratio * (ceiling - floorPrice);
+  return Math.max(floorPrice, Math.round(raw / 50) * 50);
+}
+
+/**
+ * Un tour de négociation du contrat quotidien ne compte que s'il y a eu une vraie réponse du modèle.
+ * On retient la peur annoncée par le modèle (bornée à +25 par tour, comme côté client) pour borner le prix payé.
+ */
+function recordNpcTurn(run, rawText) {
+  if (!run || run.margin !== null) return;
+  run.turns += 1;
+  try {
+    const cleaned = String(rawText).replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const peur = Number(JSON.parse(cleaned)?.jauges?.peur);
+    if (Number.isFinite(peur)) {
+      const bounded = Math.min(100, Math.max(0, peur));
+      run.peurSeen = Math.max(run.peurSeen, Math.min(bounded, run.peurSeen + 25));
+    }
+  } catch {
+    /* réponse non JSON : le tour compte, mais n'apporte aucune peur */
+  }
+}
 const dailyRunByIp = new Map(); // `${ip}|${date}` -> runId : une seule tentative par IP et par jour
 setInterval(() => {
   const cutoff = Date.now() - 24 * 3600 * 1000;
@@ -317,15 +365,17 @@ setInterval(() => {
 /* ------------------------------------------------------------------ */
 /* 6. Serveur                                                          */
 /* ------------------------------------------------------------------ */
-const server = http.createServer(async (req, res) => {
+export async function handleRequest(req, res) {
+  res.gameLocale = requestLocale(req);
   const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`);
 
   if (req.method === 'OPTIONS') {
     baseHeaders(res);
     res.writeHead(204, {
       'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Game-Locale, X-Admin-Key, Authorization',
       'Access-Control-Max-Age': '600',
     });
     res.end();
@@ -334,7 +384,7 @@ const server = http.createServer(async (req, res) => {
 
   // Refus explicite d'une origine non autorisée sur les mutations.
   const origin = req.headers.origin;
-  if (req.method === 'POST' && origin && !ALLOWED_ORIGINS.includes(origin)) {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method) && origin && !ALLOWED_ORIGINS.includes(origin)) {
     sendJson(res, 403, { error: 'Origine non autorisée.' });
     return;
   }
@@ -408,7 +458,7 @@ const server = http.createServer(async (req, res) => {
       const contract = buildDailyContract(date);
       const runId = crypto.randomUUID();
       dailyRunByIp.set(attemptKey, runId);
-      runs.set(runId, { date, contract, margin: null, turns: 0, at: Date.now() });
+      runs.set(runId, { date, contract, margin: null, turns: 0, peurSeen: 0, at: Date.now() });
       const ticket = issueToken({ runId, date, iat: Date.now() });
       const { floorPrice: _f, maxMargin: _m, ...publicContract } = contract;
       sendJson(res, 200, { runId, date, ticket, contract: publicContract });
@@ -444,7 +494,12 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       // Le client ne peut pas baisser de plus de 25 % par tour de négociation (cf. llm.ts).
-      const minPaid = Math.max(floorPrice, Math.round(initialPrice * 0.75 ** run.turns));
+      const fearBound = Math.min(100, run.peurSeen + 40); // marge pour les bonus de mots-clés calculés côté client
+      const minPaid = Math.max(
+        floorPrice,
+        Math.round(initialPrice * 0.75 ** run.turns),
+        dynamicFloor(initialPrice, floorPrice, fearBound),
+      );
       if (!Number.isFinite(paid) || paid < minPaid || paid > initialPrice) {
         sendJson(res, 400, {
           error: 'Prix incohérent avec la négociation enregistrée.',
@@ -637,28 +692,41 @@ const server = http.createServer(async (req, res) => {
     /* ---------------- Proxy LLM (clés jamais côté navigateur) ---------------- */
     if (req.method === 'POST' && url.pathname === '/api/npc') {
       const stripeActive = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
-      // Quota par IP même sans Stripe : une clé LLM hébergée sans plafond = facture illimitée.
-      if (!hasValidPassCookie(req)) {
-        const ipDayKey = `${clientIp(req)}|${today()}`;
-        const used = npcDailyByIp.get(ipDayKey) || 0;
-        if (used >= FREE_DAILY_NPC_LIMIT) {
-          sendJson(res, 402, {
-            error: stripeActive
+      // Garde-fous de coût : (1) quota par IP, (2) usage raisonnable pour le Pass, (3) budget global journalier
+      // (interrupteur d'urgence) : au-delà, le client bascule sur des vendeurs scriptés, sans erreur ni facture.
+      const dayKey = today();
+      if (npcDayStamp !== dayKey) {
+        npcDayStamp = dayKey;
+        npcDailyByIp.clear();
+        npcGlobalToday = 0;
+      }
+      const ipDayKey = `${clientIp(req)}|${dayKey}`;
+      const used = npcDailyByIp.get(ipDayKey) || 0;
+      const hasPassNow = hasValidPassCookie(req);
+      const ipLimit = hasPassNow ? PASS_DAILY_NPC_LIMIT : FREE_DAILY_NPC_LIMIT;
+      if (used >= ipLimit) {
+        sendJson(res, 402, {
+          error: hasPassNow
+            ? `Usage raisonnable atteint (${PASS_DAILY_NPC_LIMIT} répliques/jour). Reviens demain.`
+            : stripeActive
               ? `Quota gratuit atteint (${FREE_DAILY_NPC_LIMIT} répliques/jour). Débloque le Pass Syndicat pour négocier en illimité.`
               : `Quota quotidien atteint (${FREE_DAILY_NPC_LIMIT} répliques/jour). Reviens demain.`,
-            code: 'DAILY_QUOTA_REACHED',
-          });
-          return;
-        }
-        npcDailyByIp.set(ipDayKey, used + 1);
+          code: 'DAILY_QUOTA_REACHED',
+        });
+        return;
       }
+      if (npcGlobalToday >= GLOBAL_DAILY_NPC_LIMIT) {
+        sendJson(res, 503, { error: 'Budget IA du jour épuisé. Reviens demain.', code: 'GLOBAL_BUDGET_REACHED' });
+        return;
+      }
+      npcDailyByIp.set(ipDayKey, used + 1);
+      npcGlobalToday += 1;
 
       const body = await readJson(req);
       const { provider, systemPrompt, messages } = body;
       // Tour de négociation d'un contrat quotidien : compté côté serveur (anti-triche).
       const npcClaims = body.ticket ? verifyToken(body.ticket) : null;
       const npcRun = npcClaims && npcClaims.runId === body.runId ? runs.get(npcClaims.runId) : null;
-      if (npcRun && npcRun.margin === null) npcRun.turns += 1;
       if (typeof systemPrompt !== 'string' || !Array.isArray(messages) || messages.length === 0) {
         sendJson(res, 400, { error: 'Requête invalide.' });
         return;
@@ -681,30 +749,95 @@ const server = http.createServer(async (req, res) => {
           sendJson(res, 503, { error: 'GEMINI_API_KEY non configurée sur le serveur.' });
           return;
         }
-        const upstream = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-            GEMINI_MODEL,
-          )}:generateContent`,
-          {
+        // Essais successifs : modèle principal sans "réflexion" (réponse en ~1 s), puis sans ce réglage si le modèle le refuse (400),
+        // puis modèle de secours si le principal est saturé (429/503). Pas de nouvel essai sur une erreur de clé ou de quota dépassé.
+        const body = (thinkingOff) =>
+          JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: turns.map((t) => ({ role: t.role === 'user' ? 'user' : 'model', parts: [{ text: t.content }] })),
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: 'application/json',
+              maxOutputTokens: 400,
+              ...(thinkingOff ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            },
+          });
+        const call = (model, thinkingOff) =>
+          fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              contents: turns.map((t) => ({
-                role: t.role === 'user' ? 'user' : 'model',
-                parts: [{ text: t.content }],
-              })),
-              generationConfig: { temperature: 0.7, responseMimeType: 'application/json', maxOutputTokens: 400 },
-            }),
-          },
-        );
+            body: body(thinkingOff),
+            signal: AbortSignal.timeout(20_000),
+          });
+        let upstream;
+        try {
+          upstream = await call(GEMINI_MODEL, true);
+          if (upstream.status === 400) upstream = await call(GEMINI_MODEL, false);
+          if ((upstream.status === 429 || upstream.status === 503) && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_MODEL) {
+            upstream = await call(GEMINI_FALLBACK_MODEL, false);
+          }
+        } catch {
+          // Fallback automatique vers le modèle local Ollama si Gemini time out
+          try {
+            const localOllama = await fetch('http://127.0.0.1:11434/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gemma4:latest',
+                messages: [{ role: 'system', content: systemPrompt }, ...turns],
+                format: 'json',
+                stream: false,
+                options: { temperature: 0.7 },
+              }),
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (localOllama.ok) {
+              const olData = await localOllama.json().catch(() => ({}));
+              const rawText = String(olData?.message?.content || '');
+              recordNpcTurn(npcRun, rawText);
+              sendJson(res, 200, { raw: rawText, fallback: 'ollama' });
+              return;
+            }
+          } catch {}
+          sendJson(res, 504, { error: 'Gemini ne répond pas (délai dépassé). Réessaie dans un instant.' });
+          return;
+        }
         const data = await upstream.json().catch(() => ({}));
         if (!upstream.ok) {
-          sendJson(res, upstream.status, { error: `Gemini a refusé la requête (${upstream.status}).` });
+          // Fallback Ollama si quota 429 ou erreur 503
+          try {
+            const localOllama = await fetch('http://127.0.0.1:11434/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gemma4:latest',
+                messages: [{ role: 'system', content: systemPrompt }, ...turns],
+                format: 'json',
+                stream: false,
+                options: { temperature: 0.7 },
+              }),
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (localOllama.ok) {
+              const olData = await localOllama.json().catch(() => ({}));
+              const rawText = String(olData?.message?.content || '');
+              recordNpcTurn(npcRun, rawText);
+              sendJson(res, 200, { raw: rawText, fallback: 'ollama' });
+              return;
+            }
+          } catch {}
+          const quota = upstream.status === 429;
+          sendJson(res, quota ? 429 : upstream.status, {
+            error: quota ? 'Le quota Gemini est atteint pour le moment. Réessaie plus tard.' : `Gemini a refusé la requête (${upstream.status}).`,
+          });
           return;
         }
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        sendJson(res, 200, { raw: String(text || '') });
+        {
+        const rawText = String(text || '');
+        recordNpcTurn(npcRun, rawText);
+        sendJson(res, 200, { raw: rawText });
+      }
         return;
       }
 
@@ -730,7 +863,11 @@ const server = http.createServer(async (req, res) => {
           sendJson(res, upstream.status, { error: `Groq a refusé la requête (${upstream.status}).` });
           return;
         }
-        sendJson(res, 200, { raw: String(data?.choices?.[0]?.message?.content || '') });
+        {
+        const rawText = String(data?.choices?.[0]?.message?.content || '');
+        recordNpcTurn(npcRun, rawText);
+        sendJson(res, 200, { raw: rawText });
+      }
         return;
       }
 
@@ -756,10 +893,20 @@ const server = http.createServer(async (req, res) => {
           sendJson(res, upstream.status, { error: `DeepSeek a refusé la requête (${upstream.status}).` });
           return;
         }
-        sendJson(res, 200, { raw: String(data?.choices?.[0]?.message?.content || '') });
+        {
+        const rawText = String(data?.choices?.[0]?.message?.content || '');
+        recordNpcTurn(npcRun, rawText);
+        sendJson(res, 200, { raw: rawText });
+      }
         return;
       }
 
+      if (provider === 'mock' && process.env.NPC_MOCK === '1') {
+        const rawText = String(body.mockRaw || '{}');
+        recordNpcTurn(npcRun, rawText);
+        sendJson(res, 200, { raw: rawText });
+        return;
+      }
       sendJson(res, 400, { error: 'Fournisseur non supporté.' });
       return;
     }
@@ -827,6 +974,13 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      const claimed = passClaims.get(sessionId) || 0;
+      if (claimed >= MAX_CLAIMS_PER_SESSION) {
+        sendJson(res, 403, { error: 'Cette session de paiement a déjà été utilisée.' });
+        return;
+      }
+      passClaims.set(sessionId, claimed + 1);
+
       const passToken = issueToken({
         kind: 'pass',
         session: sessionId,
@@ -834,7 +988,7 @@ const server = http.createServer(async (req, res) => {
       });
       baseHeaders(res);
       res.writeHead(302, {
-        'Set-Cookie': `syndicate_pass=${encodeURIComponent(passToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${PASS_DURATION_MS / 1000}`,
+        'Set-Cookie': `syndicate_pass=${encodeURIComponent(passToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${PASS_DURATION_MS / 1000}${secureFlag(req)}`,
         Location: '/?pass=ok',
       });
       res.end();
@@ -921,6 +1075,23 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const handledAdmin = await handleAdminRoutes({
+      req,
+      res,
+      url,
+      origin,
+      allowedOrigin: ALLOWED_ORIGIN,
+      allowedOrigins: ALLOWED_ORIGINS,
+      sessionSecret: SESSION_SECRET,
+      issueToken,
+      verifyToken,
+      sendJson,
+      readJson,
+      readBody,
+      clientIp,
+    });
+    if (handledAdmin) return;
+
     const handledAuth = await handleAuthAndProfileRoutes({
       req,
       res,
@@ -946,15 +1117,19 @@ const server = http.createServer(async (req, res) => {
       code: status === 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST',
     });
   }
-});
+}
 
-server.listen(PORT, '127.0.0.1', () => {
-  const address = server.address();
-  const boundPort = typeof address === 'object' && address ? address.port : PORT;
-  console.log(`The Fence API server running on http://127.0.0.1:${boundPort}`);
-  if (boundPort !== 3001) {
-    console.warn(
-      `[WARN] PORT=${PORT} : Vite proxifie /api vers 3001. Lance avec PORT=3001 si le proxy échoue.`,
-    );
-  }
-});
+const server = http.createServer(handleRequest);
+
+if (!process.env.VERCEL) {
+  server.listen(PORT, '127.0.0.1', () => {
+    const address = server.address();
+    const boundPort = typeof address === 'object' && address ? address.port : PORT;
+    console.log(`The Fence API server running on http://127.0.0.1:${boundPort}`);
+    if (boundPort !== 3001) {
+      console.warn(
+        `[WARN] PORT=${PORT} : Vite proxifie /api vers 3001. Lance avec PORT=3001 si le proxy échoue.`,
+      );
+    }
+  });
+}

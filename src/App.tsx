@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import {
   generateProceduralCase,
+  setPlayerCashHint,
   generateDailyContract,
   generateBossCase,
   type ProceduralCase,
@@ -40,9 +41,11 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
-import { evaluatePsychoTriggers, findProfileForArchetype } from './data/psychology';
-import { getNightEvent } from './data/events';
-import { drawRandomJokers, type SyndicateJoker } from './data/jokers';
+import { evaluatePsychoTriggers, findProfileForArchetype, temperamentOf } from './data/psychology';
+import { getNightEvent, localizeNightEvent } from './data/events';
+import { drawRandomJokers, JOKER_POOL, type SyndicateJoker } from './data/jokers';
+import { JokerIcon } from './components/JokerIcon';
+import { EmpireIcon } from './components/EmpireIcons';
 import { type VengeanceEntry, checkVengeance, pruneVengeance } from './data/revenge';
 import { getWeeklyChallenge, type WeeklyChallenge } from './data/challenges';
 import { getAscensionModifier, canAscend } from './data/ascension';
@@ -64,7 +67,7 @@ import {
   advanceRivals,
   type RivalFence,
 } from './data/rivals';
-import { getSeasonLevel, SEASON_EPISODES, type SeasonEpisode } from './data/seasons';
+import { getSeasonLevel, SEASON_EPISODES, daysUntilEpisode, type SeasonEpisode } from './data/seasons';
 import {
   getDailyQuests,
   LOGIN_STREAK_REWARDS,
@@ -73,13 +76,14 @@ import {
 import { CAST_ROSTER } from './data/cast';
 import { PantheonView, type HistoryEntry } from './components/PantheonView';
 import { MarketingSite } from './components/MarketingSite';
+import { AdminDashboard } from './components/AdminDashboard';
 import { GAME_UI, getLocalizedRank, formatMoney } from './data/gameI18n';
 import type { Locale } from './data/seoContent';
-import { ShopBackdrop, FilmOverlay, ClientBust, Typewriter, resolveCastPortrait } from './components/Scene';
+import { ShopBackdrop, FilmOverlay, ClientBust, Typewriter, resolveCastPortrait, PORTRAIT_DIR } from './components/Scene';
 import { rollSecretId, secretContent, checkSecret, secretReward, SECRET_UI } from './data/secrets';
 import { localizeCastText } from './data/castI18n';
 import { localizeItemText } from './data/itemsI18n';
-import { CounterItemProp } from './components/CounterProps';
+import { CounterItemProp, itemKindFor } from './components/CounterProps';
 import { ambience } from './services/ambience';
 import { sound } from './services/sound';
 import type { Gauges } from './services/types';
@@ -113,6 +117,7 @@ interface BoughtItem {
 interface RegistryEntry {
   id: string;
   castId?: string;
+  portraitId?: string;
   name: string;
   gender: 'm' | 'f';
   job: string;
@@ -146,6 +151,60 @@ const LB_COPY: Record<Locale, { boards: Record<LbBoard, string>; badges: Record<
   es: { boards: { margin: 'Margen', discount: 'Negociador', speed: 'Relámpago' }, badges: { negotiator: 'Negociador', blitz: 'Relámpago' }, turns: (n) => `${n} turno${n > 1 ? 's' : ''}` },
 };
 
+const SESSION_KEY = 'fence_session';
+
+// Équilibrage (voir `npm run econ`) : revente rapide, enchères et impôt progressif sur le cash en main.
+const FAST_SELL_RATIO = 0.8;
+const AUCTION_CLEAN_RATIO = 1.2;
+const AUCTION_DIRTY_RATIO = 1.05;
+const wealthTax = (cash: number) =>
+  Math.round(Math.min(cash, 15000) * 0.08 + Math.max(0, Math.min(cash, 50000) - 15000) * 0.15 + Math.max(0, cash - 50000) * 0.25);
+
+interface AuditEntry {
+  id: string;
+  turn: number;
+  action: string;
+  peur: number;
+  peurDelta: number;
+  colere: number;
+  colereDelta: number;
+  mefiance: number;
+  mefianceDelta: number;
+  price: number;
+  priceDelta: number;
+}
+
+/** Le client en cours est sauvegardé : recharger la page ou passer par le contrat quotidien ne change pas de client. */
+interface ClientSession {
+  v: 1;
+  day: number;
+  case: ProceduralCase;
+  gauges: Gauges;
+  askedPrice: number;
+  priceTrail: number[];
+  tell: string;
+  outcome: 'active' | 'deal_accepte' | 'quitte_la_boutique' | 'sort_son_arme';
+  history: ChatTurn[];
+  clientsServedToday: number;
+  inspected: boolean;
+  uvScanned: boolean;
+  grilled: { loupe: boolean; uv: boolean; radio: boolean };
+  radioOpen: boolean;
+  offerAmount: number;
+  used: { nameHit: boolean; weakHit: boolean };
+  audit?: AuditEntry[];
+}
+
+function loadSession(day: number): ClientSession | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (raw && raw.v === 1 && raw.day === day && raw.case && !raw.case.isDailyContract) return raw as ClientSession;
+  } catch {
+    /* session illisible : on repart d'un client neuf */
+  }
+  return null;
+}
+
 type TabMode = 'counter' | 'night' | 'shop' | 'pantheon' | 'daily';
 
 function getTodayStr(): string {
@@ -159,10 +218,12 @@ function getSecondsUntilMidnight(): number {
   return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
 }
 
-function formatCountdown(secs: number): string {
-  const h = String(Math.floor(secs / 3600)).padStart(2, '0');
+function formatCountdown(secs: number, compact = false): string {
+  const hNum = Math.floor(secs / 3600);
   const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
   const s = String(secs % 60).padStart(2, '0');
+  if (compact && hNum === 0) return `${m}:${s}`;
+  const h = String(hNum).padStart(2, '0');
   return `${h}:${m}:${s}`;
 }
 
@@ -195,10 +256,50 @@ export default function App() {
     const saved = localStorage.getItem('fence_locale');
     return saved === 'fr' || saved === 'es' || saved === 'en' ? saved : 'en';
   });
+  const tt = (fr: string, en: string, es: string) => (gameLocale === 'en' ? en : gameLocale === 'es' ? es : fr);
+  const hitLoc = (label: string) => {
+    const D: Record<string, [string, string]> = {
+      'Prénom lâché': ['Name dropped', 'Nombre soltado'],
+      'Faille touchée': ['Weak spot hit', 'Punto débil tocado'],
+      'Ligne rouge': ['Red line', 'Línea roja'],
+      'Hors-RP détecté': ['Out-of-character detected', 'Fuera de personaje detectado'],
+      'Scanner Police': ['Police scanner', 'Escáner policial'],
+      'Marquage UV': ['UV marking', 'Marcado UV'],
+      'Indice Loupe': ['Loupe clue', 'Pista de lupa'],
+      'Répétition': ['Repetition', 'Repetición'],
+    };
+    return label.split(' · ').map((l) => (gameLocale === 'fr' ? l : D[l]?.[gameLocale === 'en' ? 0 : 1] ?? l)).join(' · ');
+  };
+  const TEMPER_LABEL: Record<string, string> = {
+    nervous: tt('Nerveux', 'Jumpy', 'Nervioso'),
+    coolheaded: tt('Sang-froid', 'Cool-headed', 'Sangre fría'),
+    hothead: tt('Soupe au lait', 'Hothead', 'Irascible'),
+    phlegmatic: tt('Flegmatique', 'Phlegmatic', 'Flemático'),
+    wary: tt('Méfiant de nature', 'Naturally wary', 'Desconfiado por naturaleza'),
+    trusting: tt('Confiant', 'Trusting', 'Confiado'),
+  };
+  const mny = (n: number) => (gameLocale === 'en' ? `$${formatMoney(n, gameLocale)}` : `${formatMoney(n, gameLocale)} $`);
   const t = GAME_UI[gameLocale];
 
   // Persistent empire state
   const [day, setDay] = useState<number>(() => Number(localStorage.getItem('fence_day')) || 1);
+  // Jour de la toute première partie : la campagne se débloque un épisode par semaine à partir de là.
+  const [daysSinceStart] = useState<number>(() => {
+    try {
+      let first = localStorage.getItem('fence_first_play');
+      if (!first) {
+        first = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('fence_first_play', first);
+      }
+      return Math.max(0, Math.floor((Date.now() - new Date(first).getTime()) / 86_400_000));
+    } catch {
+      return 0;
+    }
+  });
+  const [saved] = useState<ClientSession | null>(() => {
+    setPlayerCashHint(Number(localStorage.getItem('fence_cash')) || 2500); // avant la génération du premier client
+    return loadSession(Number(localStorage.getItem('fence_day')) || 1);
+  });
   const [cash, setCash] = useState<number>(() => Number(localStorage.getItem('fence_cash')) || 2500);
   const [totalProfit, setTotalProfit] = useState<number>(
     () => Number(localStorage.getItem('fence_profit')) || 0,
@@ -239,7 +340,16 @@ export default function App() {
     () => localStorage.getItem('fence_streak_date') || '',
   );
   const [auctionsToday, setAuctionsToday] = useState(0);
-  const [rerollsLeft, setRerollsLeft] = useState(() => Math.max(0, 2 - (getAscensionModifier(Number(localStorage.getItem('fence_ascension')) || 0)?.rerollPenalty ?? 0)));
+  const [rerollsLeft, setRerollsLeft] = useState(() => {
+    // Les tirages restants survivent au rechargement de la page (sinon F5 = tirage gratuit).
+    try {
+      const r = JSON.parse(localStorage.getItem('fence_rerolls') || 'null');
+      if (r && r.day === (Number(localStorage.getItem('fence_day')) || 1) && Number.isFinite(r.left)) return Math.max(0, r.left);
+    } catch {
+      /* valeur illisible : défaut */
+    }
+    return Math.max(0, 2 - (getAscensionModifier(Number(localStorage.getItem('fence_ascension')) || 0)?.rerollPenalty ?? 0));
+  });
   const [raidNote, setRaidNote] = useState<string | null>(null);
   const [jokerIds, setJokerIds] = useState<string[]>(() => {
     try {
@@ -346,6 +456,10 @@ export default function App() {
     }
   });
   const [debt, setDebt] = useState<number>(() => Number(localStorage.getItem('fence_debt')) || 0);
+  const [graceUsed, setGraceUsed] = useState<boolean>(() => localStorage.getItem('fence_grace') === '1');
+  const [bestDay, setBestDay] = useState<number>(() => Number(localStorage.getItem('fence_best_day')) || 0);
+  // Bonus de départ de la prochaine partie : +100 $ par jour de record au-delà du jour 5 (plafond 2 000 $).
+  const legacyBonus = Math.min(2000, Math.max(0, bestDay - 5) * 100);
   const [openSecretId, setOpenSecretId] = useState<string | null>(null);
   const [secretInput, setSecretInput] = useState('');
   const [secretMsg, setSecretMsg] = useState<Record<string, string>>({});
@@ -358,7 +472,7 @@ export default function App() {
     }
   });
   const [showRegistry, setShowRegistry] = useState(false);
-  const loggedCaseRef = useRef<string>('');
+  const loggedCaseRef = useRef<string>(saved && saved.outcome !== 'active' ? saved.case.id : '');
   const [loginStreak, setLoginStreak] = useState<number>(
     () => Number(localStorage.getItem('fence_login_streak')) || 1,
   );
@@ -548,6 +662,24 @@ export default function App() {
     };
   }, []);
 
+  // Synchronisation dynamique de l'écosystème (nouveaux objets & suspects créés en BO)
+  useEffect(() => {
+    fetch('/api/ecosystem')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        try {
+          if (Array.isArray(data.items)) {
+            localStorage.setItem('fence_ecosystem_items', JSON.stringify(data.items));
+          }
+          if (Array.isArray(data.characters)) {
+            localStorage.setItem('fence_ecosystem_characters', JSON.stringify(data.characters));
+          }
+        } catch {}
+      })
+      .catch(() => {});
+  }, []);
+
   // Debounced auto-save to Cloud Profile when authenticated
   useEffect(() => {
     if (!authUser || !cloudReadyRef.current) return;
@@ -618,9 +750,18 @@ export default function App() {
   // UI & FOMO countdown
   const [tab, setTab] = useState<TabMode>('counter');
   const [countdown, setCountdown] = useState<number>(getSecondsUntilMidnight);
-  const [clientsServedToday, setClientsServedToday] = useState(0);
+  const [clientsServedToday, setClientsServedToday] = useState(saved?.clientsServedToday ?? 0);
   const dailyRunRef = useRef<{ runId: string; ticket: string } | null>(null);
   const lastArcStep2DayRef = useRef<number>(-1);
+  const lastSpecialDayRef = useRef<number>(-1);
+  const lastReturnDayRef = useRef<number>(-1);
+  const scriptedNoticeRef = useRef(false);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const [showItemSheet, setShowItemSheet] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showClientSheet, setShowClientSheet] = useState(false);
+  // Prix demandé à l'acheteur (-1 = valeur de rue par défaut).
+  const [buyerAsk, setBuyerAsk] = useState<number>(-1);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
   const [showBrief, setShowBrief] = useState<boolean>(false);
 
@@ -631,7 +772,7 @@ export default function App() {
 
   // Active case state
   const [currentCase, setCurrentCase] = useState<ProceduralCase>(() =>
-    generateProceduralCase(
+    saved?.case ?? generateProceduralCase(
       day,
       cityHeat,
       lastMemory || undefined,
@@ -639,17 +780,17 @@ export default function App() {
       gameLocale,
     ),
   );
-  const [gauges, setGauges] = useState<Gauges>(currentCase.initialGauges);
-  const [askedPrice, setAskedPrice] = useState<number>(currentCase.initialPrice);
-  const [priceTrail, setPriceTrail] = useState<number[]>([currentCase.initialPrice]);
-  const [tell, setTell] = useState<string>(currentCase.openingTell);
+  const [gauges, setGauges] = useState<Gauges>(saved?.gauges ?? currentCase.initialGauges);
+  const [askedPrice, setAskedPrice] = useState<number>(saved?.askedPrice ?? currentCase.initialPrice);
+  const [priceTrail, setPriceTrail] = useState<number[]>(saved?.priceTrail ?? [currentCase.initialPrice]);
+  const [tell, setTell] = useState<string>(saved?.tell ?? currentCase.openingTell);
   const [outcome, setOutcome] = useState<
     'active' | 'deal_accepte' | 'quitte_la_boutique' | 'sort_son_arme'
-  >('active');
+  >(saved?.outcome ?? 'active');
 
   // Player Profile & Commuter Preferences
   const [playerHandle, setPlayerHandle] = useState<string>(() => {
-    return localStorage.getItem('fence_player_handle') || 'MARC';
+    return localStorage.getItem('fence_player_handle') || '';
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(() => {
@@ -687,19 +828,19 @@ export default function App() {
   };
 
   // Tools state
-  const [inspected, setInspected] = useState(false);
+  const [inspected, setInspected] = useState(saved?.inspected ?? false);
   const [phantomDone, setPhantomDone] = useState(false);
-  const [uvScanned, setUvScanned] = useState(false);
-  const [grilled, setGrilled] = useState({ loupe: false, uv: false, radio: false });
-  const [radioOpen, setRadioOpen] = useState(false);
+  const [uvScanned, setUvScanned] = useState(saved?.uvScanned ?? false);
+  const [grilled, setGrilled] = useState(saved?.grilled ?? { loupe: false, uv: false, radio: false });
+  const [radioOpen, setRadioOpen] = useState(saved?.radioOpen ?? false);
   const [offerAmount, setOfferAmount] = useState<number>(
-    Math.max(150, Math.round((currentCase.initialPrice * 0.8) / 50) * 50),
+    saved?.offerAmount ?? Math.max(150, Math.round((currentCase.initialPrice * 0.8) / 50) * 50),
   );
 
   // Chat state
-  const [history, setHistory] = useState<ChatTurn[]>([
-    { role: 'npc', content: currentCase.openingLine },
-  ]);
+  const [history, setHistory] = useState<ChatTurn[]>(
+    saved?.history ?? [{ role: 'npc', content: currentCase.openingLine }],
+  );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -730,10 +871,27 @@ export default function App() {
 
   const [copiedShare, setCopiedShare] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const usedPsychoRef = useRef<{ nameHit: boolean; weakHit: boolean }>({
-    nameHit: false,
-    weakHit: false,
-  });
+  useEffect(() => {
+    localStorage.setItem('fence_grace', graceUsed ? '1' : '0');
+  }, [graceUsed]);
+  useEffect(() => {
+    if (maxDaySurvived > bestDay) setBestDay(maxDaySurvived);
+  }, [maxDaySurvived, bestDay]);
+  useEffect(() => {
+    localStorage.setItem('fence_best_day', String(bestDay));
+  }, [bestDay]);
+
+  // Anti double-clic : une même action d'argent ne peut pas s'exécuter deux fois dans la même fraction de seconde.
+  const actionLocks = useRef<Set<string>>(new Set());
+  const lockAction = (key: string): boolean => {
+    if (actionLocks.current.has(key)) return false;
+    actionLocks.current.add(key);
+    setTimeout(() => actionLocks.current.delete(key), 700);
+    return true;
+  };
+  const usedPsychoRef = useRef<{ nameHit: boolean; weakHit: boolean }>(
+    saved?.used ?? { nameHit: false, weakHit: false },
+  );
   const [soldCategories, setSoldCategories] = useState<Record<string, number>>({});
   const [historyDays, setHistoryDays] = useState<{ date: string; margin: number; entries: number }[]>([]);
   const [showArchive7d, setShowArchive7d] = useState(false);
@@ -744,13 +902,16 @@ export default function App() {
     mefiance?: number;
     key: number;
   }>({ key: 0 });
+  const [psychoAudit, setPsychoAudit] = useState<AuditEntry[]>(saved?.audit ?? []);
+  const [showPsychoAudit, setShowPsychoAudit] = useState(false);
+  const [mobileNotebookOpen, setMobileNotebookOpen] = useState(false);
 
   // Taxe du Syndicat : socle + 8 % de ta caisse. Impossible de thésauriser :
   // plus tu accumules, plus le soir coûte cher (le revenu ne suit plus).
   const nightEvent = getNightEvent(day);
-  const rentShare = Math.round(cash * 0.08);
+  const rentShare = wealthTax(cash);
   const dailyRent = Math.round(
-    (500 + (day - 1) * 450 + rentShare) *
+    (500 + (day - 1) * 350 + rentShare) *
       (nightEvent?.rentMultiplier ?? 1) *
       (jokerIds.includes('blanchisseur-express') ? 1.1 : 1) *
       (ascMod?.rentMult ?? 1),
@@ -773,7 +934,7 @@ export default function App() {
       (window as unknown as { webkitSpeechRecognition?: new () => unknown }).webkitSpeechRecognition;
 
     if (!SpeechRec) {
-      setError('Reconnaissance vocale non supportée sur ce navigateur (utilise Chrome/Safari).');
+      setError(tt('Reconnaissance vocale non supportée sur ce navigateur (utilise Chrome/Safari).', 'Speech recognition is not supported in this browser (use Chrome or Safari).', 'El reconocimiento de voz no es compatible con este navegador (usa Chrome o Safari).'));
       return;
     }
 
@@ -818,12 +979,12 @@ export default function App() {
       const res = await fetch('/api/pass/checkout', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.url) {
-        setError(data?.error || 'Impossible de créer la session de paiement.');
+        setError(data?.error || tt('Impossible de créer la session de paiement.', 'Could not create the payment session.', 'No se pudo crear la sesión de pago.'));
         return;
       }
       window.location.assign(data.url as string);
     } catch {
-      setError('Serveur de paiement hors-ligne.');
+      setError(tt('Serveur de paiement hors-ligne.', 'Payment server offline.', 'Servidor de pago sin conexión.'));
     } finally {
       setPassBusy(false);
     }
@@ -866,7 +1027,7 @@ export default function App() {
       // 1. Le serveur ouvre la partie et renvoie le contrat officiel.
       const run = dailyRunRef.current;
       if (!run) {
-        setError('Leaderboard indisponible (partie non ouverte côté serveur).');
+        setError(tt('Classement indisponible (partie non ouverte côté serveur).', 'Leaderboard unavailable (run not opened on the server).', 'Clasificación no disponible (partida no abierta en el servidor).'));
         return;
       }
       const { runId, ticket } = run;
@@ -879,7 +1040,7 @@ export default function App() {
       });
       const deal = await dealRes.json().catch(() => ({}));
       if (!dealRes.ok) {
-        setError(deal?.error || 'Le serveur a refusé ce deal.');
+        setError(deal?.error || tt('Le serveur a refusé ce deal.', 'The server rejected this deal.', 'El servidor rechazó este trato.'));
         return;
       }
 
@@ -902,10 +1063,10 @@ export default function App() {
         // Le panneau d'historique doit refléter la publication qui vient d'avoir lieu.
         void fetchHistory();
       } else {
-        setError(data?.error || 'Score refusé par le serveur.');
+        setError(data?.error || tt('Score refusé par le serveur.', 'Score rejected by the server.', 'Puntuación rechazada por el servidor.'));
       }
     } catch {
-      setError('Serveur leaderboard hors-ligne (lance `npm run server`).');
+      setError(tt('Serveur de classement hors-ligne (lance `npm run server`).', 'Leaderboard server offline (run `npm run server`).', 'Servidor de clasificación sin conexión (ejecuta `npm run server`).'));
     }
   };
 
@@ -930,7 +1091,10 @@ export default function App() {
     localStorage.setItem('fence_notified', today);
     try {
       new Notification('CASH NOIR', {
-        body: "Ton contrat 24h du jour t'attend derrière le comptoir.",
+        body: (() => {
+          const l = localStorage.getItem('fence_locale');
+          return l === 'en' ? 'Your daily 24h contract is waiting behind the counter.' : l === 'es' ? 'Tu contrato diario de 24 h te espera tras el mostrador.' : "Ton contrat 24h du jour t'attend derrière le comptoir.";
+        })(),
         icon: '/assets/icons/icon-192.png',
         tag: 'fence-daily',
       });
@@ -957,7 +1121,7 @@ export default function App() {
 
   // Registre des clients : une entrée par client, ajoutée quand l'issue est connue.
   useEffect(() => {
-    if (outcome === 'active' || currentCase.isDailyContract || loggedCaseRef.current === currentCase.id) return;
+    if (outcome === 'active' || currentCase.isDailyContract || currentCase.special || loggedCaseRef.current === currentCase.id) return;
     loggedCaseRef.current = currentCase.id;
     const result: RegistryEntry['result'] =
       outcome === 'deal_accepte' ? (currentCase.isTrap ? 'trap' : 'deal') : outcome === 'sort_son_arme' ? 'gun' : 'walk';
@@ -966,6 +1130,7 @@ export default function App() {
       {
         id: currentCase.id,
         castId: currentCase.castId,
+        portraitId: currentCase.portraitOverride,
         name: currentCase.name,
         gender: currentCase.gender,
         job: currentCase.displayArchetype ?? currentCase.archetype,
@@ -978,8 +1143,65 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome, currentCase.id]);
 
+  // Le générateur adapte la valeur des pièces au cash du joueur (jamais de pièce hors de portée).
+  useEffect(() => {
+    setPlayerCashHint(cash);
+  }, [cash]);
+
+  // Le fil de discussion mobile reste calé sur le dernier message (on peut remonter à la main).
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [history.length, loading, tell, error]);
+
+  // Sauvegarde du client en cours (jamais le contrat quotidien, qui a sa propre règle côté serveur).
+  useEffect(() => {
+    if (currentCase.isDailyContract) return;
+    try {
+      const snapshot: ClientSession = {
+        v: 1, day, case: currentCase, gauges, askedPrice, priceTrail, tell, outcome, history,
+        clientsServedToday, inspected, uvScanned, grilled, radioOpen, offerAmount,
+        used: usedPsychoRef.current,
+        audit: psychoAudit,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+      localStorage.setItem('fence_rerolls', JSON.stringify({ day, left: rerollsLeft }));
+    } catch {
+      /* stockage plein ou indisponible : pas de sauvegarde de session */
+    }
+  }, [currentCase, gauges, askedPrice, priceTrail, tell, outcome, history, clientsServedToday, inspected, uvScanned, grilled, radioOpen, offerAmount, rerollsLeft, day, psychoAudit]);
+
+  // Retour du contrat quotidien : on retrouve exactement le client laissé au comptoir.
+  const restoreCounterSession = (): boolean => {
+    const s = loadSession(day);
+    if (!s) return false;
+    setCurrentCase(s.case);
+    setGauges(s.gauges);
+    setAskedPrice(s.askedPrice);
+    setPriceTrail(s.priceTrail);
+    setTell(s.tell);
+    setOutcome(s.outcome);
+    setHistory(s.history);
+    setInspected(s.inspected);
+    setUvScanned(s.uvScanned);
+    setGrilled(s.grilled);
+    setRadioOpen(s.radioOpen);
+    setOfferAmount(s.offerAmount);
+    usedPsychoRef.current = s.used;
+    setPsychoAudit(s.audit ?? []);
+    return true;
+  };
+
+  // La réplique d'ouverture cite le prix de base ; si un joker / rang de faction l'a changé, on aligne le texte sur le badge.
+  const fixOpeningPrice = (line: string, from: number, to: number): string => {
+    if (from === to || from < 1000) return from === to ? line : line.replace(new RegExp(`(?<!\\d)${from}(?!\\d)`), String(to));
+    const grouped = String(Math.round(from)).replace(/\B(?=(\d{3})+(?!\d))/g, '[\\s\\u202f\\u00a0,.]?');
+    return line.replace(new RegExp(`(?<!\\d)${grouped}(?!\\d)`), formatMoney(to, gameLocale));
+  };
+
   const startNewCase = (nextCase: ProceduralCase) => {
     setCurrentCase(nextCase);
+    setMobileNotebookOpen(false);
     const armedWeapons = jokerIds.includes('vitrine-armee')
       ? inventory.filter((it) => it.category === 'Armement').length
       : 0;
@@ -1009,6 +1231,7 @@ export default function App() {
         Math.min(
           100,
           nextCase.initialGauges.mefiance +
+            (nextCase.isDailyContract ? 0 : temperamentOf(nextCase.castId)?.trust ?? 0) +
             suspicionBonus +
             (revenge?.mefianceBoost ?? 0) +
             (facRank?.mefianceDelta ?? 0),
@@ -1024,6 +1247,22 @@ export default function App() {
         : nextCase.initialPrice;
     setAskedPrice(priceAfterNego);
     setPriceTrail([priceAfterNego]);
+    setPsychoAudit([
+      {
+        id: 'audit-0',
+        turn: 0,
+        action: tt('Entrée au comptoir', 'Enters counter', 'Entrada al mostrador'),
+        peur: Math.min(100, nextCase.initialGauges.peur + fearBonus),
+        peurDelta: fearBonus,
+        colere: Math.min(100, nextCase.initialGauges.colere + (revenge?.angerBoost ?? 0)),
+        colereDelta: revenge?.angerBoost ?? 0,
+        mefiance: Math.max(5, Math.min(100, nextCase.initialGauges.mefiance + suspicionBonus + (revenge?.mefianceBoost ?? 0) + (facRank?.mefianceDelta ?? 0))),
+        mefianceDelta: suspicionBonus + (revenge?.mefianceBoost ?? 0) + (facRank?.mefianceDelta ?? 0),
+        price: priceAfterNego,
+        priceDelta: 0,
+      },
+    ]);
+    setShowPsychoAudit(false);
     usedPsychoRef.current = { nameHit: false, weakHit: false };
     setGrilled({ loupe: false, uv: false, radio: false });
     setTell(revenge?.flavorText ?? nextCase.openingTell);
@@ -1032,19 +1271,26 @@ export default function App() {
       (jokerIds.includes('collectionneur') || activeCodexPerks.includes('Œil d’Expert')) &&
       nextCase.item.modifier === 'contrefacon'
     ) {
-      setTell((prev) => prev + ' [EXPERT] Tu repères une contrefaçon au premier coup d\u2019œil.');
+      setTell((prev) => prev + tt(' [EXPERT] Tu repères une contrefaçon au premier coup d’œil.', ' [EXPERT] You spot a forgery at first glance.', ' [EXPERTO] Detectas una falsificación a primera vista.'));
     }
     setOutcome('active');
     setInspected(false);
     setUvScanned(false);
     setPhantomDone(false);
     setRadioOpen(false);
-    setHistory([{ role: 'npc', content: nextCase.openingLine }]);
+    setHistory([{ role: 'npc', content: fixOpeningPrice(nextCase.openingLine, nextCase.initialPrice, priceAfterNego) }]);
     setError(null);
     setOfferAmount(Math.max(150, Math.min(cash, Math.round((nextCase.initialPrice * 0.8) / 50) * 50)));
+    setBuyerAsk(-1);
   };
 
   const startSeasonEpisode = (ep: SeasonEpisode) => {
+    if (daysUntilEpisode(SEASON_EPISODES.findIndex((e) => e.id === ep.id), daysSinceStart) > 0) return;
+    if (outcome === 'active' && history.length > 1) {
+      setError(tt('Termine ce client (ou refuse-le) avant de lancer un épisode.', 'Finish this client (or turn them down) before starting an episode.', 'Termina con este cliente (o recházalo) antes de lanzar un episodio.'));
+      setTab('counter');
+      return;
+    }
     const base = generateProceduralCase(day, cityHeat, lastMemory || undefined, currentDistrict.multiplier);
     const castChar = CAST_ROSTER.find((c) => c.id === ep.castId) || CAST_ROSTER[0];
     setActiveEpisodeId(ep.id);
@@ -1074,9 +1320,118 @@ export default function App() {
     setCash((c) => Math.max(0, c - bribe));
     setCityHeat(70);
     setError(
-      `[HEAT ≥ 90 %] Contrôle de police devant la boutique : ${bribe.toLocaleString('fr-FR')} $ de pot-de-vin payés pour les faire partir (Heat retombé à 70 %).`,
+      tt(`[HEAT ≥ 90 %] Contrôle de police devant la boutique : ${mny(bribe)} de pot-de-vin payés pour les faire partir (Heat retombé à 70 %).`, `[HEAT ≥ 90%] Police check outside the shop: ${mny(bribe)} in bribes paid to make them leave (Heat back to 70%).`, `[HEAT ≥ 90 %] Control policial frente a la tienda: ${mny(bribe)} en sobornos para que se vayan (Heat baja a 70 %).`),
     );
     return true;
+  };
+
+  // ---------- Clients spéciaux : le joueur VEND (acheteur) ou achète de la discrétion (indic) ----------
+  const roundTo50 = (n: number) => Math.round(n / 50) * 50;
+
+  const buildBuyerCase = (item: BoughtItem): ProceduralCase => {
+    const base = generateProceduralCase(day, 0, undefined, currentDistrict.multiplier, gameLocale);
+    const trend = item.category ? marketTrends[item.category] ?? 1 : 1;
+    // Plafond caché : jusqu'où il paiera. Une pièce encore chaude vaut moins pour lui.
+    const ceiling = Math.max(100, roundTo50(item.streetValue * (0.95 + Math.random() * 0.35) * (item.cleaned ? 1 : 0.85) * trend));
+    const offer = Math.max(50, roundTo50(ceiling * 0.62));
+    const nm = localizeItemName(item.name, gameLocale);
+    return {
+      ...base,
+      id: `buyer-${Date.now()}`,
+      isTrap: false,
+      isBoss: false,
+      bossKind: undefined,
+      arcId: undefined,
+      arcStep: undefined,
+      requiresItemKey: undefined,
+      item: { ...base.item, name: item.name, category: item.category ?? base.item.category, modifier: undefined, hotLevel: item.hotLevel },
+      initialPrice: offer,
+      floorPrice: 0,
+      streetValue: item.streetValue,
+      initialGauges: { peur: 0, colere: 0, mefiance: 20 },
+      openingLine: tt(
+        `« On m'a dit que tu as ${nm}. C'est exactement ce que je cherche. Je t'en donne ${mny(offer)}, cash. »`,
+        `"I heard you have ${nm}. It's exactly what I'm after. I'll give you ${mny(offer)}, cash."`,
+        `«Me han dicho que tienes ${nm}. Es justo lo que busco. Te doy ${mny(offer)}, en efectivo.»`,
+      ),
+      openingTell: tt('Un acheteur : cette fois, c’est toi qui vends. Il ouvre bas, il a une limite.', 'A buyer: this time you are the seller. He opens low, and he has a limit.', 'Un comprador: esta vez vendes tú. Abre bajo y tiene un límite.'),
+      special: { kind: 'buyer', itemId: item.id, ceiling, offer, patience: 3 },
+    };
+  };
+
+  const buildInformantCase = (): ProceduralCase => {
+    const base = generateProceduralCase(day, 0, undefined, currentDistrict.multiplier, gameLocale);
+    return {
+      ...base,
+      id: `informant-${Date.now()}`,
+      isTrap: false,
+      isBoss: false,
+      bossKind: undefined,
+      arcId: undefined,
+      arcStep: undefined,
+      requiresItemKey: undefined,
+      item: { ...base.item, name: tt('Info police', 'Police intel', 'Info policial'), modifier: undefined },
+      initialPrice: 0,
+      floorPrice: 0,
+      initialGauges: { peur: 0, colere: 0, mefiance: 30 },
+      openingLine: tt(
+        '« J’ai un cousin à la brigade. Pour un peu de cash, je peux faire retomber la pression sur ta boutique. »',
+        '"I have a cousin at the precinct. For some cash I can take the heat off your shop."',
+        '«Tengo un primo en la comisaría. Por algo de efectivo puedo aliviar la presión sobre tu tienda.»',
+      ),
+      openingTell: tt('Un indic : il ne vend aucun objet, seulement du silence.', 'An informant: no item, only silence for sale.', 'Un confidente: no vende objetos, solo silencio.'),
+      special: { kind: 'informant' },
+    };
+  };
+
+  // Clients qui reviennent : ils se souviennent de ce que tu as fait (plumé, réglo, laissé sur le trottoir).
+  const buildReturningCase = (e: RegistryEntry): ProceduralCase | null => {
+    const castChar = CAST_ROSTER.find((c) => c.id === e.castId);
+    if (!castChar) return null;
+    const base = generateProceduralCase(day, cityHeat, lastMemory || undefined, currentDistrict.multiplier, gameLocale);
+    const margin = e.street > 0 ? 1 - e.paid / e.street : 0;
+    const mem: 'plucked' | 'fair' | 'left' = e.result === 'deal' ? (margin >= 0.4 ? 'plucked' : 'fair') : 'left';
+    const adj = mem === 'plucked' ? { peur: -8, colere: 8, mefiance: 14 } : mem === 'fair' ? { peur: 0, colere: 0, mefiance: -12 } : { peur: 0, colere: 4, mefiance: 6 };
+    const g = base.initialGauges;
+    const item = localizeItemName(base.item.name, gameLocale);
+    const price = mny(base.initialPrice);
+    const open =
+      mem === 'plucked'
+        ? tt(`« Toi ? La dernière fois, tu m'as plumé. Cette fois je compte chaque dollar. J'ai ${item} pour ${price}. »`, `"You? Last time you fleeced me. This time I count every dollar. I have ${item} for ${price}."`, `«¿Tú? La última vez me desplumaste. Esta vez cuento cada dólar. Tengo ${item} por ${price}.»`)
+        : mem === 'fair'
+          ? tt(`« Content de te revoir : tu as été réglo la dernière fois. J'ai ${item} pour ${price}. »`, `"Good to see you again: you were straight with me last time. I have ${item} for ${price}."`, `«Me alegra verte de nuevo: fuiste honesto la última vez. Tengo ${item} por ${price}.»`)
+          : tt(`« Tu m'avais laissé sur le trottoir. J'espère que tu es plus sérieux ce soir : ${item}, ${price}. »`, `"You left me on the sidewalk. I hope you're more serious tonight: ${item}, ${price}."`, `«Me dejaste en la acera. Espero que esta noche vayas en serio: ${item}, ${price}.»`);
+    const tellTxt =
+      mem === 'plucked'
+        ? tt('Il se souvient de toi, et pas en bien.', 'He remembers you, and not fondly.', 'Se acuerda de ti, y no para bien.')
+        : mem === 'fair'
+          ? tt('Un habitué : il te fait un peu confiance.', 'A regular: he trusts you a little.', 'Un habitual: confía un poco en ti.')
+          : tt('Il te jauge : tu l’as déjà fait attendre.', 'He sizes you up: you already wasted his time.', 'Te evalúa: ya le hiciste perder el tiempo.');
+    return {
+      ...base,
+      id: `ret-${Date.now()}`,
+      castId: castChar.id,
+      gender: castChar.gender,
+      name: castChar.fullName,
+      age: castChar.age,
+      faction: castChar.faction,
+      archetype: castChar.job,
+      displayArchetype: undefined,
+      portraitOverride: undefined,
+      isTrap: false,
+      isBoss: false,
+      bossKind: undefined,
+      arcId: undefined,
+      arcStep: undefined,
+      requiresItemKey: undefined,
+      initialGauges: {
+        peur: Math.max(0, Math.min(100, g.peur + adj.peur)),
+        colere: Math.max(0, Math.min(100, g.colere + adj.colere)),
+        mefiance: Math.max(5, Math.min(100, g.mefiance + adj.mefiance)),
+      },
+      openingLine: open,
+      openingTell: tellTxt,
+    };
   };
 
   const spawnNextCase = (isLastClient = false): ProceduralCase => {
@@ -1094,6 +1449,29 @@ export default function App() {
         return buildArcStep2Case(arc, hasItem, currentDistrict.multiplier, gameLocale);
       }
     }
+    // Client spécial (un par jour, en dernier) : un acheteur pour une pièce du coffre, ou un indic quand le Heat monte.
+    if (isLastClient && day >= 2 && lastSpecialDayRef.current !== day) {
+      const sellable = inventory.filter((i) => !i.arcItemKey && i.secretState !== 'open');
+      if (sellable.length > 0 && Math.random() < 0.55) {
+        lastSpecialDayRef.current = day;
+        return buildBuyerCase(sellable[Math.floor(Math.random() * sellable.length)]);
+      }
+      if (cityHeat >= 30 && Math.random() < 0.35) {
+        lastSpecialDayRef.current = day;
+        return buildInformantCase();
+      }
+    }
+    // 15 % : un ancien client revient (jamais le dernier du jour, une fois par jour).
+    if (!isLastClient && day >= 3 && lastReturnDayRef.current !== day && Math.random() < 0.15) {
+      const pool = registry.filter((e) => e.castId && (e.result === 'deal' || e.result === 'walk') && e.day <= day - 2);
+      if (pool.length > 0) {
+        const back = buildReturningCase(pool[Math.floor(Math.random() * pool.length)]);
+        if (back) {
+          lastReturnDayRef.current = day;
+          return back;
+        }
+      }
+    }
     const activeCount = arcNotes.filter((n) => !n.resolved).length;
     const seenIds = new Set(arcNotes.map((n) => n.arcId));
     const unseenArcs = STORY_ARCS.filter((a) => !seenIds.has(a.id));
@@ -1108,6 +1486,163 @@ export default function App() {
       currentDistrict.multiplier,
       gameLocale,
     );
+  };
+
+  const leaveSpecial = () => {
+    if (outcome !== 'active' || !currentCase.special) return;
+    const msg = tt('Tu le laisses partir. Il reviendra peut-être.', 'You let him go. He may come back.', 'Lo dejas ir. Quizá vuelva.');
+    setHistory((prev) => [...prev, { role: 'npc', content: tt('« Comme tu veux. »', '"Suit yourself."', '«Como quieras.»') }]);
+    setTell(msg);
+    setOutcome('quitte_la_boutique');
+  };
+
+  const finishBuyerSale = (price: number) => {
+    const sp = currentCase.special;
+    if (outcome !== 'active' || sp?.kind !== 'buyer') return;
+    const target = inventory.find((i) => i.id === sp.itemId);
+    if (!target) {
+      leaveSpecial();
+      return;
+    }
+    if (!lockAction(`buyer-${currentCase.id}`)) return;
+    sound.playDealSuccess();
+    const profit = price - target.paid;
+    setCash((c) => c + price);
+    setTotalProfit((p) => p + profit);
+    if (target.category) setSoldCategories((prev) => ({ ...prev, [target.category!]: (prev[target.category!] || 0) + 1 }));
+    setCityHeat((h) => (target.cleaned ? Math.max(0, h - 3) : Math.min(100, h + 6)));
+    setSeasonXp((xp) => xp + 60);
+    setInventory((inv) => inv.filter((i) => i.id !== target.id));
+    appendHistory(
+      'sell',
+      tt(`Vente à un acheteur : ${target.name} (marge ${profit >= 0 ? '+' : ''}${profit} $)`, `Sold to a buyer: ${target.name} (margin ${profit >= 0 ? '+' : ''}${profit} $)`, `Venta a un comprador: ${target.name} (margen ${profit >= 0 ? '+' : ''}${profit} $)`),
+      price,
+    );
+    const msg = tt(
+      `Vendu ${mny(price)} (marge ${profit >= 0 ? '+' : ''}${mny(profit)}). Il part avec la pièce.`,
+      `Sold for ${mny(price)} (margin ${profit >= 0 ? '+' : ''}${mny(profit)}). He leaves with the piece.`,
+      `Vendido por ${mny(price)} (margen ${profit >= 0 ? '+' : ''}${mny(profit)}). Se va con la pieza.`,
+    );
+    setHistory((prev) => [...prev, { role: 'npc', content: tt('« Marché conclu. »', '"Deal."', '«Trato hecho.»') }]);
+    setTell(msg);
+    setOutcome('quitte_la_boutique');
+  };
+
+  // Arguments de vente : vrais = le plafond de l'acheteur monte un peu ; faux = il le sent et perd patience.
+  const BUYER_ARGS: { key: string; fr: string; en: string; es: string }[] = [
+    { key: 'clean', fr: 'Pièce propre : aucune trace, aucun risque.', en: 'Clean piece: no trace, no risk.', es: 'Pieza limpia: sin rastro, sin riesgo.' },
+    { key: 'rare', fr: 'Très rare : tu n’en verras pas deux.', en: 'Very rare: you will not see another.', es: 'Muy rara: no verás otra igual.' },
+    { key: 'trend', fr: 'Le marché monte sur ce type de pièce.', en: 'The market is rising on this kind of piece.', es: 'El mercado sube con este tipo de pieza.' },
+  ];
+  const isBuyerArgTrue = (key: string, item: BoughtItem): boolean => {
+    if (key === 'clean') return item.cleaned;
+    if (key === 'rare') return ['rare', 'epique', 'legendaire', 'mythique'].includes(item.rarity ?? '') || item.modifier === 'collection';
+    return (item.category ? marketTrends[item.category] ?? 1 : 1) > 1;
+  };
+  const useBuyerArgument = (key: string) => {
+    const sp = currentCase.special;
+    if (outcome !== 'active' || sp?.kind !== 'buyer' || (sp.used ?? []).includes(key)) return;
+    const arg = BUYER_ARGS.find((a) => a.key === key);
+    const target = inventory.find((i) => i.id === sp.itemId);
+    if (!arg || !target) return;
+    const line = gameLocale === 'en' ? arg.en : gameLocale === 'es' ? arg.es : arg.fr;
+    const used = [...(sp.used ?? []), key];
+    setHistory((prev) => [...prev, { role: 'player', content: line }]);
+    if (isBuyerArgTrue(key, target)) {
+      const ceiling = Math.min(roundTo50(target.streetValue * 1.3), Math.max(sp.ceiling, roundTo50(sp.ceiling * 1.08)));
+      setCurrentCase((c) => ({ ...c, special: { ...sp, ceiling, used } }));
+      setHistory((prev) => [...prev, { role: 'npc', content: tt('« Hm. Ça, c’est un point. »', '"Hm. That is a point."', '«Hm. Eso es un punto.»') }]);
+      setTell(tt('Il hoche la tête : l’argument porte.', 'He nods: the argument lands.', 'Asiente: el argumento cuela.'));
+      return;
+    }
+    const patience = sp.patience - 1;
+    if (patience <= 0) {
+      sound.playDanger();
+      setHistory((prev) => [...prev, { role: 'npc', content: tt('« Tu me prends pour un débutant ? Salut. »', '"You take me for a rookie? Bye."', '«¿Me tomas por novato? Adiós.»') }]);
+      setTell(tt('Il a flairé le bluff et s’en va. La pièce reste au coffre.', 'He smelled the bluff and walks out. The piece stays in the vault.', 'Olió el farol y se va. La pieza se queda en la caja.'));
+      setCurrentCase((c) => ({ ...c, special: { ...sp, patience: 0, used } }));
+      setOutcome('quitte_la_boutique');
+      return;
+    }
+    setCurrentCase((c) => ({ ...c, special: { ...sp, patience, used } }));
+    setHistory((prev) => [...prev, { role: 'npc', content: tt('« Ça sent le bluff. Je connais ce marché. »', '"Smells like a bluff. I know this market."', '«Huele a farol. Conozco este mercado.»') }]);
+    setTell(tt('Il plisse les yeux : mauvais argument, il perd patience.', 'He narrows his eyes: bad argument, he loses patience.', 'Entrecierra los ojos: mal argumento, pierde paciencia.'));
+  };
+
+  const acceptBuyerOffer = () => {
+    if (currentCase.special?.kind === 'buyer') finishBuyerSale(currentCase.special.offer);
+  };
+
+  const proposeBuyerPrice = () => {
+    const sp = currentCase.special;
+    if (outcome !== 'active' || sp?.kind !== 'buyer') return;
+    const x = buyerAsk < 0 ? roundTo50(currentCase.streetValue) : buyerAsk;
+    if (x < 50) return;
+    setHistory((prev) => [...prev, { role: 'player', content: tt(`Mon prix : ${mny(x)}.`, `My price: ${mny(x)}.`, `Mi precio: ${mny(x)}.`) }]);
+    if (x <= sp.offer) {
+      finishBuyerSale(sp.offer);
+      return;
+    }
+    if (x <= sp.ceiling) {
+      finishBuyerSale(x);
+      return;
+    }
+    const patience = sp.patience - 1;
+    if (patience <= 0) {
+      sound.playDanger();
+      const msg = tt('Il perd patience et s’en va. La pièce reste au coffre.', 'He loses patience and walks out. The piece stays in the vault.', 'Pierde la paciencia y se va. La pieza se queda en la caja.');
+      setHistory((prev) => [...prev, { role: 'npc', content: tt('« Tu me fais perdre mon temps. Salut. »', '"You are wasting my time. Bye."', '«Me haces perder el tiempo. Adiós.»') }]);
+      setTell(msg);
+      setCurrentCase((c) => ({ ...c, special: { ...sp, patience: 0 } }));
+      setOutcome('quitte_la_boutique');
+      return;
+    }
+    const close = x <= sp.ceiling * 1.12;
+    const offer = close ? Math.min(sp.ceiling, Math.max(sp.offer, roundTo50((sp.offer + sp.ceiling) / 2))) : sp.offer;
+    setCurrentCase((c) => ({ ...c, special: { ...sp, offer, patience } }));
+    setHistory((prev) => [
+      ...prev,
+      {
+        role: 'npc',
+        content: close
+          ? tt(`« Pas loin… je monte à ${mny(offer)}. Mais ne tire pas sur la corde. »`, `"Not far off… I'll go up to ${mny(offer)}. Don't push your luck."`, `«No está lejos… subo a ${mny(offer)}. Pero no tires de la cuerda.»`)
+          : tt(`« Tu me prends pour un pigeon ? Mon offre reste ${mny(offer)}. »`, `"Take me for a fool? My offer stays at ${mny(offer)}."`, `«¿Me tomas por tonto? Mi oferta sigue en ${mny(offer)}.»`),
+      },
+    ]);
+    setTell(
+      close
+        ? tt('Il hésite : tu es tout près de son plafond.', 'He wavers: you are close to his ceiling.', 'Duda: estás cerca de su límite.')
+        : tt('Sa mâchoire se crispe : tu es très loin de son plafond.', 'His jaw tightens: you are far above his ceiling.', 'Se le tensa la mandíbula: estás muy por encima de su límite.'),
+    );
+  };
+
+  const buyTip = (cost: number, drop: number) => {
+    if (outcome !== 'active' || currentCase.special?.kind !== 'informant') return;
+    if (cash < cost) {
+      setError(tt(`Il te faut ${mny(cost)}.`, `You need ${mny(cost)}.`, `Necesitas ${mny(cost)}.`));
+      return;
+    }
+    if (!lockAction(`tip-${currentCase.id}`)) return;
+    sound.playCashSlap();
+    setCash((c) => c - cost);
+    setCityHeat((h) => Math.max(0, h - drop));
+    appendHistory('sell', tt(`Pot-de-vin à un indic : Heat −${drop} %`, `Informant bribe: Heat −${drop}%`, `Soborno a un confidente: Heat −${drop} %`), -cost);
+    const msg = tt(`Payé ${mny(cost)} : Heat −${drop} %. Il disparaît dans la nuit.`, `Paid ${mny(cost)}: Heat −${drop}%. He vanishes into the night.`, `Pagado ${mny(cost)}: Heat −${drop} %. Desaparece en la noche.`);
+    setHistory((prev) => [...prev, { role: 'npc', content: tt('« Les flics regarderont ailleurs cette semaine. »', '"The cops will look elsewhere this week."', '«La policía mirará a otro lado esta semana.»') }]);
+    setTell(msg);
+    setOutcome('quitte_la_boutique');
+  };
+
+  // Phrase d'attaque « faille » : le cadre varie selon le client, la faille est celle du personnage.
+  const flawLine = (hint: string): string => {
+    const k = [...currentCase.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 4;
+    const F: [string, string, string][] = [
+      [`Arrête ton cinéma : ${hint} Baisse ton tarif.`, `Cut the drama: ${hint} Drop your price.`, `Déjate de cuentos: ${hint} Baja tu precio.`],
+      [`Je vois clair dans ton jeu : ${hint} Fais un effort sur le prix.`, `I see through you: ${hint} Make an effort on the price.`, `Te veo venir: ${hint} Esfuérzate con el precio.`],
+      [`Ne fais pas l’innocent : ${hint} Alors on discute, mais plus bas.`, `Don't play innocent: ${hint} So we talk, but lower.`, `No te hagas el inocente: ${hint} Así que hablamos, pero más bajo.`],
+      [`Tout le monde sait ce qu’il en est : ${hint} Descends ton prix.`, `Everyone knows how it is: ${hint} Bring your price down.`, `Todos saben cómo es: ${hint} Baja tu precio.`],
+    ];
+    return tt(...F[k]);
   };
 
   const nextProceduralClient = () => {
@@ -1136,12 +1671,12 @@ export default function App() {
 
   const rerollClient = () => {
     if (tab === 'daily') {
-      setError('Contrat quotidien : une seule tentative.');
+      setError(tt('Contrat quotidien : une seule tentative.', 'Daily contract: one attempt only.', 'Contrato diario: un solo intento.'));
       return;
     }
     if (policeCheckIfHot()) return;
     if (rerollsLeft <= 0) {
-      setError("Plus de tirage aujourd'hui : le marché est sec, reviens demain.");
+      setError(tt("Plus de tirage aujourd'hui : le marché est sec, reviens demain.", 'No more reshuffles today: the market is dry, come back tomorrow.', 'No quedan cambios hoy: el mercado está seco, vuelve mañana.'));
       return;
     }
     setRerollsLeft((n) => n - 1);
@@ -1171,7 +1706,7 @@ export default function App() {
       const r = await fetch('/api/run/start', { method: 'POST' });
       if (r.status === 409) {
         const e = await r.json().catch(() => ({}));
-        setError(e?.error || 'Contrat quotidien déjà tenté aujourd’hui.');
+        setError(e?.error || tt('Contrat quotidien déjà tenté aujourd’hui.', 'Daily contract already attempted today.', 'Contrato diario ya intentado hoy.'));
         setTab('counter');
         return;
       }
@@ -1210,8 +1745,9 @@ export default function App() {
 
   const resetEmpire = () => {
     setDay(1);
-    setCash(2500);
+    setCash(2500 + legacyBonus);
     setDebt(0);
+    setGraceUsed(false);
     setTotalProfit(0);
     setCityHeat(15);
     setInventory([]);
@@ -1258,7 +1794,7 @@ export default function App() {
               inferredOffer = parsedNum;
             } else {
               setError(
-                `Tu proposes ${parsedNum.toLocaleString('fr-FR')} $, mais tu n'as que ${cash.toLocaleString('fr-FR')} $ en caisse.`,
+                tt(`Tu proposes ${mny(parsedNum)}, mais tu n'as que ${mny(cash)} en caisse.`, `You offer ${mny(parsedNum)}, but you only have ${mny(cash)} in the register.`, `Ofreces ${mny(parsedNum)}, pero solo tienes ${mny(cash)} en caja.`),
               );
               setHistory(history);
               if (!textOverride) setInput(text);
@@ -1292,21 +1828,26 @@ export default function App() {
         const isRadio = /fréquence|scanner|police|radio|escáner/i.test(text);
         const isUv = /UV|ultraviolet|fluorescent/i.test(text);
         psycho = {
-          fearDelta: isRadio ? 22 : isUv ? 18 : 14,
+          fearDelta: isRadio ? 8 : isUv ? 6 : 5,
           angerDelta: 4,
           mefianceDelta: isRadio ? 12 : isUv ? 10 : 6,
           isPromptInjection: false,
           hitName: false,
-          hitWeak: true,
+          hitWeak: false,
           hitLabel: isRadio ? 'Scanner Police' : isUv ? 'Marquage UV' : 'Indice Loupe',
         };
       } else {
+        const castChar = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
+        const weakWords = castChar
+          ? [...new Set(localizeCastText(castChar.weaknessHint, gameLocale).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-zñ]+/).filter((w) => w.length >= 5))]
+          : undefined;
         psycho = evaluatePsychoTriggers(
           text,
           currentCase.archetype,
           currentCase.name,
           day,
           usedPsychoRef.current,
+          castChar ? { profileId: castChar.profileId, weak: castChar.weakKeywords, anger: castChar.angerKeywords, weakWords } : undefined,
         );
       }
       if (psycho.isPromptInjection) {
@@ -1315,15 +1856,23 @@ export default function App() {
         const nextG: Gauges = { peur: gauges.peur, colere: nextColere, mefiance: nextMefiance };
         setGaugeDeltas({ peur: 0, colere: nextColere - gauges.colere, mefiance: nextMefiance - gauges.mefiance, key: Date.now() });
         setGauges(nextG);
-        setTell(`${currentCase.gender === 'f' ? 'Elle' : 'Il'} te regarde comme si tu perdais la boule. [${psycho.hitLabel}]`);
+        setTell(tt(`${currentCase.gender === 'f' ? 'Elle' : 'Il'} te regarde comme si tu perdais la boule.`, `${currentCase.gender === 'f' ? 'She' : 'He'} looks at you as if you had lost it.`, `${currentCase.gender === 'f' ? 'Ella' : 'Él'} te mira como si hubieras perdido la cabeza.`) + ` [${psycho.hitLabel}]`);
         setHistory((prev) => [
           ...prev,
-          { role: 'npc', content: 'Arrête ton charabia, tu me prends pour un robot ? On parle cash ou je me casse.' },
+          { role: 'npc', content: tt('Arrête ton charabia, tu me prends pour un robot ? On parle cash ou je me casse.', 'Cut the gibberish, you think I’m a robot? We talk cash or I’m gone.', 'Déjate de tonterías, ¿me tomas por un robot? Hablamos de dinero o me largo.') },
         ]);
         if (nextColere >= 80) setOutcome('sort_son_arme');
         else if (nextMefiance >= 88) setOutcome('quitte_la_boutique');
         setLoading(false);
         return;
+      }
+      const temp = temperamentOf(currentCase.castId);
+      if (temp && !psycho.isPromptInjection && !currentCase.isDailyContract) {
+        psycho = {
+          ...psycho,
+          fearDelta: Math.round(psycho.fearDelta * temp.fear),
+          angerDelta: Math.round(psycho.angerDelta * temp.anger),
+        };
       }
       if (psycho.hitName) usedPsychoRef.current.nameHit = true;
       if (psycho.hitWeak) usedPsychoRef.current.weakHit = true;
@@ -1345,20 +1894,45 @@ export default function App() {
         gameLocale,
         currentCase.isDailyContract ? (dailyRunRef.current ?? undefined) : undefined,
         currentCase.gender,
-        isClueMacro ? 25 : repeated ? 5 : Math.max(10, 25 - 5 * playerTurnsSoFar),
+        isClueMacro ? 8 : repeated ? 5 : Math.max(10, 25 - 5 * playerTurnsSoFar),
+        currentCase.arcStep !== 2, // un client de piste qui n'a plus sa pièce peut légitimement repartir
       );
 
+      if (res.scripted && !scriptedNoticeRef.current) {
+        scriptedNoticeRef.current = true;
+        setError(tt('IA indisponible ou quota du jour atteint : les vendeurs répondent en mode scripté. Le Pass Syndicat débloque l’IA sans limite.', 'AI unavailable or daily quota reached: sellers now answer in scripted mode. The Syndicate Pass unlocks unlimited AI.', 'IA no disponible o cuota diaria alcanzada: los vendedores responden en modo guionizado. El Pase del Sindicato desbloquea la IA sin límite.'));
+      }
       const nextGauges: Gauges = {
         peur: Math.max(preGauges.peur, res.jauges.peur),
         colere: res.jauges.colere,
         mefiance: res.jauges.mefiance,
       };
+      const deltaP = nextGauges.peur - gauges.peur;
+      const deltaC = nextGauges.colere - gauges.colere;
+      const deltaM = nextGauges.mefiance - gauges.mefiance;
+      const deltaPr = res.prix_actuel_demande - askedPrice;
       setGaugeDeltas({
-        peur: nextGauges.peur - gauges.peur,
-        colere: nextGauges.colere - gauges.colere,
-        mefiance: nextGauges.mefiance - gauges.mefiance,
+        peur: deltaP,
+        colere: deltaC,
+        mefiance: deltaM,
         key: Date.now(),
       });
+      setPsychoAudit((prev) => [
+        ...prev,
+        {
+          id: `audit-${Date.now()}`,
+          turn: prev.length,
+          action: psycho.hitLabel || (inferredOffer !== undefined ? `${tt('Offre', 'Offer', 'Oferta')} ${mny(inferredOffer)}` : text.slice(0, 32)),
+          peur: nextGauges.peur,
+          peurDelta: deltaP,
+          colere: nextGauges.colere,
+          colereDelta: deltaC,
+          mefiance: nextGauges.mefiance,
+          mefianceDelta: deltaM,
+          price: res.prix_actuel_demande,
+          priceDelta: deltaPr,
+        },
+      ]);
       setGauges(nextGauges);
       setAskedPrice(res.prix_actuel_demande);
       if (res.prix_actuel_demande < askedPrice) {
@@ -1366,7 +1940,7 @@ export default function App() {
       }
       setTell(
         psycho.hitLabel
-          ? `${res.indice_comportemental} [${psycho.hitLabel}]`
+          ? `${res.indice_comportemental} [${hitLoc(psycho.hitLabel)}]`
           : res.indice_comportemental,
       );
       setHistory((prev) => [...prev, { role: 'npc', content: res.dialogue }]);
@@ -1417,14 +1991,14 @@ export default function App() {
             triggerShake();
             setCityHeat((h) => Math.min(100, h + 30));
             setRaidNote(
-              `PIÈGE ! ${currentCase.name} était un agent infiltré (${currentCase.item.name}). Heat +30% !`,
+              tt(`PIÈGE ! ${currentCase.name} était un agent infiltré (${currentCase.item.name}). Heat +30% !`, `TRAP! ${currentCase.name} was an undercover agent (${currentCase.item.name}). Heat +30%!`, `¡TRAMPA! ${currentCase.name} era un agente encubierto (${currentCase.item.name}). ¡Heat +30 %!`),
             );
             // Visible immédiatement sur le comptoir (le bandeau raidNote ne s'affiche qu'à l'onglet Nuit).
             setTell(
-              `PIÈGE : ${currentCase.name} était un agent infiltré. Cash perdu, rien au coffre, Heat +30.`,
+              tt(`PIÈGE : ${currentCase.name} était un agent infiltré. Cash perdu, rien au coffre, Heat +30.`, `TRAP: ${currentCase.name} was an undercover agent. Cash lost, nothing in the vault, Heat +30.`, `TRAMPA: ${currentCase.name} era un agente encubierto. Efectivo perdido, nada en la caja fuerte, Heat +30.`),
             );
             setLastMemory(`${currentCase.name} était un agent infiltré : appât payé au prix fort.`);
-            appendHistory('trap', `Piégé par ${currentCase.name} (${currentCase.item.name})`, -finalPaid);
+            appendHistory('trap', tt(`Piégé par ${currentCase.name} (${currentCase.item.name})`, `Stung by ${currentCase.name} (${currentCase.item.name})`, `Trampa de ${currentCase.name} (${currentCase.item.name})`), -finalPaid);
           } else {
             if (currentCase.item.codexId) {
               const isNew = recordCodexDiscovery(currentCase.item.codexId);
@@ -1453,7 +2027,7 @@ export default function App() {
                 if (ep.unlockCodexId && recordCodexDiscovery(ep.unlockCodexId)) {
                   setCodexDiscovered(getDiscoveredCodexItems());
                 }
-                appendHistory('deal', `${ep.title} bouclé (+${ep.rewardXp} XP)`, ep.rewardCash);
+                appendHistory('deal', tt(`${ep.title} bouclé (+${ep.rewardXp} XP)`, `${ep.title} completed (+${ep.rewardXp} XP)`, `${ep.title} completado (+${ep.rewardXp} XP)`), ep.rewardCash);
               }
               setActiveEpisodeId(null);
             }
@@ -1533,17 +2107,17 @@ export default function App() {
           }
           const hasWeaponInStock = inventory.some((i) => /revolver|fusil|357|arme/i.test(i.name));
           if (upgrades.armoredDoor) {
-            setTell('La porte blindée s’est verrouillée à temps : le tir a ricoché sur l’acier.');
+            setTell(tt('La porte blindée s’est verrouillée à temps : le tir a ricoché sur l’acier.', 'The armored door locked in time: the shot ricocheted off the steel.', 'La puerta blindada se cerró a tiempo: el disparo rebotó en el acero.'));
           } else if (hasWeaponInStock) {
             setTell(
-              'Tu sors le canon que tu gardes sur ton étagère : il ravale sa menace et détale ! (0 $ volés)',
+              tt('Tu sors le canon que tu gardes sur ton étagère : il ravale sa menace et détale ! (0 $ volés)', 'You pull the gun you keep on your shelf: he swallows his threat and bolts! ($0 stolen)', 'Sacas el arma que guardas en la estantería: se traga la amenaza y huye. (0 $ robados)'),
             );
           } else {
             const stolen = Math.min(cash, 600);
             setCash((c) => c - stolen);
             setCityHeat((h) => Math.min(100, h + 15));
             if (cash - stolen <= 0 && inventory.length === 0) {
-              setGameOverReason(`${currentCase.name} t'a braqué et vidé ta caisse.`);
+              setGameOverReason(tt(`${currentCase.name} t'a braqué et vidé ta caisse.`, `${currentCase.name} held you up and emptied your register.`, `${currentCase.name} te atracó y vació tu caja.`));
             }
           }
         }
@@ -1551,7 +2125,7 @@ export default function App() {
     } catch (err) {
       setHistory(history);
       if (!textOverride) setInput(text);
-      setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+      setError(err instanceof Error ? err.message : tt('Erreur inconnue.', 'Unknown error.', 'Error desconocido.'));
     } finally {
       setLoading(false);
     }
@@ -1611,7 +2185,7 @@ export default function App() {
     );
     const resolutionMsg =
       currentCase.arcResolution ||
-      `Énigme bouclée ! Tu livres la pièce et encaisses +${reward.toLocaleString('fr-FR')} $.`;
+      tt(`Énigme bouclée ! Tu livres la pièce et encaisses +${mny(reward)}.`, `Case closed! You deliver the piece and collect +${mny(reward)}.`, `¡Caso cerrado! Entregas la pieza y cobras +${mny(reward)}.`);
     setHistory((prev) => [...prev, { role: 'npc', content: resolutionMsg }]);
     setTell(resolutionMsg);
     setOutcome('deal_accepte');
@@ -1623,15 +2197,16 @@ export default function App() {
     setArcNotes((prev) =>
       prev.map((n) => (n.arcId === currentCase.arcId ? { ...n, resolved: true } : n)),
     );
-    setTell('Piste perdue : tu as revendu la pièce trop tôt.');
+    setTell(tt('Piste perdue : tu as revendu la pièce trop tôt.', 'Lead lost: you sold the piece too early.', 'Pista perdida: vendiste la pieza demasiado pronto.'));
     setOutcome('quitte_la_boutique');
   };
 
   // Night Phase actions
   const cleanItem = (itemId: string) => {
-    const cleanCost = jokerIds.includes('blanchisseur-express') ? 0 : 150;
+    if (!lockAction(`clean-${itemId}`)) return;
+    const cleanCost = jokerIds.includes('blanchisseur-express') ? 0 : 250;
     if (cash < cleanCost) {
-      setError(`Il faut ${cleanCost} $ pour effacer les traces.`);
+      setError(tt(`Il faut ${cleanCost} $ pour effacer les traces.`, `You need $${cleanCost} to wipe the traces.`, `Necesitas ${cleanCost} $ para borrar las huellas.`));
       return;
     }
     setCash((c) => c - cleanCost);
@@ -1648,7 +2223,7 @@ export default function App() {
   const phantomBuyout = () => {
     if (outcome !== 'active' || currentCase.bossKind !== 'phantom' || phantomDone) return;
     if (inventory.length === 0) {
-      setError('Le coffre est vide : l’Acheteur Fantôme repart sans rien.');
+      setError(tt('Le coffre est vide : l’Acheteur Fantôme repart sans rien.', 'The vault is empty: the Phantom Buyer leaves with nothing.', 'La caja fuerte está vacía: el Comprador Fantasma se va con las manos vacías.'));
       return;
     }
     const batch = inventory.slice(0, PHANTOM_MAX_ITEMS);
@@ -1663,11 +2238,10 @@ export default function App() {
     setCityHeat((h) => Math.min(100, h + 12));
     setPhantomDone(true);
     setTell(
-      `Rachat en bloc : ${batch.length} pièce(s) partie(s) pour ${capped.toLocaleString('fr-FR')} $ cash.${
-        raw > capped
-          ? ` Plafond atteint : ${(raw - capped).toLocaleString('fr-FR')} $ laissés sur la table.`
-          : ''
-      }`,
+      tt(`Rachat en bloc : ${batch.length} pièce(s) partie(s) pour ${mny(capped)} cash.`, `Bulk buyout: ${batch.length} piece(s) gone for ${mny(capped)} cash.`, `Compra en bloque: ${batch.length} pieza(s) vendidas por ${mny(capped)} en efectivo.`) +
+        (raw > capped
+          ? tt(` Plafond atteint : ${mny(raw - capped)} laissés sur la table.`, ` Cap reached: ${mny(raw - capped)} left on the table.`, ` Tope alcanzado: ${mny(raw - capped)} se quedan sobre la mesa.`)
+          : ''),
     );
   };
 
@@ -1677,21 +2251,19 @@ export default function App() {
     const blindBoost = jokerIds.includes('a-l-aveugle') ? 1.6 : 1;
     const trendMult = target.category ? marketTrends[target.category] ?? 1 : 1;
     const seasonFastMult = seasonState.level >= 3 ? 1.05 : 1;
-    return Math.round(target.streetValue * 0.62 * catMult * blindBoost * trendMult * seasonFastMult);
+    return Math.round(target.streetValue * FAST_SELL_RATIO * catMult * blindBoost * trendMult * seasonFastMult);
   };
 
-  const sellItem = (itemId: string, mode: 'fast' | 'auction') => {
-    const target = inventory.find((i) => i.id === itemId);
-    if (!target) return;
-
+  const getAuctionPayout = (target: BoughtItem): number => {
     const baseAuctionMult = target.cleaned
       ? jokerIds.includes('blanchisseur')
-        ? 1.4
-        : 1.3
-      : 1.15;
+        ? AUCTION_CLEAN_RATIO + 0.1
+        : AUCTION_CLEAN_RATIO
+      : AUCTION_DIRTY_RATIO;
     const assetBoost = cityAssets.includes('warehouse') ? 1.35 : 1;
     // Marché saturé : chaque enchère de la journée ET chaque répétition de catégorie paie moins.
-    const saturation = mode === 'auction' ? (jokerIds.includes('reseau') ? [1, 0.85, 0.7, 0.55] : [1, 0.8, 0.6])[Math.min(auctionsToday, jokerIds.includes('reseau') ? 3 : 2)] : 1;
+    const satTable = jokerIds.includes('reseau') ? [1, 0.85, 0.7, 0.55] : [1, 0.75, 0.55];
+    const saturation = satTable[Math.min(auctionsToday, satTable.length - 1)];
     const catCount = target.category ? soldCategories[target.category] || 0 : 0;
     const catMult = catCount >= 2 ? 0.75 : catCount === 1 ? 0.88 : 1;
     const blindBoost = jokerIds.includes('a-l-aveugle') ? 1.6 : 1;
@@ -1699,21 +2271,16 @@ export default function App() {
     const codexAuctionMult = activeCodexPerks.includes('Clientèle Aristocratique') ? 1.18 : 1;
     const seasonAuctionMult = seasonState.level >= 20 ? 1.1 : 1;
     const facAuctionBonus = 1 + getFactionRank(factionRep[resolveFactionId(target.faction)] ?? 0).auctionBonus;
-    const salePrice =
-      mode === 'fast'
-        ? getFastSellPayout(target)
-        : Math.round(
-            target.streetValue *
-              baseAuctionMult *
-              assetBoost *
-              saturation *
-              catMult *
-              blindBoost *
-              trendMult *
-              codexAuctionMult *
-              seasonAuctionMult *
-              facAuctionBonus,
-          );
+    return Math.round(
+      target.streetValue * baseAuctionMult * assetBoost * saturation * catMult * blindBoost * trendMult * codexAuctionMult * seasonAuctionMult * facAuctionBonus,
+    );
+  };
+
+  const sellItem = (itemId: string, mode: 'fast' | 'auction') => {
+    const target = inventory.find((i) => i.id === itemId);
+    if (!target || !lockAction(`sell-${itemId}`)) return;
+
+    const salePrice = mode === 'fast' ? getFastSellPayout(target) : getAuctionPayout(target);
     if (mode === 'auction') setAuctionsToday((n) => n + 1);
     if (target.category) {
       setSoldCategories((prev) => ({
@@ -1729,7 +2296,7 @@ export default function App() {
     if (mode === 'auction') bumpQuest('auctions', 1);
     appendHistory(
       'sell',
-      `Revente ${mode === 'auction' ? 'enchères' : 'rapide'} : ${target.name} (marge ${profit >= 0 ? '+' : ''}${profit} $)`,
+      tt(`Revente ${mode === 'auction' ? 'enchères' : 'rapide'} : ${target.name} (marge ${profit >= 0 ? '+' : ''}${profit} $)`, `${mode === 'auction' ? 'Auction' : 'Quick'} sale: ${localizeItemName(target.name, gameLocale)} (margin ${profit >= 0 ? '+' : ''}$${profit})`, `Venta ${mode === 'auction' ? 'en subasta' : 'rápida'}: ${localizeItemName(target.name, gameLocale)} (margen ${profit >= 0 ? '+' : ''}${profit} $)`),
       salePrice,
     );
 
@@ -1743,17 +2310,30 @@ export default function App() {
   };
 
   const payRentAndNextDay = () => {
-    if (cash < dailyRent) {
+    let paidNow = dailyRent;
+    let graceDebt = 0;
+    // Première fois (par partie) : le Syndicat avance la différence à 30 % d'intérêt au lieu de saisir la boutique.
+    if (cash < dailyRent && !graceUsed && debt === 0) {
+      paidNow = cash;
+      graceDebt = Math.ceil(((dailyRent - cash) * 1.3) / 50) * 50;
+      setGraceUsed(true);
+      setError(tt(`Dernier avertissement : le Syndicat t’avance ${mny(dailyRent - cash)} ce soir. Tu devras ${mny(graceDebt)} avec le prochain loyer, sinon boutique saisie.`, `Final warning: the Syndicate fronts you ${mny(dailyRent - cash)} tonight. You will owe ${mny(graceDebt)} with the next rent, or the shop is seized.`, `Último aviso: el Sindicato te adelanta ${mny(dailyRent - cash)} esta noche. Deberás ${mny(graceDebt)} con el próximo alquiler, o te embargan la tienda.`));
+    }
+    if (cash < dailyRent && graceDebt === 0) {
       setGameOverReason(
-        `Tu n'as pas les ${dailyRent.toLocaleString('fr-FR')} $ pour payer le Syndicat ce soir. Boutique saisie.`,
+        tt(`Tu n'as pas les ${mny(dailyRent)} pour payer le Syndicat ce soir. Boutique saisie.`, `You don’t have the ${mny(dailyRent)} to pay the Syndicate tonight. Shop seized.`, `No tienes los ${mny(dailyRent)} para pagar al Sindicato esta noche. Tienda embargada.`),
       );
       return;
     }
     sound.playCashSlap();
-    setDebt(0);
+    setDebt(graceDebt);
     const barIncome = cityAssets.includes('nightbar') ? 600 : 0;
     const barCool = cityAssets.includes('nightbar') ? 5 : 0;
-    setCash((c) => c - dailyRent + barIncome);
+    // Fond de roulement de survie : si la caisse tombe à sec et que le coffre est vide, le tiroir garde 350 $ pour négocier le lendemain
+    setCash((c) => {
+      const remaining = c - paidNow + barIncome;
+      return inventory.length === 0 && remaining < 350 ? 350 : remaining;
+    });
     if (jokerIds.includes('assurance') || barCool > 0) {
       setCityHeat((h) => Math.max(0, h - (jokerIds.includes('assurance') ? 10 : 0) - barCool));
     }
@@ -1764,7 +2344,7 @@ export default function App() {
     if (activeTrackers > 0) {
       setCityHeat((h) => Math.min(100, h + activeTrackers * 12));
       setRaidNote((prev) =>
-        `${activeTrackers} traceur(s) encore actif(s) : Heat +${activeTrackers * 12} %.${prev ? ` ${prev}` : ''}`,
+        tt(`${activeTrackers} traceur(s) encore actif(s) : Heat +${activeTrackers * 12} %.`, `${activeTrackers} tracker(s) still active: Heat +${activeTrackers * 12}%.`, `${activeTrackers} rastreador(es) aún activo(s): Heat +${activeTrackers * 12} %.`) + (prev ? ` ${prev}` : ''),
       );
     }
 
@@ -1792,13 +2372,11 @@ export default function App() {
       }
       setCityHeat(45);
       setRaidNote(
-        `Descente de police au Jour ${day} : ${seized} pièce(s) saisie(s), ${fine.toLocaleString(
-          'fr-FR',
-        )} $ d'amende. Le dossier reste ouvert.`,
+        tt(`Descente de police au Jour ${day} : ${seized} pièce(s) saisie(s), ${mny(fine)} d'amende. Le dossier reste ouvert.`, `Police raid on Day ${day}: ${seized} piece(s) seized, ${mny(fine)} fine. The case stays open.`, `Redada policial el Día ${day}: ${seized} pieza(s) incautada(s), ${mny(fine)} de multa. El caso sigue abierto.`),
       );
       if (cashLeft <= 0) {
         setGameOverReason(
-          'Descente de police : le Syndicat te lâche, caisse vide et boutique sous scellés.',
+          tt('Descente de police : le Syndicat te lâche, caisse vide et boutique sous scellés.', 'Police raid: the Syndicate drops you, empty register and shop sealed.', 'Redada policial: el Sindicato te abandona, caja vacía y tienda precintada.'),
         );
         return;
       }
@@ -1812,10 +2390,10 @@ export default function App() {
       if (nightEvent?.curfewBonusCash && cityHeat < 35) {
         setCash((c) => c + nightEvent.curfewBonusCash!);
         setRaidNote(
-          `Couvre-feu calme (Heat < 35%) : +${nightEvent.curfewBonusCash.toLocaleString('fr-FR')} $ de prime de discrétion.`,
+          '✓ ' + tt(`Couvre-feu calme (Heat < 35%) : +${mny(nightEvent.curfewBonusCash)} de prime de discrétion.`, `Quiet curfew (Heat < 35%): +${mny(nightEvent.curfewBonusCash)} discretion bonus.`, `Toque de queda tranquilo (Heat < 35 %): +${mny(nightEvent.curfewBonusCash)} de prima de discreción.`),
         );
       } else if (raidProtected && cityHeat >= 80) {
-        setRaidNote('Brouillage Total (Codex) : la descente de police a été déviée.');
+        setRaidNote('✓ ' + tt('Brouillage Total (Codex) : la descente de police a été déviée.', 'Total Jamming (Codex): the police raid was diverted.', 'Interferencia total (Códice): la redada policial fue desviada.'));
       } else {
         setRaidNote(null);
       }
@@ -1839,13 +2417,13 @@ export default function App() {
   };
 
   const buyUpgrade = (key: keyof Upgrades, cost: number) => {
-    if (upgrades[key] || cash < cost) return;
+    if (upgrades[key] || cash < cost || !lockAction(`up-${key}`)) return;
     setCash((c) => c - cost);
     setUpgrades((u) => ({ ...u, [key]: true }));
   };
 
   const transferToSwiss = (amount: number) => {
-    if (cash < amount || amount <= 0) return;
+    if (cash < amount || amount <= 0 || !lockAction('swiss-in')) return;
     sound.playCashSlap();
     setCash((c) => c - amount);
     const netRate = seasonState.level >= 15 ? 0.94 : 0.9;
@@ -1856,7 +2434,7 @@ export default function App() {
   };
 
   const withdrawFromSwiss = (amount: number) => {
-    if (swissBank < amount || amount <= 0) return;
+    if (swissBank < amount || amount <= 0 || !lockAction('swiss-out')) return;
     sound.playCashSlap();
     setSwissBank((s) => s - amount);
     setCash((c) => c + amount);
@@ -1864,7 +2442,7 @@ export default function App() {
   };
 
   const submitSecret = (item: BoughtItem) => {
-    if (!item.secretId || item.secretState !== 'open') return;
+    if (!item.secretId || item.secretState !== 'open' || !lockAction(`secret-${item.id}`)) return;
     const ui = SECRET_UI[gameLocale];
     if (checkSecret(item.secretId, secretInput, gameLocale)) {
       const r = secretReward(item.secretId)!;
@@ -1889,6 +2467,7 @@ export default function App() {
   };
 
   const takeSyndicateLoan = () => {
+    if (!lockAction('loan')) return;
     if (debt > 0) {
       setError(
         gameLocale === 'en'
@@ -1907,7 +2486,7 @@ export default function App() {
   };
 
   const buyCityAsset = (asset: CityAsset) => {
-    if (cityAssets.includes(asset.id) || swissBank < asset.costSwiss) return;
+    if (cityAssets.includes(asset.id) || swissBank < asset.costSwiss || !lockAction(`asset-${asset.id}`)) return;
     sound.playDealSuccess();
     setSwissBank((s) => s - asset.costSwiss);
     setCityAssets((prev) => [...prev, asset.id]);
@@ -1925,8 +2504,9 @@ export default function App() {
     if (swissBank < reopenCost) return;
     setSwissBank((s) => s - reopenCost);
     setDay(1);
-    setCash(startingCash);
+    setCash(startingCash + legacyBonus);
     setDebt(0);
+    setGraceUsed(false);
     setCityHeat(15);
     setInventory([]);
     setClientsServedToday(0);
@@ -1949,11 +2529,11 @@ export default function App() {
         );
       }
     }
-    setTell('Tu déclines l’offre. Le client remballe sa pièce sans faire d’histoire.');
+    setTell(tt('Tu déclines l’offre. Le client remballe sa pièce sans faire d’histoire.', 'You decline the offer. The client packs the piece away without a fuss.', 'Rechazas la oferta. El cliente guarda su pieza sin montar un escándalo.'));
     setHistory((prev) => [
       ...prev,
-      { role: 'player', content: 'Pas intéressé ce soir, passe ton chemin.' },
-      { role: 'npc', content: 'Comme tu veux. Je vais voir ailleurs.' },
+      { role: 'player', content: tt('Pas intéressé ce soir, passe ton chemin.', 'Not interested tonight, move along.', 'Esta noche no me interesa, sigue tu camino.') },
+      { role: 'npc', content: tt('Comme tu veux. Je vais voir ailleurs.', 'Suit yourself. I’ll look elsewhere.', 'Como quieras. Iré a otro sitio.') },
     ]);
     setVengeance((prev) => [...prev, { faction: currentCase.faction, day, reason: 'rejected' as const }]);
     setFactionRep((prev) => applyFactionDealDelta(prev, currentCase.faction, -4));
@@ -1978,24 +2558,24 @@ export default function App() {
       setSeasonXp((xp) => xp + 150);
       bumpQuest('traps', 1);
       unlockAchievement('mole-hunter');
-      appendHistory('trap', `Infiltré démasqué : ${currentCase.name}`, trapBonus);
+      appendHistory('trap', tt(`Infiltré démasqué : ${currentCase.name}`, `Undercover agent exposed: ${currentCase.name}`, `Infiltrado desenmascarado: ${currentCase.name}`), trapBonus);
       setCityHeat((h) => Math.max(0, h - 8));
-      setTell(`Tu as démasqué l’infiltré : il décampe avant que ça tourne mal (+${trapBonus} $ prime d’info).`);
+      setTell(tt(`Tu as démasqué l’infiltré : il décampe avant que ça tourne mal (+${mny(trapBonus)} prime d’info).`, `You exposed the undercover agent: he bolts before it turns ugly (+${mny(trapBonus)} tip bonus).`, `Desenmascaraste al infiltrado: huye antes de que se ponga feo (+${mny(trapBonus)} de prima).`));
       setHistory((prev) => [
         ...prev,
-        { role: 'player', content: '(Tu le vires sur-le-champ.) Dégage d’ici avec ton micro-cravate !' },
-        { role: 'npc', content: 'Merde... t’es plus malin que t’en as l’air.' },
+        { role: 'player', content: tt('(Tu le vires sur-le-champ.) Dégage d’ici avec ton micro-cravate !', '(You throw him out on the spot.) Get out of here with your wire!', '(Lo echas en el acto.) ¡Largo de aquí con tu micrófono!') },
+        { role: 'npc', content: tt('Merde... t’es plus malin que t’en as l’air.', 'Damn… you’re smarter than you look.', 'Mierda… eres más listo de lo que pareces.') },
       ]);
       setOutcome('quitte_la_boutique');
     } else {
       sound.playDanger();
       setCityHeat((h) => Math.min(100, h + 8));
       setCash((c) => c - Math.min(c, 250)); // dédommagement : accuser au hasard n'est plus gratuit
-      setTell('Fausse accusation : le client était réglo, claque la porte furieux et te fait payer 250 $ de dédommagement.');
+      setTell(tt('Fausse accusation : le client était réglo, claque la porte furieux et te fait payer 250 $ de dédommagement.', 'False accusation: the client was clean, slams the door furious and makes you pay $250 in compensation.', 'Falsa acusación: el cliente era legal, se va furioso dando un portazo y te hace pagar 250 $ de indemnización.'));
       setHistory((prev) => [
         ...prev,
-        { role: 'player', content: 'T’es un flic ! Dégage de ma boutique !' },
-        { role: 'npc', content: 'T’es complètement parano, mec. Je vais vendre ailleurs.' },
+        { role: 'player', content: tt('T’es un flic ! Dégage de ma boutique !', 'You’re a cop! Get out of my shop!', '¡Eres un poli! ¡Fuera de mi tienda!') },
+        { role: 'npc', content: tt('T’es complètement parano, mec. Je vais vendre ailleurs.', 'You’re completely paranoid, man. I’ll sell elsewhere.', 'Estás completamente paranoico, tío. Venderé en otro sitio.') },
       ]);
       setVengeance((prev) => [...prev, { faction: currentCase.faction, day, reason: 'rejected' as const }]);
       setFactionRep((prev) => applyFactionDealDelta(prev, currentCase.faction, -8));
@@ -2009,6 +2589,10 @@ export default function App() {
     currentCase.floorPrice,
     gauges.peur,
   );
+
+  if (routePath === '/admin' || routePath.startsWith('/admin')) {
+    return <AdminDashboard onNavigate={navigateTo} gameLocale={gameLocale} />;
+  }
 
   if (!isGameRoute) {
     return (
@@ -2102,6 +2686,7 @@ export default function App() {
       uvScanned={uvScanned}
       locale={gameLocale}
       onInspect={() => {
+        if (window.matchMedia('(max-width: 1023px)').matches) setShowItemSheet(true);
         if (outcome !== 'active') return;
         if (!jokerIds.includes('a-l-aveugle')) setInspected(true);
         sound.playInspect();
@@ -2116,6 +2701,39 @@ export default function App() {
           <ShieldAlert className="w-10 h-10 text-red-500 mx-auto" />
           <h1 className="text-xl font-semibold text-red-400">{t.gameOverCurtain(day)}</h1>
           <p className="text-sm text-zinc-300 leading-relaxed">{gameOverReason}</p>
+          <div className="border border-white/10 bg-black/40 p-3 text-left font-mono text-[11px] leading-relaxed text-zinc-400">
+            <p className="mb-1 uppercase tracking-wider text-amber-300">
+              {gameLocale === 'en' ? 'How to last longer' : gameLocale === 'es' ? 'Cómo durar más' : 'Comment tenir plus longtemps'}
+            </p>
+            <ul className="list-disc space-y-1 pl-4">
+              {(gameLocale === 'en'
+                ? [
+                    'Rent rises every night ($500 + $350 per day) and cash in hand is taxed. Check the “Rent” figure at the top before each night.',
+                    'Buy well under the street value shown under the item: pressure the seller with your own words, not just the tools.',
+                    'Flip fast when you are short on cash; clean items (−$250) and sell at auction when you can afford to wait.',
+                    'Open the ✦ false-bottom pieces in the Vault: a solved riddle pays cash, XP or lowers Heat.',
+                    'Keep cash in the Swiss account: it survives a bust and lets you restart.',
+                  ]
+                : gameLocale === 'es'
+                  ? [
+                      'El alquiler sube cada noche (500 $ + 350 $ por día) y el efectivo en mano paga impuestos. Mira la cifra «Alquiler» arriba antes de cada noche.',
+                      'Compra muy por debajo del valor de calle que aparece bajo el objeto: presiona al vendedor con tus palabras, no solo con las herramientas.',
+                      'Revende rápido si andas corto de efectivo; limpia las piezas (−250 $) y véndelas en subasta cuando puedas esperar.',
+                      'Abre las piezas ✦ de doble fondo en la caja fuerte: un acertijo resuelto paga efectivo, XP o baja el Heat.',
+                      'Guarda efectivo en la cuenta suiza: sobrevive a la ruina y te deja volver a empezar.',
+                    ]
+                  : [
+                      'Le loyer monte chaque soir (500 $ + 350 $ par jour) et le cash en main est taxé. Regarde le chiffre « Loyer » en haut avant chaque nuit.',
+                      'Achète bien sous la valeur de rue affichée sous l’objet : mets la pression avec tes mots, pas seulement avec les outils.',
+                      'Revends vite quand tu manques de cash ; nettoie les pièces (−250 $) et passe-les aux enchères quand tu peux attendre.',
+                      'Ouvre les pièces ✦ à double fond au coffre : une énigme résolue rapporte du cash, de l’XP ou baisse le Heat.',
+                      'Garde du cash sur le compte suisse : il survit à la ruine et te permet de repartir.',
+                    ]
+              ).map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
           <div className="bg-zinc-950 border border-white/10 rounded p-3 text-xs font-mono text-zinc-400 space-y-1">
             <div>
               {t.gameOverProfit(formatMoney(totalProfit, gameLocale), getLocalizedRank(totalProfit, gameLocale))}
@@ -2123,6 +2741,16 @@ export default function App() {
             <div className="text-amber-400">
               {t.gameOverSwiss(formatMoney(swissBank, gameLocale), cityAssets.length)}
             </div>
+            <div className={day >= maxDaySurvived ? 'text-emerald-300' : 'text-zinc-400'}>
+              {day >= maxDaySurvived
+                ? tt(`Nouveau record : jour ${day}.`, `New record: day ${day}.`, `Nuevo récord: día ${day}.`)
+                : tt(`Ton record : jour ${maxDaySurvived}. Tu peux faire mieux.`, `Your record: day ${maxDaySurvived}. You can beat it.`, `Tu récord: día ${maxDaySurvived}. Puedes superarlo.`)}
+            </div>
+            {legacyBonus > 0 && (
+              <div className="text-emerald-300">
+                {tt(`Bonus de départ de ta prochaine partie : +${mny(legacyBonus)} (grâce à ton record).`, `Starting bonus for your next run: +${mny(legacyBonus)} (thanks to your record).`, `Bonificación de inicio de tu próxima partida: +${mny(legacyBonus)} (por tu récord).`)}
+              </div>
+            )}
           </div>
           {swissBank >= reopenCostSwiss && (
             <button
@@ -2139,8 +2767,9 @@ export default function App() {
                 setAscensionLevel(nextLevel);
                 unlockAchievement('ascended');
                 setDay(1);
-                setCash(2500);
+                setCash(2500 + legacyBonus);
     setDebt(0);
+    setGraceUsed(false);
                 setTotalProfit(0);
                 setCityHeat(15);
                 setInventory([]);
@@ -2179,7 +2808,7 @@ export default function App() {
       } bg-[#09090b] text-zinc-100 flex flex-col pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
     >
       {/* Top Bar : Responsive iOS/Android & Desktop */}
-      <header className="relative z-30 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#090a0f]/95 px-3 py-2 sm:px-6">
+      <header className="relative z-30 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 bg-[#090a0f]/95 px-2.5 py-1.5 sm:px-6 w-full max-w-full overflow-hidden">
         {/* Gauche : Logo SVG minimaliste + Identité CASH NOIR */}
         <div className="flex items-center gap-3">
           <button
@@ -2197,7 +2826,7 @@ export default function App() {
               <path d="M10.5 3.5L3 12L10.5 20.5" stroke="#f4f4f5" strokeWidth="2" strokeLinecap="square" />
               <path d="M13.5 3.5L21 12L13.5 20.5V3.5Z" fill="#fbbf24" />
             </svg>
-            <h1 className="font-[family-name:var(--font-display)] text-base leading-none tracking-[0.22em] text-zinc-100 sm:text-lg">
+            <h1 className="max-sm:hidden font-[family-name:var(--font-display)] text-base leading-none tracking-[0.22em] text-zinc-100 sm:text-lg">
               CASH <span className="text-amber-400">NOIR</span>
             </h1>
           </button>
@@ -2215,7 +2844,7 @@ export default function App() {
         </div>
 
         {/* Centre / HÉROS : Caisse & Danger (Mise en avant percutante du cash) */}
-        <div className="flex items-center gap-3 sm:gap-6 bg-black/60 border border-white/5 rounded-full px-4 py-1">
+        <div className="flex items-center gap-2.5 sm:gap-6 bg-black/60 border border-white/5 rounded-full px-3 sm:px-4 py-1">
           <div className="flex items-baseline gap-1.5 font-mono">
             <span className="hidden sm:inline text-[9px] uppercase tracking-widest text-zinc-500">{t.cash}</span>
             <span className="text-base sm:text-xl font-bold tracking-tight text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.2)]">
@@ -2225,15 +2854,51 @@ export default function App() {
 
           <div className="h-3.5 w-px bg-white/10" />
 
+          <button
+            type="button"
+            onClick={() => setTab('night')}
+            title={gameLocale === 'en' ? 'Tonight’s rent (tap for the ledger)' : gameLocale === 'es' ? 'Alquiler de esta noche (ver el libro)' : 'Loyer de ce soir (voir le registre)'}
+            className={`flex items-baseline gap-1 font-mono text-[10px] uppercase tracking-wider ${cash < dailyRent ? 'text-red-400' : 'text-zinc-400'} hover:text-amber-300`}
+          >
+            <span className="hidden sm:inline">{gameLocale === 'en' ? 'Rent' : gameLocale === 'es' ? 'Alquiler' : 'Loyer'}</span>
+            <span className="font-semibold">{gameLocale === 'en' ? `$${formatMoney(dailyRent, gameLocale)}` : `${formatMoney(dailyRent, gameLocale)} $`}</span>
+          </button>
+
+          <div className="h-3.5 w-px bg-white/10 max-[359px]:hidden" />
+
           <div
-            className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider ${
+            className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider max-[359px]:hidden ${
               cityHeat >= 70 ? 'text-red-400 animate-pulse font-bold' : cityHeat >= 50 ? 'text-amber-400' : 'text-zinc-500'
             }`}
-            title={`Pression policière : ${cityHeat} %`}
+            title={tt(`Pression policière : ${cityHeat} %`, `Police pressure: ${cityHeat}%`, `Presión policial: ${cityHeat} %`)}
           >
             <Flame className="h-3.5 w-3.5" />
             <span>{cityHeat}%</span>
           </div>
+
+          {jokerIds.length > 0 && (
+            <>
+              <div className="h-3.5 w-px bg-white/10 hidden lg:block" />
+              <button type="button" onClick={() => setShowHelp(true)} className="lg:hidden flex items-center gap-1 font-mono text-[10px] text-amber-300" aria-label={tt('Atouts actifs', 'Active jokers', 'Comodines activos')}>
+                ★{jokerIds.length}
+              </button>
+              <div role="button" tabIndex={0} onClick={() => setShowHelp(true)} className="hidden lg:flex cursor-pointer items-center gap-1.5" title={tt('Atouts actifs : clique pour le détail', 'Active jokers: click for details', 'Comodines activos: clic para ver el detalle')}>
+                {jokerIds.map((jid) => {
+                  const jk = JOKER_POOL.find((j) => j.id === jid);
+                  const locJk = t.jokers[jid] ?? jk;
+                  return (
+                    <div
+                      key={jid}
+                      title={`${locJk?.name ?? jid}: ${locJk?.desc ?? ''}`}
+                      className="flex h-5 w-5 items-center justify-center rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:border-amber-400 hover:scale-110 transition-all cursor-help"
+                    >
+                      <JokerIcon id={jid} className="h-3.5 w-3.5" />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {weeklyChallenge && (
             <>
@@ -2249,12 +2914,12 @@ export default function App() {
         </div>
 
         {/* Droite : Navigation sobre & Contrôles épurés */}
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
-          <nav className="order-2 flex w-full items-center gap-1 overflow-x-auto no-scrollbar sm:order-none sm:w-auto font-mono text-[10px] uppercase tracking-wider whitespace-nowrap">
+        <div className="contents sm:flex sm:w-auto sm:flex-nowrap sm:items-center sm:justify-end sm:gap-2">
+          <nav className="order-2 max-lg:[@media(max-height:520px)]:hidden flex w-full min-w-0 max-w-full items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto sm:justify-start no-scrollbar sm:order-none sm:w-auto font-mono text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap">
             <button
               onClick={() => {
                 setTab('counter');
-                if (currentCase.isDailyContract) {
+                if (currentCase.isDailyContract && !restoreCounterSession()) {
                   startNewCase(
                     generateProceduralCase(
                       day,
@@ -2266,18 +2931,19 @@ export default function App() {
                   );
                 }
               }}
-              className={`px-2.5 py-1 transition-colors ${
+              className={`px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'counter'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
-              {t.tabCounter} ({Math.min(clientsServedToday + 1, maxClientsPerDay)}/{maxClientsPerDay})
+              <span className="sm:hidden">{gameLocale === 'en' ? 'Counter' : gameLocale === 'es' ? 'Mostr.' : 'Cpt'} ({Math.min(clientsServedToday + 1, maxClientsPerDay)}/{maxClientsPerDay})</span>
+              <span className="hidden sm:inline">{t.tabCounter} ({Math.min(clientsServedToday + 1, maxClientsPerDay)}/{maxClientsPerDay})</span>
             </button>
 
             <button
               onClick={() => setTab('night')}
-              className={`px-2.5 py-1 transition-colors ${
+              className={`px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'night'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-300'
@@ -2288,7 +2954,7 @@ export default function App() {
 
             <button
               onClick={() => setTab('shop')}
-              className={`px-2.5 py-1 transition-colors ${
+              className={`px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'shop'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-300'
@@ -2299,7 +2965,7 @@ export default function App() {
 
             <button
               onClick={() => setTab('pantheon')}
-              className={`px-2.5 py-1 transition-colors ${
+              className={`px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'pantheon'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-300'
@@ -2310,62 +2976,19 @@ export default function App() {
 
             <button
               onClick={() => openDailyContract()}
-              className={`flex items-center gap-1 px-2.5 py-1 transition-colors ${
+              className={`flex items-center gap-1 px-1 sm:px-2.5 py-1 transition-colors ${
                 tab === 'daily'
                   ? 'border-b border-amber-400 text-amber-300 font-semibold'
                   : 'text-amber-500/80 hover:text-amber-300'
               }`}
             >
-              <Clock className="h-3 w-3" />
-              <span>{formatCountdown(countdown)}</span>
+              <Clock className="h-3 w-3 shrink-0" />
+              <span className="sm:hidden">{formatCountdown(countdown, true)}</span>
+              <span className="hidden sm:inline">{formatCountdown(countdown)}</span>
             </button>
           </nav>
 
           <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
-
-          {/* Profil OAuth / Google Sign-In compact */}
-          {authUser ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="max-w-[70px] sm:max-w-[90px] truncate" title={authUser.email}>
-                {authUser.name || authUser.email}
-              </span>
-              <button
-                type="button"
-                onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-                  cloudReadyRef.current = false;
-                  setAuthUser(null);
-                  setCloudStatus('idle');
-                }}
-                className="text-zinc-500 hover:text-red-400 transition-colors ml-0.5"
-                title={t.logout}
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (oauthConfigured) {
-                  window.location.href = '/api/auth/google';
-                } else {
-                  setError('OAuth Google prêt : configure GOOGLE_CLIENT_ID et SECRET dans .env.local.');
-                }
-              }}
-              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:text-white transition-all active:scale-95"
-              title={gameLocale === 'en' ? 'Sync cloud progress via Google' : 'Synchroniser via Google'}
-            >
-              <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24">
-                <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
-                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
-                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z"/>
-                <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"/>
-              </svg>
-              <span>{gameLocale === 'en' ? 'Google' : 'Google'}</span>
-            </button>
-          )}
 
           {/* Outils profil, son & debug épurés (sans boutons langue dans le header) */}
           <div className="flex items-center gap-1.5">
@@ -2378,10 +3001,13 @@ export default function App() {
               title={gameLocale === 'en' ? 'Profile & Preferences' : 'Profil & Préférences'}
               className="flex items-center gap-1 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/60 hover:text-amber-300 transition-colors"
             >
+              {authUser && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
               <User className="h-3 w-3 text-amber-400" />
-              <span className="max-w-[70px] sm:max-w-[90px] truncate font-semibold tracking-wider">
-                {playerHandle}
-              </span>
+              {playerHandle.trim() && (
+                <span className="max-sm:hidden max-w-[70px] sm:max-w-[90px] truncate font-semibold tracking-wider">
+                  {playerHandle}
+                </span>
+              )}
             </button>
 
             <button
@@ -2401,7 +3027,7 @@ export default function App() {
                 setShowConfig((s) => !s);
               }}
               title={t.aiSettings}
-              className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors"
+              className="max-sm:hidden p-1 text-zinc-500 hover:text-zinc-200 transition-colors"
             >
               <KeyRound className="h-3.5 w-3.5" />
             </button>
@@ -2452,431 +3078,496 @@ export default function App() {
       )}
 
       {/* TAB: NIGHT & RENT */}
-      {tab === 'night' && (
-        <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
-          {(() => {
-            const L = gameLocale;
-            const money = (n: number) => (L === 'en' ? `$${formatMoney(n, L)}` : `${formatMoney(n, L)} $`);
-            const open = inventory.filter((i) => i.secretState === 'open').length;
-            const arcsOpen = arcNotes.filter((n) => !n.resolved).length;
-            const missing = Math.max(0, dailyRent - cash);
-            const G = {
-              fr: {
-                title: 'Que faire ce soir ?', now: 'À faire maintenant',
-                steps: [
-                  'Au comptoir : négocie avec tes mots, vérifie avec Loupe, UV et Radio, achète sous la valeur de rue.',
-                  'Ici, au coffre : ouvre les pièces ✦ à double fond (une énigme, une récompense), nettoie, puis revends vite ou aux enchères.',
-                  'Pistes : achète l’objet-clé d’une enquête, un client viendra le réclamer plus tard et paiera cher.',
-                  'Chaque soir : paye le loyer (sinon la boutique est saisie) et planque du cash en Suisse pour survivre à la ruine.',
-                ],
-                debt: `Rembourse ${money(debt)} au Syndicat : c’est inclus dans le loyer de ce soir.`,
-                rent: `Il te manque ${money(missing)} pour le loyer de ce soir : revends une pièce.`,
-                secrets: `${open} pièce${open > 1 ? 's' : ''} à double fond à examiner ✦ (récompense à la clé).`,
-                arcs: `${arcsOpen} piste${arcsOpen > 1 ? 's' : ''} ouverte${arcsOpen > 1 ? 's' : ''} : un client viendra réclamer l’objet-clé.`,
-                buy: 'Rien d’urgent : retourne au comptoir pour le prochain client.',
-              },
-              en: {
-                title: 'What to do tonight?', now: 'To do now',
-                steps: [
-                  'At the counter: negotiate with your own words, check with Loupe, UV and Radio, buy below street value.',
-                  'Here, in the vault: open the ✦ false-bottom pieces (one riddle, one reward), clean, then flip fast or at auction.',
-                  'Cases: buy the key item of an investigation; a client will come to claim it later and pay well.',
-                  'Every night: pay the rent (or the shop is seized) and stash cash in Switzerland to survive a bust.',
-                ],
-                debt: `Repay ${money(debt)} to the Syndicate: it is included in tonight’s rent.`,
-                rent: `You are ${money(missing)} short for tonight’s rent: sell a piece.`,
-                secrets: `${open} false-bottom piece${open > 1 ? 's' : ''} to examine ✦ (a reward is waiting).`,
-                arcs: `${arcsOpen} open case${arcsOpen > 1 ? 's' : ''}: a client will come to claim the key item.`,
-                buy: 'Nothing urgent: head back to the counter for the next client.',
-              },
-              es: {
-                title: '¿Qué hacer esta noche?', now: 'Por hacer ahora',
-                steps: [
-                  'En el mostrador: negocia con tus palabras, comprueba con Lupa, UV y Radio, compra por debajo del valor de calle.',
-                  'Aquí, en la caja fuerte: abre las piezas ✦ de doble fondo (un acertijo, una recompensa), limpia y luego revende rápido o en subasta.',
-                  'Casos: compra el objeto clave de una investigación; un cliente vendrá a reclamarlo y pagará bien.',
-                  'Cada noche: paga el alquiler (si no, te embargan la tienda) y guarda efectivo en Suiza para sobrevivir a la ruina.',
-                ],
-                debt: `Devuelve ${money(debt)} al Sindicato: va incluido en el alquiler de esta noche.`,
-                rent: `Te faltan ${money(missing)} para el alquiler de esta noche: vende una pieza.`,
-                secrets: `${open} pieza${open > 1 ? 's' : ''} de doble fondo por examinar ✦ (hay recompensa).`,
-                arcs: `${arcsOpen} caso${arcsOpen > 1 ? 's' : ''} abierto${arcsOpen > 1 ? 's' : ''}: un cliente vendrá a reclamar el objeto clave.`,
-                buy: 'Nada urgente: vuelve al mostrador para el siguiente cliente.',
-              },
-            }[L];
-            const todo = [
-              ...(debt > 0 ? [G.debt] : []),
-              ...(missing > 0 ? [G.rent] : []),
-              ...(open > 0 ? [G.secrets] : []),
-              ...(arcsOpen > 0 ? [G.arcs] : []),
-            ];
-            if (!todo.length) todo.push(G.buy);
-            return (
-              <div className="space-y-3 border border-amber-500/40 bg-amber-500/5 p-4 font-mono">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">{G.now}</p>
-                <ul className="space-y-1 text-xs text-zinc-100">
-                  {todo.map((x) => (
-                    <li key={x}>→ {x}</li>
-                  ))}
-                </ul>
-                <details open={day <= 2} className="border-t border-white/10 pt-2">
-                  <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-zinc-400 hover:text-amber-300">{G.title}</summary>
-                  <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-[12px] leading-relaxed text-zinc-300">
-                    {G.steps.map((x) => (
-                      <li key={x}>{x}</li>
-                    ))}
-                  </ol>
-                </details>
-              </div>
-            );
-          })()}
-          <div className="border-t-2 border-amber-500/60 bg-[#0b0d12] border-x border-b border-white/10 p-5 flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-amber-400">
-                {t.backroomNight(day)}
-              </p>
-              <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wider text-zinc-100">
-                {t.syndicateLedger}
-              </h2>
-              <p className="font-mono text-xs text-zinc-400">
-                {t.taxSub(formatMoney(rentShare, gameLocale), auctionsToday)}
-              </p>
-              {nightEvent && (
-                <p className="font-mono text-xs text-amber-300">
-                  {t.eventLabel} ({nightEvent.title}) : {nightEvent.effectText}
-                </p>
-              )}
-              {heatRaid && (
-                <p className="font-mono text-xs text-red-300">
-                  {t.raidAlert}
-                </p>
-              )}
-              {raidNote && (
-                <p
-                  className={`font-mono text-xs ${
-                    raidNote.startsWith('Couvre-feu') || raidNote.includes('15 %') ? 'text-emerald-300' : 'text-red-400'
-                  }`}
-                >
-                  {raidNote}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={payRentAndNextDay}
-              className="brass px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-[#1a1206] transition-transform hover:scale-[1.02]"
-            >
-              {t.payRentBtn(formatMoney(dailyRent, gameLocale), day + 1)}
-            </button>
-          </div>
-
-          {/* Compte Offshore Suisse */}
-          <div className="border border-emerald-500/30 bg-[#0a0f0d] p-4 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                {t.swissBankTitle(formatMoney(swissBank, gameLocale))}
-              </h3>
-              <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
-                {t.swissBankDesc}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {swissBank >= 500 && (
-                <button
-                  onClick={() => withdrawFromSwiss(500)}
-                  className="border border-amber-400/50 bg-amber-500/15 hover:bg-amber-500/30 px-3 py-1.5 font-mono text-xs font-semibold text-amber-200"
-                >
-                  {t.withdrawSwiss}
-                </button>
-              )}
-              <button
-                disabled={cash < 500}
-                onClick={() => transferToSwiss(500)}
-                className="border border-white/15 bg-black/50 hover:border-white/35 disabled:opacity-40 px-3 py-1.5 font-mono text-xs text-zinc-200"
-              >
-                {t.transfer500}
-              </button>
-              <button
-                disabled={cash < 1500}
-                onClick={() => transferToSwiss(1500)}
-                className="border border-emerald-500/45 bg-emerald-500/15 hover:bg-emerald-500/30 disabled:opacity-40 px-3 py-1.5 font-mono text-xs font-semibold text-emerald-300"
-              >
-                {t.transfer1500}
-              </button>
-            </div>
-          </div>
-
-          {/* Pouvoirs tactiques des pièces gardées sur l'étagère */}
-          {(inventory.some((i) => /passeport/i.test(i.name)) ||
-            inventory.some((i) => /téléphone.*député/i.test(i.name))) && (
-            <div className="border border-amber-500/35 bg-amber-950/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
-              <span className="font-mono text-xs text-amber-200">
-                {t.tacticalUsage}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {inventory.some((i) => /passeport/i.test(i.name)) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const target = inventory.find((i) => /passeport/i.test(i.name));
-                      if (!target) return;
-                      sound.playDealSuccess();
-                      setInventory((inv) => inv.filter((i) => i.id !== target.id));
-                      setCityHeat(15);
-                      setRaidNote(t.burnPassportNote);
-                    }}
-                    className="border border-sky-400/50 bg-sky-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-sky-200 hover:bg-sky-500/30"
-                  >
-                    {t.burnPassport}
-                  </button>
-                )}
-                {inventory.some((i) => /téléphone.*député/i.test(i.name)) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const target = inventory.find((i) => /téléphone.*député/i.test(i.name));
-                      if (!target) return;
-                      const discount = Math.round(dailyRent * 0.4);
-                      sound.playDealSuccess();
-                      setInventory((inv) => inv.filter((i) => i.id !== target.id));
-                      setCash((c) => c + discount);
-                      setRaidNote(t.callContactNote(formatMoney(discount, gameLocale)));
-                    }}
-                    className="border border-amber-400/50 bg-amber-500/15 px-3 py-1.5 font-mono text-xs font-semibold text-amber-200 hover:bg-amber-500/30"
-                  >
-                    {t.callContact}
-                  </button>
-                )}
+      {tab === 'night' && (() => {
+        const L = gameLocale;
+        const money = (n: number) => (L === 'en' ? `$${formatMoney(n, L)}` : `${formatMoney(n, L)} $`);
+        const tr = (fr: string, en: string, es: string) => (L === 'en' ? en : L === 'es' ? es : fr);
+        const short = Math.max(0, dailyRent - cash);
+        const openSecrets = inventory.filter((i) => i.secretState === 'open').length;
+        const openCases = arcNotes.filter((n) => !n.resolved).length;
+        const solvedCases = STORY_ARCS.filter((a) => arcNotes.some((n) => n.arcId === a.id && n.resolved)).length;
+        const todo: string[] = [];
+        if (debt > 0) todo.push(tr(`Tu dois ${money(debt)} au Syndicat : c’est inclus dans le loyer de ce soir.`, `You owe the Syndicate ${money(debt)}: it is included in tonight’s rent.`, `Debes ${money(debt)} al Sindicato: va incluido en el alquiler de esta noche.`));
+        if (openSecrets > 0) todo.push(tr(`${openSecrets} pièce${openSecrets > 1 ? 's' : ''} à double fond à examiner.`, `${openSecrets} piece${openSecrets > 1 ? 's' : ''} with a false bottom to examine.`, `${openSecrets} pieza${openSecrets > 1 ? 's' : ''} con doble fondo por examinar.`));
+        if (openCases > 0) todo.push(tr(`${openCases} piste${openCases > 1 ? 's' : ''} ouverte${openCases > 1 ? 's' : ''} : un client viendra réclamer l’objet-clé.`, `${openCases} open case${openCases > 1 ? 's' : ''}: a client will come for the key item.`, `${openCases} caso${openCases > 1 ? 's' : ''} abierto${openCases > 1 ? 's' : ''}: un cliente vendrá a por el objeto clave.`));
+        const steps = [
+          tr('Au comptoir, négocie avec tes mots et achète sous la valeur de rue.', 'At the counter, negotiate with your own words and buy under street value.', 'En el mostrador, negocia con tus palabras y compra por debajo del valor de calle.'),
+          tr('Ici, nettoie ou revends tes pièces : vente rapide si tu manques de cash, enchères si tu peux attendre.', 'Here, clean or sell your pieces: quick sale if you are short on cash, auction if you can wait.', 'Aquí, limpia o vende tus piezas: venta rápida si andas corto de efectivo, subasta si puedes esperar.'),
+          tr('Une pièce à double fond cache une énigme : la résoudre rapporte du cash, de l’XP ou baisse le Heat.', 'A false-bottom piece hides a riddle: solving it pays cash, XP or lowers Heat.', 'Una pieza con doble fondo esconde un acertijo: resolverlo da efectivo, XP o baja el Heat.'),
+          tr(`Chaque soir, paye le loyer : 500 $ + 350 $ par jour + un impôt sur ton cash (${money(rentShare)} ce soir). Sinon, la boutique est saisie.`, `Every night, pay the rent: $500 + $350 per day + a tax on your cash (${money(rentShare)} tonight). Otherwise the shop is seized.`, `Cada noche, paga el alquiler: 500 $ + 350 $ por día + un impuesto sobre tu efectivo (${money(rentShare)} esta noche). Si no, te embargan la tienda.`),
+          tr('Le compte suisse met ton argent à l’abri de la ruine (10 % de frais).', 'The Swiss account keeps your money safe from a bust (10% fee).', 'La cuenta suiza pone tu dinero a salvo de la ruina (10 % de comisión).'),
+        ];
+        const ghost = 'border border-white/15 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-zinc-200 hover:border-amber-400/60 hover:text-amber-300 disabled:opacity-40 transition-colors';
+        const rentProgressPct = Math.min(100, Math.round((cash / dailyRent) * 100));
+        return (
+          <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6 font-mono">
+            {/* Bannière Concept Art du Coffre */}
+            <div className="relative h-28 sm:h-36 w-full overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+              <img
+                src="/assets/vault/vault-room.webp"
+                alt=""
+                className="h-full w-full object-cover filter brightness-[0.7] contrast-[1.15]"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d0e14] via-black/40 to-transparent pointer-events-none" />
+              <div className="absolute bottom-3 left-4 sm:left-6 flex items-baseline justify-between right-4 sm:right-6">
+                <div>
+                  <h2 className="font-[family-name:var(--font-display)] text-xl sm:text-2xl text-amber-300 tracking-wider uppercase">
+                    {tr('Le Coffre & Planque Clandestine', 'The Vault & Safehouse', 'La Caja Fuerte y Escondite')}
+                  </h2>
+                  <p className="text-[11px] text-zinc-300 font-mono">
+                    {tr('Pièces sous séquestre, doubles fonds et réserves stratégiques', 'Sequestrated goods, false bottoms & strategic reserves', 'Bienes custodiados, dobles fondos y reservas estratégicas')}
+                  </p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-amber-400/90 bg-black/60 px-2.5 py-1 rounded border border-amber-500/30 backdrop-blur-sm">
+                  <span>✦ {inventory.length}/6 {tr('pièces', 'items', 'piezas')}</span>
+                  {jokerIds.length > 0 && <span>· {jokerIds.length} {tr('atouts', 'perks', 'comodines')}</span>}
+                </div>
               </div>
             </div>
-          )}
 
-          <div className="space-y-2.5">
-            <h3 className="font-mono text-xs uppercase tracking-widest text-zinc-400">
-              {t.vaultTitle(inventory.length)}
-            </h3>
-
-            {inventory.length === 0 ? (
-              <div className="border border-white/10 bg-[#0b0d12] p-6 text-center font-mono text-xs text-zinc-500">
-                {t.vaultEmpty}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {inventory.map((item) => {
-                  const blind = jokerIds.includes('a-l-aveugle') ? 1.6 : 1;
-                  const fastPrice = Math.round(item.streetValue * 0.7 * blind);
-                  const auctionPrice = Math.round(
-                    item.streetValue * (item.cleaned ? 1.3 : 1.15) * blind,
-                  );
-                  return (
-                    <div
-                      key={item.id}
-                      className="border border-white/15 bg-[#0a0c10] p-4 space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-100">
-                            {item.name}
-                          </h4>
-                          <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
-                            {item.faction} · {t.paidLabel(formatMoney(item.paid, gameLocale))}
+            {/* Atouts Actifs du Syndicat (Visuels Concept Art) */}
+            {jokerIds.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+                      {tr('Atouts Actifs du Syndicat', 'Active Syndicate Perks', 'Comodines Activos del Sindicato')}
+                    </span>
+                    <span className="text-amber-400 font-mono text-xs">({jokerIds.length})</span>
+                  </div>
+                  <span className="text-[10px] text-zinc-500">{tr('Bonus permanents accumulés sur cette carrière', 'Permanent bonuses stacked over this career', 'Bonificaciones permanentes')}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {jokerIds.map((jid) => {
+                    const jk = JOKER_POOL.find((j) => j.id === jid);
+                    const locJk = t.jokers[jid] ?? jk;
+                    return (
+                      <div
+                        key={jid}
+                        className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#0d0e14] p-3 flex gap-3 items-center hover:border-amber-500/40 transition-all shadow-lg"
+                      >
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black/60 border border-white/10 flex items-center justify-center">
+                          <img
+                            src={`/assets/jokers/${jid}.webp`}
+                            alt=""
+                            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <JokerIcon id={jid} className="h-6 w-6 text-amber-400 absolute pointer-events-none opacity-40 group-hover:opacity-80 transition-opacity" />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-semibold text-xs text-zinc-100 truncate group-hover:text-amber-300 transition-colors">
+                              {locJk?.name ?? jid}
+                            </span>
+                            <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-1 rounded uppercase shrink-0">
+                              {locJk?.tag ?? '✦'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-400 leading-snug line-clamp-2">
+                            {locJk?.desc ?? ''}
                           </p>
-                          {item.modifier && (
-                            <p
-                              className={`mt-0.5 font-mono text-[10px] uppercase tracking-wider ${
-                                item.modifier === 'contrefacon'
-                                  ? 'text-red-400'
-                                  : item.modifier === 'collection'
-                                    ? 'text-amber-300'
-                                    : 'text-sky-400'
-                              }`}
-                            >
-                              {item.modifier === 'traceur'
-                                ? t.modGps
-                                : item.modifier === 'collection'
-                                  ? t.modCollection
-                                  : t.modCounterfeit}
-                            </p>
-                          )}
                         </div>
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 border ${
-                            item.cleaned
-                              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                              : 'bg-red-950/40 border-red-500/40 text-red-300'
-                          }`}
-                        >
-                          {item.cleaned ? t.cleanedBadge : item.hotLevel}
-                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
-                      {item.secretId && item.secretState && (
-                        <div className="space-y-2 border-t border-white/10 pt-2 font-mono">
-                          {item.secretState === 'open' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenSecretId((cur) => (cur === item.id ? null : item.id));
-                                  setSecretInput('');
-                                }}
-                                className="w-full border border-amber-400/60 bg-amber-500/10 px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-amber-300 hover:bg-amber-500/20"
-                              >
-                                {SECRET_UI[gameLocale].badge} · {openSecretId === item.id ? SECRET_UI[gameLocale].close : SECRET_UI[gameLocale].examine}
-                              </button>
-                              {openSecretId === item.id && (() => {
-                                const c = secretContent(item.secretId!, gameLocale);
-                                if (!c) return null;
-                                return (
-                                  <div className="space-y-2 border border-amber-500/30 bg-black/50 p-3 text-[12px] text-zinc-200">
-                                    <p className="whitespace-pre-line leading-relaxed">{c.note}</p>
-                                    {showHint[item.id] && <p className="text-[11px] text-sky-300">{c.hint}</p>}
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <input
-                                        value={secretInput}
-                                        onChange={(e) => setSecretInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && submitSecret(item)}
-                                        placeholder={SECRET_UI[gameLocale].placeholder}
-                                        maxLength={24}
-                                        className="min-w-0 flex-1 border border-white/20 bg-black/60 px-2 py-1.5 text-xs text-zinc-100"
-                                      />
-                                      <button type="button" onClick={() => submitSecret(item)} className="brass px-3 py-1.5 text-xs font-bold uppercase text-[#1a1206]">
-                                        {SECRET_UI[gameLocale].submit}
-                                      </button>
-                                      <button type="button" onClick={() => setShowHint((h) => ({ ...h, [item.id]: true }))} className="border border-white/20 px-2 py-1.5 text-[11px] uppercase text-zinc-300">
-                                        {SECRET_UI[gameLocale].hint}
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                              <p className="text-[10px] text-zinc-500">{SECRET_UI[gameLocale].lostOnSale}</p>
-                            </>
-                          ) : null}
-                          {secretMsg[item.id] && (
-                            <p className={`text-[11px] ${item.secretState === 'solved' ? 'text-emerald-300' : item.secretState === 'burned' ? 'text-red-300' : 'text-amber-300'}`}>{secretMsg[item.id]}</p>
-                          )}
-                        </div>
-                      )}
+            {/* Registre de Loyer / Swiss Vault Ledger */}
+            <section className="rounded-xl border border-white/10 bg-[#0d0e14] p-5 shadow-2xl space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.25em] text-amber-500/80">
+                      {tr(`Nuit ${day} · Registre du Syndicat`, `Night ${day} · Syndicate Ledger`, `Noche ${day} · Libro del Sindicato`)}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                      short > 0 ? 'bg-red-950/80 text-red-300 border border-red-500/40' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
+                    }`}>
+                      {short > 0 ? tr(`Déficit : ${money(short)}`, `Deficit: ${money(short)}`, `Déficit: ${money(short)}`) : tr('Loyer Garanti', 'Rent Covered', 'Alquiler Cubierto')}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl sm:text-4xl font-bold tabular-nums text-zinc-50">{money(dailyRent)}</span>
+                    <span className="text-xs text-zinc-500">
+                      {tr('exigé à l’aube', 'due at dawn', 'exigido al alba')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    {short > 0
+                      ? tr(`Liquidités insuffisantes en caisse (${money(cash)} dispo). Vends une pièce ou puise dans le compte suisse.`, `Insufficient vault cash (${money(cash)} available). Liquidate a piece or tap Swiss funds.`, `Efectivo insuficiente (${money(cash)} disponible). Vende una pieza o retira de la cuenta suiza.`)
+                      : tr(`Reste net en caisse après paiement : ${money(cash - dailyRent)}`, `Net remaining in cash after payment: ${money(cash - dailyRent)}`, `Restante neto en caja tras el pago: ${money(cash - dailyRent)}`)}
+                  </p>
+                </div>
 
-                      <div className="flex flex-wrap gap-2 pt-1 font-mono">
-                        {!item.cleaned && (
-                          <button
-                            onClick={() => cleanItem(item.id)}
-                            className="text-[11px] bg-black/60 hover:bg-zinc-800 border border-white/15 px-2.5 py-1.5 text-zinc-200"
-                          >
-                            {t.cleanBtn}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => sellItem(item.id, 'fast')}
-                          className="text-[11px] bg-black/60 hover:bg-zinc-800 border border-white/15 px-2.5 py-1.5 text-zinc-200"
-                        >
-                          {t.fastSellBtn(formatMoney(fastPrice, gameLocale))}
-                        </button>
-                        <button
-                          onClick={() => sellItem(item.id, 'auction')}
-                          className="brass text-[11px] font-bold px-2.5 py-1.5 text-[#1a1206]"
-                        >
-                          {t.auctionBtn(formatMoney(auctionPrice, gameLocale))}
-                        </button>
-                      </div>
+                <div className="flex flex-col items-end gap-2">
+                  <button
+                    onClick={payRentAndNextDay}
+                    className="brass px-6 py-3 text-sm font-bold uppercase tracking-wider text-[#1a1206] transition-transform hover:scale-[1.02] shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                  >
+                    {short <= 0
+                      ? t.payRentBtn(formatMoney(dailyRent, L), day + 1)
+                      : !graceUsed && debt === 0
+                        ? tr(`Il manque ${money(short)} : le Syndicat avance (dette ${money(Math.ceil((short * 1.3) / 50) * 50)}) →`, `Short by ${money(short)}: the Syndicate fronts it (debt ${money(Math.ceil((short * 1.3) / 50) * 50)}) →`, `Faltan ${money(short)}: el Sindicato adelanta (deuda ${money(Math.ceil((short * 1.3) / 50) * 50)}) →`)
+                        : tr(`Il manque ${money(short)} : boutique saisie (fin de partie)`, `Short by ${money(short)}: shop seized (game over)`, `Faltan ${money(short)}: tienda embargada (fin de la partida)`)}
+                  </button>
+                  {short > 0 && swissBank >= 500 && (
+                    <button
+                      type="button"
+                      onClick={() => withdrawFromSwiss(500)}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 underline underline-offset-4"
+                    >
+                      {tr('✦ Retirer 500 $ d’urgence (Suisse)', '✦ Emergency withdraw $500 (Swiss)', '✦ Retirada urgente de 500 $ (Suiza)')}
+                    </button>
+                  )}
+                  {short > 0 && debt === 0 && (
+                    <button
+                      type="button"
+                      onClick={takeSyndicateLoan}
+                      className="text-[11px] text-red-400 hover:text-red-300 underline underline-offset-4"
+                    >
+                      {tr('✦ Crédit d’urgence Syndicat (+1 000 $)', '✦ Syndicate emergency loan (+$1,000)', '✦ Crédito de emergencia Sindicato (+1.000 $)')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Barre de progression loyer */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[10px] text-zinc-500">
+                  <span>{tr('Solde Caisse', 'Vault Cash', 'Caja')} : {money(cash)}</span>
+                  <span>{rentProgressPct}%</span>
+                </div>
+                <div className="h-2 w-full bg-black/60 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    className={`h-full transition-all duration-300 ${cash >= dailyRent ? 'bg-emerald-400' : 'bg-red-500'}`}
+                    style={{ width: `${rentProgressPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {(nightEvent || heatRaid || raidNote) && (
+                <div className="rounded-lg bg-black/40 border border-white/5 p-3 space-y-1 text-xs">
+                  {nightEvent && (
+                    <p className="text-zinc-300">
+                      <span className="text-amber-400 font-semibold">{localizeNightEvent(nightEvent, L).title}</span> · {localizeNightEvent(nightEvent, L).effectText}
+                    </p>
+                  )}
+                  {heatRaid && <p className="text-red-400 font-bold">{t.raidAlert}</p>}
+                  {raidNote && (
+                    <p className={raidNote.startsWith('✓') || /15 ?%/.test(raidNote) ? 'text-emerald-300' : 'text-red-400'}>{raidNote}</p>
+                  )}
+                </div>
+              )}
+
+              {todo.length > 0 && (
+                <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3 space-y-1 text-xs text-amber-200">
+                  <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                    {tr('À faire ce soir', 'To do tonight', 'Por hacer esta noche')}
+                  </div>
+                  {todo.map((x) => (
+                    <p key={x} className="text-zinc-300">• {x}</p>
+                  ))}
+                </div>
+              )}
+
+              <details className="text-xs text-zinc-400 border border-white/5 bg-black/30 p-2.5 rounded">
+                <summary className="cursor-pointer text-zinc-500 hover:text-zinc-300 font-medium">{tr('Guide du Coffre (Comment ça marche)', 'Vault Guide (How it works)', 'Guía del Cofre (Cómo funciona)')}</summary>
+                <ol className="mt-2.5 list-decimal space-y-1.5 pl-4 text-zinc-400 leading-relaxed text-[11px]">
+                  {steps.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ol>
+              </details>
+            </section>
+
+            {/* Compte suisse & Réserve Tactique */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <section className="rounded-xl border border-white/10 bg-[#0d0e14] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xs font-bold">
+                      +
                     </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">{tr('Compte Suisse', 'Swiss Account', 'Cuenta Suiza')}</h3>
+                      <p className="text-[10px] text-zinc-500">{tr('À l’abri de la ruine (10% frais)', 'Safe from bust (10% fee)', 'A salvo de la ruina (10% comisión)')}</p>
+                    </div>
+                  </div>
+                  <span className="text-lg font-bold tabular-nums text-amber-300">{money(swissBank)}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {swissBank >= 500 && (
+                    <button onClick={() => withdrawFromSwiss(500)} className={ghost}>
+                      {t.withdrawSwiss}
+                    </button>
+                  )}
+                  <button disabled={cash < 500} onClick={() => transferToSwiss(500)} className={ghost}>
+                    {t.transfer500}
+                  </button>
+                  <button disabled={cash < 1500} onClick={() => transferToSwiss(1500)} className={ghost}>
+                    {t.transfer1500}
+                  </button>
+                </div>
+              </section>
+
+              {/* Pouvoirs tactiques */}
+              <section className="rounded-xl border border-white/10 bg-[#0d0e14] p-4 space-y-3">
+                <div className="border-b border-white/10 pb-2">
+                  <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">{t.tacticalUsage}</h3>
+                  <p className="text-[10px] text-zinc-500">{tr('Pièces spéciales gardées en réserve', 'Special pieces kept in reserve', 'Piezas especiales guardadas')}</p>
+                </div>
+                {inventory.some((i) => /passeport/i.test(i.name) || /téléphone.*député/i.test(i.name)) ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {inventory.some((i) => /passeport/i.test(i.name)) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = inventory.find((i) => /passeport/i.test(i.name));
+                          if (!target) return;
+                          sound.playDealSuccess();
+                          setInventory((inv) => inv.filter((i) => i.id !== target.id));
+                          setCityHeat(15);
+                          setRaidNote(t.burnPassportNote);
+                        }}
+                        className="border border-red-500/40 bg-red-950/30 px-3 py-1.5 text-xs text-red-200 hover:bg-red-900/50 rounded"
+                      >
+                        {t.burnPassport}
+                      </button>
+                    )}
+                    {inventory.some((i) => /téléphone.*député/i.test(i.name)) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = inventory.find((i) => /téléphone.*député/i.test(i.name));
+                          if (!target) return;
+                          const discount = Math.round(dailyRent * 0.4);
+                          sound.playDealSuccess();
+                          setInventory((inv) => inv.filter((i) => i.id !== target.id));
+                          setCash((c) => c + discount);
+                          setRaidNote(t.callContactNote(formatMoney(discount, L)));
+                        }}
+                        className="border border-amber-500/40 bg-amber-950/30 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-900/50 rounded"
+                      >
+                        {t.callContact}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-zinc-500 italic pt-1">{tr('Aucune pièce tactique active (Passeport, Téléphone Député...)', 'No tactical item active (Passport, Deputy Phone...)', 'Sin piezas tácticas activas (Pasaporte, Teléfono Diputado...)')}</p>
+                )}
+              </section>
+            </div>
+
+            {/* Pièces en réserve (Cartes Visuelles Ultra-Polish) */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
+                  {tr('Pièces en réserve', 'Pieces in reserve', 'Piezas en reserva')} <span className="text-amber-400">({inventory.length})</span>
+                </h2>
+                <span className="text-[10px] text-zinc-500">{tr('Nettoie pour revendre aux enchères ou liquide en direct', 'Clean for auctions or fast sell for instant cash', 'Limpia para subastas o vende rápido')}</span>
+              </div>
+
+              {inventory.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/10 bg-black/30 p-8 text-center space-y-2">
+                  <p className="text-sm text-zinc-400">{t.vaultEmpty}</p>
+                  <p className="text-xs text-zinc-600">{tr('Retourne au comptoir pour négocier tes premières acquisitions.', 'Head back to the counter to negotiate your first deals.', 'Vuelve al mostrador para negociar tus compras.')}</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {inventory.map((item) => {
+                    const ui = SECRET_UI[L];
+                    const kind = itemKindFor(item.name);
+                    const fastPayout = getFastSellPayout(item);
+                    const auctionPayout = getAuctionPayout(item);
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-white/10 bg-[#0d0e14] p-4 hover:border-amber-500/30 transition-all space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Miniature visuelle de l'objet */}
+                            <div className="relative h-14 w-20 shrink-0 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                              <img
+                                src={`/assets/items/${kind}.webp`}
+                                alt={item.name}
+                                className="h-full w-full object-contain mix-blend-lighten drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]"
+                              />
+                              {item.secretId && item.secretState === 'open' && (
+                                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                              )}
+                            </div>
+
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-bold text-zinc-100 truncate">{localizeItemName(item.name, L)}</h3>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                  item.cleaned ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-red-950/80 text-red-300 border border-red-500/30'
+                                }`}>
+                                  {item.cleaned ? t.cleanedBadge : item.hotLevel === 'BRÛLANT' ? tr('Brûlant', 'Hot', 'Caliente') : tr('Tiède', 'Warm', 'Tibia')}
+                                </span>
+                                {item.modifier && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/30">
+                                    {item.modifier === 'traceur' ? t.modGps : item.modifier === 'collection' ? t.modCollection : t.modCounterfeit}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-zinc-400">
+                                <span className="text-zinc-500">{localizeFaction(item.faction, L)}</span> · {t.paidLabel(formatMoney(item.paid, L))} · <span className="text-emerald-400 font-semibold">{tr('rue', 'street', 'calle')} ~{money(item.streetValue)}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Boutons d'action */}
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            {!item.cleaned && (
+                              <button onClick={() => cleanItem(item.id)} className={ghost}>
+                                {t.cleanBtn}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => sellItem(item.id, 'fast')}
+                              className="border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-900/60 rounded transition-colors"
+                            >
+                              {t.fastSellBtn(formatMoney(fastPayout, L))}
+                            </button>
+                            <button
+                              onClick={() => sellItem(item.id, 'auction')}
+                              className="brass px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1a1206] transition-transform hover:scale-105"
+                            >
+                              {t.auctionBtn(formatMoney(auctionPayout, L))}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Énigme du Double Fond */}
+                        {item.secretId && item.secretState === 'open' && (
+                          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenSecretId((cur) => (cur === item.id ? null : item.id));
+                                setSecretInput('');
+                              }}
+                              className="text-xs font-bold text-amber-300 uppercase tracking-wider hover:underline"
+                            >
+                              {ui.badge} · {openSecretId === item.id ? ui.close : ui.examine}
+                            </button>
+                            {openSecretId === item.id && (() => {
+                              const c = secretContent(item.secretId!, L);
+                              if (!c) return null;
+                              return (
+                                <div className="space-y-3 border-t border-amber-500/20 pt-2 text-zinc-200">
+                                  <p className="whitespace-pre-line text-xs leading-relaxed">{c.note}</p>
+                                  {showHint[item.id] && <p className="text-xs text-sky-300">{c.hint}</p>}
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                      value={secretInput}
+                                      onChange={(e) => setSecretInput(e.target.value)}
+                                      onKeyDown={(e) => e.key === 'Enter' && submitSecret(item)}
+                                      placeholder={ui.placeholder}
+                                      maxLength={24}
+                                      className="min-w-0 flex-1 border border-white/20 bg-black/60 px-2.5 py-1.5 text-xs text-zinc-100 rounded"
+                                    />
+                                    <button type="button" onClick={() => submitSecret(item)} className="brass px-3 py-1.5 text-xs font-bold text-[#1a1206]">
+                                      {ui.submit}
+                                    </button>
+                                    <button type="button" onClick={() => setShowHint((h) => ({ ...h, [item.id]: true }))} className={ghost}>
+                                      {ui.hint}
+                                    </button>
+                                  </div>
+                                  <p className="text-[10px] text-zinc-500">{ui.lostOnSale}</p>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        {secretMsg[item.id] && (
+                          <p className={`text-xs ${item.secretState === 'solved' ? 'text-emerald-300' : item.secretState === 'burned' ? 'text-red-300' : 'text-amber-300'}`}>{secretMsg[item.id]}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Pistes */}
+            <details className="border-t border-white/10 pt-4 text-sm">
+              <summary className="cursor-pointer text-zinc-300 hover:text-white">
+                {tr('Pistes', 'Cases', 'Casos')} <span className="text-zinc-500">· {tr(`${solvedCases}/${STORY_ARCS.length} résolues`, `${solvedCases}/${STORY_ARCS.length} solved`, `${solvedCases}/${STORY_ARCS.length} resueltos`)}</span>
+              </summary>
+              <p className="mt-3 text-zinc-500">
+                {tr('Achète l’objet-clé d’une piste : un client reviendra le réclamer et paiera cher.', 'Buy the key item of a case: a client will come back to claim it and pay well.', 'Compra el objeto clave de un caso: un cliente volverá a reclamarlo y pagará bien.')}
+              </p>
+              <ul className="mt-3 space-y-1">
+                {STORY_ARCS.map((arc) => {
+                  const solved = arcNotes.some((n) => n.arcId === arc.id && n.resolved);
+                  const active = arcNotes.some((n) => n.arcId === arc.id && !n.resolved);
+                  return (
+                    <li key={arc.id} className={solved ? 'text-emerald-400' : active ? 'text-amber-200' : 'text-zinc-500'}>
+                      {solved ? '✓' : active ? '•' : '○'} {localizeArcTitle(arc.id, arc.title, L)}
+                      <span className="text-zinc-500"> {solved ? tr('· résolue', '· solved', '· resuelto') : active ? tr('· en cours', '· in progress', '· en curso') : ''}</span>
+                    </li>
                   );
                 })}
-              </div>
-            )}
-          </div>
+              </ul>
+            </details>
 
-          {/* Collection des 6 Énigmes (Pistes) */}
-          <div className="border border-white/10 bg-[#0b0d12] p-4 space-y-2.5">
-            <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-200">
-              {t.arcsTitle(
-                STORY_ARCS.filter((a) => arcNotes.some((n) => n.arcId === a.id && n.resolved)).length,
-                STORY_ARCS.length,
-              )}
-            </h3>
-            <p className="font-mono text-[11px] leading-relaxed text-zinc-400">
-              {gameLocale === 'en'
-                ? 'Buy the key item of a case (●): a client will come back to claim it and pay well. ○ not opened yet · ✓ solved.'
-                : gameLocale === 'es'
-                  ? 'Compra el objeto clave de un caso (●): un cliente volverá a reclamarlo y pagará bien. ○ sin abrir · ✓ resuelto.'
-                  : 'Achète l’objet-clé d’une piste (●) : un client reviendra le réclamer et paiera cher. ○ pas encore ouverte · ✓ résolue.'}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {STORY_ARCS.map((arc) => {
-                const solved = arcNotes.some((n) => n.arcId === arc.id && n.resolved);
-                const active = arcNotes.some((n) => n.arcId === arc.id && !n.resolved);
-                return (
-                  <div
-                    key={arc.id}
-                    className={`border px-2.5 py-1.5 font-mono text-[11px] ${
-                      solved
-                        ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
-                        : active
-                          ? 'border-amber-500/40 bg-amber-950/20 text-amber-200'
-                          : 'border-white/10 bg-black/40 text-zinc-500'
-                    }`}
-                  >
-                    {solved ? '✓ ' : active ? '● ' : '○ '}
-                    {localizeArcTitle(arc.id, arc.title, gameLocale)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="border border-white/10 bg-[#0b0d12] p-4 space-y-2.5">
-            <button
-              type="button"
-              onClick={() => setShowRegistry((v) => !v)}
-              className="flex w-full items-center justify-between font-mono text-xs font-semibold uppercase tracking-wider text-zinc-200"
-            >
-              <span>
-                {gameLocale === 'en' ? 'Client ledger' : gameLocale === 'es' ? 'Registro de clientes' : 'Registre des clients'} ({registry.length})
-              </span>
-              <span className="text-zinc-500">{showRegistry ? '−' : '+'}</span>
-            </button>
-            {showRegistry &&
-              (registry.length === 0 ? (
-                <p className="font-mono text-[11px] text-zinc-500">
-                  {gameLocale === 'en' ? 'No client yet.' : gameLocale === 'es' ? 'Aún no hay clientes.' : 'Aucun client pour l’instant.'}
-                </p>
+            {/* Registre des clients */}
+            <details open={showRegistry} onToggle={(e) => setShowRegistry((e.currentTarget as HTMLDetailsElement).open)} className="border-t border-white/10 pt-4 text-sm">
+              <summary className="cursor-pointer text-zinc-300 hover:text-white">
+                {tr('Registre des clients', 'Client ledger', 'Registro de clientes')} <span className="text-zinc-500">({registry.length})</span>
+              </summary>
+              {registry.length === 0 ? (
+                <p className="mt-3 text-zinc-500">{tr('Aucun client pour l’instant.', 'No client yet.', 'Aún no hay clientes.')}</p>
               ) : (
-                <ul className="max-h-80 space-y-1.5 overflow-y-auto thin-scroll">
+                <ul className="mt-3 max-h-80 divide-y divide-white/5 overflow-y-auto thin-scroll">
                   {[...registry].reverse().slice(0, 30).map((r) => {
                     const visits = registry.filter((x) => x.castId && x.castId === r.castId).length;
                     const label =
                       r.result === 'deal'
-                        ? gameLocale === 'en' ? `Bought $${formatMoney(r.paid, gameLocale)} (street ~$${formatMoney(r.street, gameLocale)})` : gameLocale === 'es' ? `Comprado ${formatMoney(r.paid, gameLocale)} $ (calle ~${formatMoney(r.street, gameLocale)} $)` : `Acheté ${formatMoney(r.paid, gameLocale)} $ (rue ~${formatMoney(r.street, gameLocale)} $)`
+                        ? tr(`Acheté ${money(r.paid)}`, `Bought ${money(r.paid)}`, `Comprado ${money(r.paid)}`)
                         : r.result === 'trap'
-                          ? gameLocale === 'en' ? 'Fell for a sting' : gameLocale === 'es' ? 'Caíste en una trampa' : 'Tombé dans une souricière'
+                          ? tr('Souricière', 'Sting', 'Trampa')
                           : r.result === 'gun'
-                            ? gameLocale === 'en' ? 'Held you up' : gameLocale === 'es' ? 'Te atracó' : 'T’a braqué'
-                            : gameLocale === 'en' ? 'Walked out / passed' : gameLocale === 'es' ? 'Se fue / rechazado' : 'Parti / refusé';
+                            ? tr('Braquage', 'Hold-up', 'Atraco')
+                            : tr('Parti / refusé', 'Walked / passed', 'Se fue / rechazado');
                     return (
-                      <li key={r.id} className="flex items-center gap-2.5 border border-white/5 bg-black/30 p-1.5 font-mono text-[11px]">
+                      <li key={r.id} className="flex items-center gap-3 py-2">
                         <img
-                          src={`/assets/portraits/${resolveCastPortrait(r.castId, r.gender, r.name, r.job)}.webp`}
+                          src={`/assets/portraits/${resolveCastPortrait(r.portraitId ?? r.castId, r.gender, r.name, r.job)}.webp`}
                           alt=""
                           loading="lazy"
-                          className="h-10 w-10 shrink-0 object-cover object-top"
+                          className="h-9 w-9 shrink-0 object-cover object-top"
                         />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-zinc-100">
+                          <span className="block truncate text-zinc-200">
                             {r.name}
                             {visits > 1 ? ` ×${visits}` : ''}
                           </span>
-                          <span className="block truncate text-zinc-500">{localizeArchetype(r.job, gameLocale)} · {gameLocale === 'en' ? 'Day' : gameLocale === 'es' ? 'Día' : 'Jour'} {r.day}</span>
+                          <span className="block truncate text-xs text-zinc-500">
+                            {localizeArchetype(r.job, L)} · {tr('Jour', 'Day', 'Día')} {r.day}
+                          </span>
                         </span>
-                        <span className={`shrink-0 text-right ${r.result === 'deal' ? 'text-emerald-300' : 'text-red-300'}`}>{label}</span>
+                        <span className={`shrink-0 text-xs ${r.result === 'deal' ? 'text-emerald-400' : 'text-red-400'}`}>{label}</span>
                       </li>
                     );
                   })}
                 </ul>
-              ))}
-          </div>
-        </main>
-      )}
+              )}
+            </details>
+          </main>
+        );
+      })()}
 
       {/* TAB: SHOP / UPGRADES & MONETIZATION */}
       {tab === 'shop' && (
@@ -2918,32 +3609,52 @@ export default function App() {
               return (
                 <div
                   key={up.key}
-                  className="border border-white/15 bg-[#0a0c10] p-5 flex flex-col justify-between space-y-4"
+                  className="group overflow-hidden rounded-xl border border-white/10 bg-[#0c0d12] flex flex-col justify-between hover:border-amber-500/40 transition-all shadow-xl"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="relative h-28 w-full overflow-hidden bg-black/80">
+                    <img
+                      src={`/assets/empire/${up.key}.webp`}
+                      alt={up.title}
+                      className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-transparent to-transparent" />
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-black/70 backdrop-blur-md border border-amber-500/40 flex items-center justify-center text-amber-300">
+                        <EmpireIcon id={up.key} className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="absolute top-2.5 right-2.5">
+                      {owned ? (
+                        <span className="flex items-center gap-1 rounded bg-emerald-950/80 border border-emerald-500/50 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300 backdrop-blur-md">
+                          <Unlock className="w-3 h-3" /> {t.equipped}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 rounded bg-black/70 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-zinc-400 backdrop-blur-md">
+                          <Lock className="w-3 h-3" /> {formatMoney(up.cost, gameLocale)} $
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                    <div>
                       <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-100">
                         {up.title}
                       </h3>
-                      {owned ? (
-                        <Unlock className="w-4 h-4 shrink-0 text-emerald-400" />
-                      ) : (
-                        <Lock className="w-4 h-4 shrink-0 text-zinc-500" />
-                      )}
+                      <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">{up.desc}</p>
                     </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed">{up.desc}</p>
+                    <button
+                      disabled={owned || cash < up.cost}
+                      onClick={() => buyUpgrade(up.key, up.cost)}
+                      className={`w-full py-2 rounded font-mono text-xs font-bold uppercase tracking-wider transition-colors mt-2 ${
+                        owned
+                          ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 cursor-default'
+                          : 'brass text-[#1a1206] disabled:opacity-40'
+                      }`}
+                    >
+                      {owned ? t.equipped : t.buyUpgrade(formatMoney(up.cost, gameLocale))}
+                    </button>
                   </div>
-                  <button
-                    disabled={owned || cash < up.cost}
-                    onClick={() => buyUpgrade(up.key, up.cost)}
-                    className={`w-full py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                      owned
-                        ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/35'
-                        : 'brass text-[#1a1206] disabled:opacity-40'
-                    }`}
-                  >
-                    {owned ? t.equipped : t.buyUpgrade(formatMoney(up.cost, gameLocale))}
-                  </button>
                 </div>
               );
             })}
@@ -2975,30 +3686,48 @@ export default function App() {
                 return (
                   <div
                     key={asset.id}
-                    className="border border-white/15 bg-[#0a0c10] p-5 flex flex-col justify-between space-y-4"
+                    className="group overflow-hidden rounded-xl border border-white/10 bg-[#0c0d12] flex flex-col justify-between hover:border-emerald-500/40 transition-all shadow-xl"
                   >
-                    <div className="space-y-2">
-                      <span className="inline-block text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 uppercase tracking-wider">
-                        {locAsset.tag}
-                      </span>
-                      <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-100">
-                        {locAsset.name}
-                      </h3>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{locAsset.desc}</p>
+                    <div className="relative h-28 w-full overflow-hidden bg-black/80">
+                      <img
+                        src={`/assets/empire/${asset.id}.webp`}
+                        alt={locAsset.name}
+                        className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-transparent to-transparent" />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-lg bg-black/70 backdrop-blur-md border border-emerald-500/40 flex items-center justify-center text-emerald-300">
+                          <EmpireIcon id={asset.id} className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="inline-block text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 uppercase tracking-wider rounded font-bold backdrop-blur-md">
+                          {locAsset.tag}
+                        </span>
+                      </div>
                     </div>
-                    <button
-                      disabled={owned || swissBank < asset.costSwiss}
-                      onClick={() => buyCityAsset(asset)}
-                      className={`w-full py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                        owned
-                          ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/35'
-                          : 'border border-emerald-500/50 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 disabled:opacity-40'
-                      }`}
-                    >
-                      {owned
-                        ? t.assetOwned
-                        : t.buyAsset(formatMoney(asset.costSwiss, gameLocale))}
-                    </button>
+                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-100 truncate">
+                          {locAsset.name}
+                        </h3>
+                        <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">{locAsset.desc}</p>
+                      </div>
+                      <button
+                        disabled={owned || swissBank < asset.costSwiss}
+                        onClick={() => buyCityAsset(asset)}
+                        className={`w-full py-2 rounded font-mono text-xs font-bold uppercase tracking-wider transition-colors mt-2 ${
+                          owned
+                            ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/35 cursor-default'
+                            : 'border border-emerald-500/50 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 disabled:opacity-40'
+                        }`}
+                      >
+                        {owned
+                          ? t.assetOwned
+                          : t.buyAsset(formatMoney(asset.costSwiss, gameLocale))}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -3020,27 +3749,51 @@ export default function App() {
                         generateProceduralCase(day, cityHeat, lastMemory || undefined, dist.multiplier, gameLocale),
                       );
                     }}
-                    className={`text-left p-4 border transition-colors ${
+                    className={`group overflow-hidden rounded-xl border text-left flex flex-col justify-between transition-all shadow-xl ${
                       active
-                        ? 'bg-amber-500/15 border-amber-500/50'
+                        ? 'border-amber-500/60 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
                         : unlocked
-                          ? 'bg-[#0a0c10] border-white/15 hover:border-white/35'
-                          : 'bg-zinc-950 border-white/5 opacity-50'
+                          ? 'border-white/10 bg-[#0c0d12] hover:border-white/20'
+                          : 'border-white/5 bg-black/40 opacity-50 cursor-not-allowed'
                     }`}
                   >
-                    <div className="flex items-center justify-between font-mono text-xs font-semibold uppercase tracking-wider">
-                      <span className={active ? 'text-amber-300' : 'text-zinc-200'}>
-                        {locDist.name}
-                      </span>
-                      <span className="text-[10px] text-zinc-400">
-                        {unlocked
-                          ? active
-                            ? t.districtActive
-                            : t.districtOpen
-                          : t.districtRequired(formatMoney(dist.unlockSwiss, gameLocale))}
-                      </span>
+                    <div className="relative h-28 w-full overflow-hidden bg-black/80">
+                      <img
+                        src={`/assets/empire/${dist.id}.webp`}
+                        alt={locDist.name}
+                        className="h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-transparent to-transparent" />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-2">
+                        <div className={`h-7 w-7 rounded-lg backdrop-blur-md flex items-center justify-center ${
+                          active ? 'bg-amber-500/30 text-amber-300 border border-amber-400/50' : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                        }`}>
+                          <EmpireIcon id={dist.id} className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="inline-block text-[9px] font-mono text-zinc-300 bg-black/70 border border-white/10 px-2 py-0.5 rounded backdrop-blur-md">
+                          {dist.unlockSwiss === 0
+                            ? t.districtOpen
+                            : t.districtRequired(formatMoney(dist.unlockSwiss, gameLocale))}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-1.5">{locDist.desc}</p>
+                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-100 truncate">
+                          {locDist.name}
+                        </h3>
+                        <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">{locDist.desc}</p>
+                      </div>
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-[10px] uppercase">
+                        <span className={active ? 'font-bold text-amber-400' : unlocked ? 'text-zinc-400' : 'text-zinc-600'}>
+                          {active ? t.districtActive : unlocked ? t.districtOpen : t.districtRequired(formatMoney(dist.unlockSwiss, gameLocale))}
+                        </span>
+                        {active && <span className="text-amber-400">✓ ACTIF</span>}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
@@ -3064,6 +3817,7 @@ export default function App() {
           historyLog={historyLog}
           completedEpisodes={completedEpisodes}
           onStartEpisode={startSeasonEpisode}
+          daysSinceStart={daysSinceStart}
           questProgress={questProgress}
           claimedQuestIds={claimedQuestIds}
           loginStreak={loginStreak}
@@ -3084,40 +3838,73 @@ export default function App() {
           />
           <FilmOverlay />
 
-          <div className="relative z-20 flex h-full min-h-0 flex-col justify-between overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-[21rem_minmax(0,1fr)_21rem] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-x-6 lg:gap-y-3 lg:px-6 lg:pt-4">
+          <div className="relative z-20 flex h-full min-h-0 flex-col justify-between overflow-hidden lg:grid lg:grid-cols-[21rem_minmax(0,1fr)_21rem] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-x-6 lg:gap-y-3 lg:px-6 lg:pt-4">
             {/* ==================== HAUT : HUD & CARNET DE COMPTOIR ==================== */}
-            <div className="pointer-events-none relative z-30 flex flex-col gap-2 p-2 sm:p-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:pt-4 lg:contents">
+            <div className="pointer-events-none relative z-30 flex flex-col gap-1.5 p-2 sm:p-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:pt-4 lg:contents">
               {/* Gauche : HUD sobre typographique avec fond sombre protecteur */}
-              <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2 rounded-sm border border-white/10 bg-black/85 p-2 sm:p-3 sm:gap-2.5 backdrop-blur-md drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] lg:col-start-1 lg:row-start-1 lg:max-w-none lg:self-start">
-                <div className="flex items-baseline justify-between gap-2 sm:gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+              <div className="pointer-events-auto flex w-full max-w-md flex-col gap-1.5 sm:gap-2.5 rounded-sm border border-white/10 bg-black/85 p-2 sm:p-3 backdrop-blur-md drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] lg:col-start-1 lg:row-start-1 lg:max-w-none lg:self-start">
+                <div className="flex items-center justify-between gap-2 sm:items-baseline sm:gap-4">
+                  <button type="button" onClick={() => setShowClientSheet(true)} className="shrink-0 self-center lg:hidden" aria-label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')}>
+                    <img
+                      src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
+                      alt=""
+                      className="h-12 w-12 rounded-full border border-amber-500/40 object-cover object-[50%_18%]"
+                    />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-1.5 sm:flex-wrap sm:gap-x-2 sm:gap-y-0 max-sm:truncate">
                       {currentCase.isBoss && (
-                        <span className="bg-red-600/90 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white sm:text-[11px]">
+                        <span className="bg-red-600/90 px-1 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-white sm:text-[11px] shrink-0">
                           BOSS · {currentCase.bossTitle}
                         </span>
                       )}
-                      <span className="font-[family-name:var(--font-display)] text-xl tracking-wider text-zinc-100 uppercase sm:text-3xl">
+                      {currentCase.arcStep === 2 && (
+                        <span className={`px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest sm:text-[11px] shrink-0 ${
+                          inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                            ? 'bg-amber-600/90 text-white'
+                            : 'bg-zinc-800 text-zinc-300 border border-zinc-600'
+                        }`}>
+                          {inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                            ? tt('RACHAT', 'BUYBACK', 'RECOMPRA')
+                            : tt('PISTE PERDUE', 'LOST LEAD', 'PISTA PERDIDA')}
+                        </span>
+                      )}
+                      <span className="truncate font-[family-name:var(--font-display)] text-base tracking-wider text-zinc-100 uppercase sm:shrink-0 sm:overflow-visible sm:whitespace-nowrap sm:text-3xl">
                         {currentCase.name}
                       </span>
-                      <span className="font-mono text-[10px] text-zinc-400 uppercase sm:text-[11px]">
+                      <span className="hidden sm:inline font-mono text-[10px] text-zinc-400 uppercase sm:text-[11px]">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                     </div>
-                    <p className="truncate font-mono text-[10px] uppercase tracking-widest text-amber-400/90 sm:text-[11px]">
-                      {localizeItemName(currentCase.item.name, gameLocale)} · {localizeFaction(currentCase.faction, gameLocale)}
-                    </p>
+                    <div className="max-lg:[@media(max-height:520px)]:hidden flex min-w-0 flex-col items-start gap-0 font-mono text-[9.5px] uppercase tracking-wider sm:flex-row sm:items-center sm:gap-1.5 sm:text-[11px]">
+                      <span className="sm:hidden max-w-full text-zinc-400 truncate">
+                        {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
+                      </span>
+                                            <span className="max-w-full truncate text-amber-400/90 font-medium">
+                        {currentCase.arcStep === 2 && !inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                          ? tt(`Recherche : ${localizeItemName(currentCase.item.name, gameLocale)}`, `Searching: ${localizeItemName(currentCase.item.name, gameLocale)}`, `Buscando: ${localizeItemName(currentCase.item.name, gameLocale)}`)
+                          : `${localizeItemName(currentCase.item.name, gameLocale)} · ${localizeFaction(currentCase.faction, gameLocale)}`}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Prix demandé massif + boutons rapides intégrés sur mobile */}
                   <div className="shrink-0 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                       <div className="text-right">
-                        <span className="block font-mono text-[10px] uppercase tracking-widest text-zinc-400 sm:text-[11px]">
-                          {currentCase.gender === 'f' ? t.askingShe : t.askingHe}
+                        <span className="hidden sm:block font-mono text-[10px] uppercase tracking-widest text-zinc-400 sm:text-[11px]">
+                          {currentCase.arcStep === 2
+                            ? (inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                                ? tt(currentCase.gender === 'f' ? 'Elle paie pour reprendre' : 'Il paie pour reprendre', currentCase.gender === 'f' ? 'She pays to retrieve' : 'He pays to retrieve', currentCase.gender === 'f' ? 'Ella paga para recuperar' : 'Él paga para recuperar')
+                                : tt('Pièce manquante', 'Missing item', 'Pieza faltante'))
+                            : currentCase.special?.kind === 'buyer' ? tt('Il propose', 'He offers', 'Ofrece') : currentCase.special ? tt('Indic', 'Informant', 'Confidente') : currentCase.gender === 'f' ? t.askingShe : t.askingHe}
                         </span>
-                        <span className="font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-amber-300 sm:text-4xl">
-                          {gameLocale === 'en' ? `$${formatMoney(askedPrice, gameLocale)}` : `${formatMoney(askedPrice, gameLocale)} $`}
+                        <span className="font-[family-name:var(--font-display)] text-xl sm:text-4xl leading-none tracking-wider text-amber-300">
+                          {currentCase.arcStep === 2
+                            ? (inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
+                                ? mny(currentCase.arcRewardCash || 0)
+                                : '—')
+                            : currentCase.special?.kind === 'buyer' ? mny(currentCase.special.offer) : currentCase.special ? '—' : mny(askedPrice)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 lg:hidden">
@@ -3125,16 +3912,16 @@ export default function App() {
                           <button
                             onClick={rerollClient}
                             title={gameLocale === 'en' ? `Next client (${rerollsLeft} left)` : `Suivant (${rerollsLeft} restants)`}
-                            className="flex items-center gap-1 border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
+                            className="flex items-center gap-0.5 border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[9px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
                           >
-                            <RotateCcw className="h-3 w-3" /> {rerollsLeft}
+                            <RotateCcw className="h-2.5 w-2.5" /> {rerollsLeft}
                           </button>
                         )}
                         <button
                           type="button"
-                          onClick={() => setShowBrief((v) => !v)}
+                          onClick={() => setShowHelp(true)}
                           title={gameLocale === 'en' ? 'How to play' : 'Comment jouer'}
-                          className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-400 hover:text-amber-300"
+                          className="border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[9px] text-zinc-400 hover:text-amber-300"
                         >
                           ?
                         </button>
@@ -3143,7 +3930,7 @@ export default function App() {
                     {priceTrail.length > 1 && (
                       <span
                         title={priceTrail.map((p) => (gameLocale === 'en' ? `$${formatMoney(p, gameLocale)}` : `${formatMoney(p, gameLocale)} $`)).join(' → ')}
-                        className="mt-0.5 block whitespace-nowrap font-mono text-[10px] text-emerald-400 sm:text-[11px]"
+                        className="mt-0.5 block whitespace-nowrap font-mono text-[9px] sm:text-[11px] text-emerald-400"
                       >
                         <s className="text-zinc-500">{gameLocale === 'en' ? `$${formatMoney(priceTrail[0], gameLocale)}` : `${formatMoney(priceTrail[0], gameLocale)} $`}</s>{' '}
                         −{((priceTrail[0] - askedPrice) / Math.max(1, priceTrail[0]) * 100).toFixed(0)} %
@@ -3153,14 +3940,25 @@ export default function App() {
                 </div>
 
                 {/* Jauges segmentées façon moniteur analogique */}
-                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[10px] sm:text-[11px]">
+                {currentCase.special?.kind === 'buyer' && (
+                  <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-1 font-mono text-[10px] sm:pt-1.5 sm:text-[11px]">
+                    <span className="font-semibold uppercase text-amber-300/90">{tt('Patience', 'Patience', 'Paciencia')}</span>
+                    <span className="flex gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className={`h-1.5 w-7 ${i < (currentCase.special?.kind === 'buyer' ? currentCase.special.patience : 0) ? 'bg-amber-400' : 'bg-white/10'}`} />
+                      ))}
+                    </span>
+                    <span className="text-zinc-400">{tt('Rue', 'Street', 'Calle')} ~{mny(currentCase.streetValue)}</span>
+                  </div>
+                )}
+                <div className={`${currentCase.special ? 'hidden ' : ''}grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[10px] sm:text-[11px]`}>
                   {[
                     {
                       label: t.fear,
                       val: gauges.peur,
                       delta: gaugeDeltas.peur,
                       key: `p-${gaugeDeltas.key}`,
-                      title: 'Plus il a peur, plus son prix plancher baisse',
+                      title: tt('Plus il a peur, plus son prix plancher baisse', 'The more afraid he is, the lower his floor price', 'Cuanto más miedo tiene, más baja su precio mínimo'),
                       labelCls: 'text-amber-300/90',
                       fillCls: 'bg-amber-400',
                       deltaCls: 'text-amber-300',
@@ -3170,7 +3968,7 @@ export default function App() {
                       val: gauges.colere,
                       delta: gaugeDeltas.colere,
                       key: `c-${gaugeDeltas.key}`,
-                      title: 'À 80% il dégaine son arme',
+                      title: tt('À 80% il dégaine son arme', 'At 80% he draws a weapon', 'Al 80 % saca un arma'),
                       labelCls: gauges.colere >= 60 ? 'animate-pulse font-bold text-red-400' : 'text-zinc-400',
                       fillCls: gauges.colere >= 60 ? 'bg-red-500' : 'bg-orange-400',
                       deltaCls: 'text-red-400',
@@ -3180,38 +3978,120 @@ export default function App() {
                       val: gauges.mefiance,
                       delta: gaugeDeltas.mefiance,
                       key: `m-${gaugeDeltas.key}`,
-                      title: 'À 88% il claque la porte',
+                      title: tt('À 88% il claque la porte', 'At 88% he walks out', 'Al 88 % se va dando un portazo'),
                       labelCls: 'text-sky-300/90',
                       fillCls: 'bg-sky-400',
                       deltaCls: 'text-sky-300',
                     },
-                  ].map((g) => (
-                    <div key={g.label} className="relative" title={g.title}>
-                      <div className={`mb-1 flex justify-between ${g.labelCls}`}>
-                        <span>{g.label}</span>
-                        <span>{g.val}%</span>
-                      </div>
-                      <div className="grid grid-cols-10 gap-0.5">
-                        {Array.from({ length: 10 }, (_, idx) => (
+                  ].map((g) => {
+                    const hasShift = Boolean(g.delta);
+                    const prevVal = g.val - (g.delta ?? 0);
+                    return (
+                      <div
+                        key={g.label}
+                        className={`relative rounded p-1 transition-all ${
+                          hasShift
+                            ? g.label === t.fear
+                              ? 'ring-1 ring-amber-400/80 bg-amber-400/10 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+                              : g.label === t.anger
+                                ? 'ring-1 ring-red-500/80 bg-red-500/10 shadow-[0_0_12px_rgba(239,68,68,0.35)]'
+                                : 'ring-1 ring-sky-400/80 bg-sky-400/10 shadow-[0_0_12px_rgba(56,189,248,0.35)]'
+                            : ''
+                        }`}
+                        title={g.title}
+                      >
+                        <div className={`mb-1 flex items-baseline justify-between gap-1 ${g.labelCls}`}>
+                          <span className="min-w-0 truncate font-semibold">{g.label}</span>
+                          <span className="shrink-0 whitespace-nowrap font-mono font-bold">
+                            {hasShift && <span className="mr-0.5 text-[9px] font-normal text-zinc-400">{prevVal}→</span>}
+                            {g.val}%
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-10 gap-0.5">
+                          {Array.from({ length: 10 }, (_, idx) => (
+                            <span
+                              key={idx}
+                              className={`h-1.5 transition-colors duration-200 ${
+                                g.val >= (idx + 1) * 10
+                                  ? hasShift && prevVal < (idx + 1) * 10
+                                    ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)]'
+                                    : g.fillCls
+                                  : hasShift && prevVal >= (idx + 1) * 10
+                                    ? 'bg-red-500/50 ring-1 ring-red-400/60'
+                                    : 'bg-white/10'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {hasShift && (
                           <span
-                            key={idx}
-                            className={`h-1.5 transition-colors duration-200 ${
-                              g.val >= (idx + 1) * 10 ? g.fillCls : 'bg-white/10'
-                            }`}
-                          />
+                            key={g.key}
+                            className={`animate-float-delta pointer-events-none absolute -top-3.5 right-0 font-mono text-[10px] font-bold ${g.deltaCls}`}
+                          >
+                            {(g.delta ?? 0) > 0 ? `+${g.delta}` : g.delta}%
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Journal Psychologique interactif (historique des paliers) */}
+                {psychoAudit.length > 1 && (
+                  <div className="border-t border-white/10 pt-1 font-mono text-[9px] sm:text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setShowPsychoAudit((prev) => !prev)}
+                      className="flex items-center justify-between w-full text-zinc-400 hover:text-amber-300 transition-colors uppercase tracking-wider py-0.5"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="sm:hidden">{tt('Historique', 'History', 'Historial')} ({psychoAudit.length - 1})</span>
+                        <span className="hidden sm:inline">{tt('Historique des jauges', 'Gauge history', 'Historial de medidores')} ({psychoAudit.length - 1} {tt('actions', 'shifts', 'acciones')})</span>
+                      </span>
+                      <span className="text-zinc-500">{showPsychoAudit ? '▲' : '▼'}</span>
+                    </button>
+
+                    {showPsychoAudit && (
+                      <div className="mt-1 max-h-28 sm:max-h-36 overflow-y-auto space-y-1 rounded bg-black/90 p-2 border border-white/10 text-[9px] no-scrollbar">
+                        {psychoAudit.slice(1).map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex flex-col gap-0.5 border-b border-white/5 pb-1 last:border-b-0"
+                          >
+                            <div className="flex items-center justify-between text-zinc-300">
+                              <span className="font-semibold text-amber-200/90 truncate max-w-[180px]">
+                                #{entry.turn} · {hitLoc(entry.action)}
+                              </span>
+                              {entry.priceDelta !== 0 && (
+                                <span className={entry.priceDelta < 0 ? 'text-emerald-400 font-bold' : 'text-red-400'}>
+                                  {entry.priceDelta < 0 ? `${entry.priceDelta} $` : `+${entry.priceDelta} $`}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-zinc-400">
+                              {entry.peurDelta !== 0 && (
+                                <span className="text-amber-300">
+                                  {t.fear} {entry.peur - entry.peurDelta}% → {entry.peur}% ({entry.peurDelta > 0 ? `+${entry.peurDelta}` : entry.peurDelta}%)
+                                </span>
+                              )}
+                              {entry.colereDelta !== 0 && (
+                                <span className="text-red-400">
+                                  {t.anger} {entry.colere - entry.colereDelta}% → {entry.colere}% ({entry.colereDelta > 0 ? `+${entry.colereDelta}` : entry.colereDelta}%)
+                                </span>
+                              )}
+                              {entry.mefianceDelta !== 0 && (
+                                <span className="text-sky-300">
+                                  {t.suspicion} {entry.mefiance - entry.mefianceDelta}% → {entry.mefiance}% ({entry.mefianceDelta > 0 ? `+${entry.mefianceDelta}` : entry.mefianceDelta}%)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      {Boolean(g.delta) && (
-                        <span
-                          key={g.key}
-                          className={`animate-float-delta pointer-events-none absolute -top-3 right-0 font-bold ${g.deltaCls}`}
-                        >
-                          {(g.delta ?? 0) > 0 ? `+${g.delta}` : g.delta}%
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Étagère & Stock actuel : parfaitement intégré en flux naturel, zéro collision */}
                 <div className="hidden items-center justify-between border-t border-white/10 pt-1.5 font-mono text-[11px] lg:flex">
@@ -3272,7 +4152,15 @@ export default function App() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setShowBrief((v) => !v)}
+                    onClick={() => setShowClientSheet(true)}
+                    title={tt('Fiche du client : tempérament, faille, historique des jauges', 'Client profile: temperament, weak spot, gauge history', 'Ficha del cliente: temperamento, punto débil, historial de medidores')}
+                    className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
+                  >
+                    {tt('Fiche', 'Profile', 'Ficha')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHelp(true)}
                     title={gameLocale === 'en' ? 'How to play' : 'Comment jouer'}
                     className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-400 hover:text-amber-300"
                   >
@@ -3289,12 +4177,37 @@ export default function App() {
                   history.length >= 3 ||
                   currentCase.arcId ||
                   (cityAssets.includes('lookout') && currentCase.isTrap)) && (
-                  <div className="w-full max-h-36 overflow-y-auto thin-scroll space-y-1.5 border border-amber-500/30 bg-[#12100b]/95 p-2 font-mono text-[10px] sm:text-[11px] sm:p-2.5 shadow-2xl backdrop-blur-md lg:max-h-none">
-                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-1 text-[9px] uppercase tracking-widest text-amber-400/80">
-                      <span>{t.counterNotebook}</span>
-                      <span>{t.confidential}</span>
-                    </div>
+                  <div className={`border border-amber-500/30 bg-[#12100b]/95 p-2 font-mono text-[10px] sm:text-[11px] sm:p-2.5 shadow-2xl backdrop-blur-md lg:w-full lg:max-h-none max-lg:absolute max-lg:right-2 max-lg:top-full max-lg:z-40 max-lg:mt-1 ${
+                    mobileNotebookOpen ? 'max-lg:left-2 max-h-[40vh] overflow-y-auto thin-scroll' : 'max-lg:w-auto max-lg:py-1'
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={() => setMobileNotebookOpen((v) => !v)}
+                      className="flex items-center justify-between w-full border-b border-amber-500/20 pb-1 text-[9px] uppercase tracking-widest text-amber-400/80 cursor-pointer lg:cursor-default"
+                    >
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <span className="max-lg:hidden">{t.counterNotebook}</span>
+                        <span className="lg:hidden">{tt('Carnet', 'Notes', 'Notas')}</span>
+                        <span className="text-zinc-500 font-normal lg:hidden">
+                          ({[
+                            currentCase.arcId ? 1 : 0,
+                            inspected ? 1 : 0,
+                            uvScanned ? 1 : 0,
+                            radioOpen ? 1 : 0,
+                            history.length >= FLAW_REVEAL_TURNS ? 1 : 0,
+                            cityAssets.includes('lookout') && currentCase.isTrap ? 1 : 0,
+                          ].reduce((a, b) => a + b, 0)})
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="max-lg:hidden">{t.confidential}</span>
+                        <span className="text-amber-400 font-bold lg:hidden text-xs">
+                          {mobileNotebookOpen ? '▲' : '▼'}
+                        </span>
+                      </span>
+                    </button>
 
+                    <div className={`${mobileNotebookOpen ? 'block' : 'hidden lg:block'} space-y-1.5 pt-1.5`}>
                     {cityAssets.includes('lookout') && currentCase.isTrap && outcome === 'active' && (
                       <p className="font-bold text-red-400">
                         {t.lookoutAlert}
@@ -3332,7 +4245,7 @@ export default function App() {
                       const castChar = currentCase.castId
                         ? CAST_ROSTER.find((c) => c.id === currentCase.castId)
                         : null;
-                      const profile = findProfileForArchetype(currentCase.archetype);
+                      const profile = findProfileForArchetype(castChar?.profileId ?? currentCase.archetype);
                       const isF = currentCase.gender === 'f';
                       const weakness = localizeCastText(
                         castChar
@@ -3413,6 +4326,7 @@ export default function App() {
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
 
@@ -3554,9 +4468,9 @@ export default function App() {
             {/* ==================== CENTRE : BUSTE + SOUS-TITRE CINÉMATIQUE ==================== */}
             <div className="relative flex min-h-0 flex-1 flex-col items-center justify-end lg:col-start-2 lg:row-start-1">
               {/* Silhouette / Portrait plein cadre */}
-              <div className="pointer-events-none relative mx-auto min-h-[5rem] max-h-[30vh] w-full max-w-[420px] flex-1 lg:max-h-none lg:min-h-0 lg:max-w-[600px]">
+              <div className={`pointer-events-none relative mx-auto h-[20vh] min-h-[118px] max-h-[210px] max-lg:hidden w-full max-w-[420px] flex-1 flex items-center justify-center overflow-hidden lg:h-auto lg:max-h-none lg:min-h-0 lg:max-w-[600px]`}>
                 <ClientBust
-                  castId={currentCase.castId}
+                  castId={currentCase.portraitOverride ?? currentCase.castId}
                   gender={currentCase.gender}
                   age={currentCase.age}
                   name={currentCase.name}
@@ -3570,7 +4484,7 @@ export default function App() {
               </div>
 
               {/* Tampon Papers, Please au dénouement (placé sur le portrait, jamais sur le texte) */}
-              {outcome !== 'active' && (
+              {outcome !== 'active' && !currentCase.special && (
                 <div className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center sm:top-14">
                   <div
                     key={`${currentCase.id}-${outcome}`}
@@ -3592,19 +4506,30 @@ export default function App() {
               )}
 
               {/* Objet posé à nu + Sous-titre cinématique côte à côte (zéro chevauchement) */}
-              <div className="relative z-20 mx-auto flex w-full max-w-5xl flex-row items-center gap-2 px-3 pb-2 sm:items-end sm:gap-4 sm:px-6">
-                <div className="w-24 shrink-0 sm:w-auto lg:hidden">{itemProp}</div>
+              <div className="relative z-20 mx-auto flex w-full max-w-5xl flex-row items-center gap-2 px-3 pb-2 max-lg:min-h-0 max-lg:flex-1 max-lg:items-stretch sm:items-end sm:gap-4 sm:px-6">
+                <div className="w-16 shrink-0 sm:w-auto lg:hidden">{itemProp}</div>
 
                 {/* Sous-titre cinématique unique + toggle Historique */}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 max-lg:flex max-lg:min-h-0 max-lg:flex-col max-lg:justify-end">
                 {(() => {
                   const lastPlayerTurn = [...history].reverse().find((t) => t.role === 'player');
                   const lastNpcTurn = [...history].reverse().find((t) => t.role === 'npc');
                   return (
-                    <div className="space-y-1.5 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-3 py-2.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] lg:rounded-sm lg:border lg:border-white/10 lg:bg-black/70 lg:bg-none lg:backdrop-blur-sm">
+                    <div className="space-y-1.5 max-lg:flex max-lg:min-h-0 max-lg:flex-col bg-gradient-to-t from-black/90 via-black/50 to-transparent px-3 py-2.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] lg:rounded-sm lg:border lg:border-white/10 lg:bg-black/70 lg:bg-none lg:backdrop-blur-sm">
                       {/* Mobile : fil de discussion (3 derniers messages), le visage reste visible au-dessus */}
-                      <div className="flex max-h-[34vh] shrink-0 flex-col justify-end gap-1.5 overflow-hidden lg:hidden">
-                        {history.slice(-2).map((turn, i, arr) => {
+                      <div ref={threadRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [&>*]:shrink-0 lg:hidden">
+                        <div className="mt-auto" />
+                        {history.length <= 1 && (
+                          <button type="button" onClick={() => setShowClientSheet(true)} className="mx-auto mb-1 shrink-0">
+                            <img
+                              src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
+                              alt=""
+                              onLoad={() => { const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }}
+                              className="h-[15vh] max-h-28 w-auto rounded-xl border border-amber-500/30 object-cover shadow-2xl"
+                            />
+                          </button>
+                        )}
+                        {history.map((turn, i, arr) => {
                           const isLastNpc = turn.role === 'npc' && i === arr.length - 1 && !loading;
                           return turn.role === 'player' ? (
                             <p key={`${history.length}-${i}`} className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-amber-500/15 px-2.5 py-1.5 font-mono text-xs text-amber-200">
@@ -3613,7 +4538,7 @@ export default function App() {
                           ) : (
                             <p key={`${history.length}-${i}`} className="mr-auto max-w-[92%] rounded-lg rounded-bl-sm bg-white/10 px-2.5 py-1.5 text-sm leading-snug text-zinc-100">
                               {isLastNpc ? (
-                                <Typewriter text={turn.content.slice(0, 420)} onChar={() => sound.playType()} />
+                                <Typewriter text={turn.content.slice(0, 420)} onChar={() => { sound.playType(); const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }} />
                               ) : (
                                 turn.content
                               )}
@@ -3692,10 +4617,14 @@ export default function App() {
                   );
                 })()}
 
-                {(error || cash < 100) && (
-                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 border border-red-500/50 bg-red-950/90 px-3 py-1.5 font-mono text-xs text-red-200">
-                    <span>
-                      {error || (gameLocale === 'en' ? `Cash register low ($${formatMoney(cash, gameLocale)}). Quick-sell stock to replenish:` : `Caisse presque vide (${formatMoney(cash, gameLocale)} $). Remets du liquide pour acheter :`)}
+                {(error || (cash < askedPrice && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2) || cash < 1000) && (
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-1.5 border border-amber-500/40 bg-[#16120d]/95 px-2 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs text-amber-200 shadow-lg">
+                    <span className="text-[10px] sm:text-[11px]">
+                      {error || (cash < askedPrice
+                        ? (inventory.length === 0 && swissBank < 500 && debt > 0
+                            ? tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés, et plus aucun recours. Négocie sous ${mny(cash)} ou passe ce client (aucune pénalité).`, `You have ${mny(cash)} for ${mny(askedPrice)} asked, and no way out. Negotiate under ${mny(cash)} or pass on this client (no penalty).`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos y ningún recurso. Negocia por debajo de ${mny(cash)} o pasa de este cliente (sin penalización).`)
+                            : tt(`Tu as ${mny(cash)} pour ${mny(askedPrice)} demandés. Négocie plus bas, ou trouve du cash :`, `You have ${mny(cash)} for ${mny(askedPrice)} asked. Negotiate lower, or raise cash:`, `Tienes ${mny(cash)} para ${mny(askedPrice)} pedidos. Negocia más bajo o consigue efectivo:`))
+                        : tt(`Caisse basse (${mny(cash)}). Options :`, `Cash low (${mny(cash)}). Options:`, `Caja baja (${mny(cash)}). Opciones:`))}
                     </span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {inventory.length > 0 && (
@@ -3718,16 +4647,25 @@ export default function App() {
                           onClick={() => withdrawFromSwiss(500)}
                           className="border border-amber-400/60 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 hover:bg-amber-500/35"
                         >
-                          Retirer 500 $ (Suisse)
+                          {tt('Retirer 500 $ (Suisse)', 'Withdraw $500 (Swiss)', 'Retirar 500 $ (Suiza)')}
                         </button>
                       )}
-                      {cash < 1000 && (
+                      {cash < askedPrice && outcome === 'active' && !currentCase.special && (
+                        <button
+                          type="button"
+                          onClick={passClient}
+                          className="border border-white/30 bg-black/50 px-2 py-0.5 text-[10px] font-bold text-zinc-200 hover:bg-white/10"
+                        >
+                          {tt('Passer ce client', 'Pass on this client', 'Pasar de este cliente')}
+                        </button>
+                      )}
+                      {debt === 0 && (
                         <button
                           type="button"
                           onClick={takeSyndicateLoan}
-                          className="border border-white/30 bg-black/50 px-2 py-0.5 text-[10px] text-zinc-200 hover:border-amber-400/60 hover:text-amber-200"
+                          className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-amber-500/30"
                         >
-                          Crédit Syndicat (+1 000 $, +15% Heat)
+                          {tt('Crédit Syndicat (+1 000 $, +15% Heat)', 'Syndicate Loan (+$1,000, +15% Heat)', 'Crédito Sindicato (+1.000 $, +15% Heat)')}
                         </button>
                       )}
                     </div>
@@ -3738,12 +4676,14 @@ export default function App() {
             </div>
 
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
-            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
+            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-3 py-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
                 {outcome !== 'active' ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 py-1">
                     <div className="flex items-center gap-2 font-mono text-xs sm:text-sm">
-                      {outcome === 'deal_accepte' ? (
+                      {currentCase.special ? (
+                        <span className="text-zinc-200">{tell}</span>
+                      ) : outcome === 'deal_accepte' ? (
                         <span className={currentCase.isTrap ? 'text-red-300' : 'text-emerald-300'}>
                           {currentCase.isTrap
                             ? (gameLocale === 'en'
@@ -3781,8 +4721,8 @@ export default function App() {
                             const trend = lastItem.category ? marketTrends[lastItem.category] ?? 1 : 1;
                             const hasTrend = trend > 1;
                             const bonusTags: string[] = [];
-                            if (hasBlind) bonusTags.push('Joker ×1.6');
-                            if (hasTrend) bonusTags.push(`Marché +${Math.round((trend - 1) * 100)}%`);
+                            if (hasBlind) bonusTags.push(tt('Joker ×1,6', 'Joker ×1.6', 'Comodín ×1,6'));
+                            if (hasTrend) bonusTags.push(`${tt('Marché', 'Market', 'Mercado')} +${Math.round((trend - 1) * 100)}%`);
                             const tagStr = bonusTags.length > 0 ? ` [${bonusTags.join(' · ')}]` : '';
                             return (
                               <button
@@ -3863,22 +4803,136 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-2.5">
+                ) : currentCase.special ? (() => {
+                  const sp = currentCase.special!;
+                  if (sp.kind === 'informant') {
+                    const opts = [{ cost: 250, drop: 15 }, { cost: 600, drop: 35 }];
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          {opts.map((o) => (
+                            <button
+                              key={o.cost}
+                              type="button"
+                              disabled={cash < o.cost}
+                              onClick={() => buyTip(o.cost, o.drop)}
+                              className="brass px-2 py-2.5 font-mono text-xs font-bold uppercase text-[#1a1206] disabled:opacity-40"
+                            >
+                              {tt(`Payer ${mny(o.cost)} · Heat −${o.drop} %`, `Pay ${mny(o.cost)} · Heat −${o.drop}%`, `Pagar ${mny(o.cost)} · Heat −${o.drop} %`)}
+                            </button>
+                          ))}
+                        </div>
+                        <button type="button" onClick={leaveSpecial} className="w-full border border-white/20 bg-black/60 px-3 py-2 font-mono text-[11px] uppercase text-zinc-300 hover:border-white/40">
+                          {tt('Pas besoin de toi', 'No thanks', 'No te necesito')}
+                        </button>
+                      </div>
+                    );
+                  }
+                  const ask = buyerAsk < 0 ? roundTo50(currentCase.streetValue) : buyerAsk;
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex items-stretch gap-2">
+                        <div className="flex items-center border border-amber-500/40 bg-black/80">
+                          <button type="button" onClick={() => setBuyerAsk(Math.max(50, ask - 100))} className="px-2 py-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10">-100</button>
+                          <div className="min-w-[88px] px-2 text-center">
+                            <input
+                              type="number"
+                              min={50}
+                              step={50}
+                              value={ask}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (!Number.isNaN(v)) setBuyerAsk(Math.max(0, Math.min(99999, Math.round(v))));
+                              }}
+                              className="w-20 bg-transparent text-center font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-emerald-300 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="block font-mono text-[9px] uppercase text-zinc-400">{tt('Ton prix', 'Your price', 'Tu precio')}</span>
+                          </div>
+                          <button type="button" onClick={() => setBuyerAsk(Math.min(99999, ask + 100))} className="border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10">+100</button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={proposeBuyerPrice}
+                          className="brass min-w-0 flex-1 px-3 py-2 font-[family-name:var(--font-display)] text-xl uppercase tracking-widest text-[#1a1206]"
+                        >
+                          {tt('Proposer', 'Offer', 'Proponer')}
+                        </button>
+                      </div>
+                      <div className="no-scrollbar flex gap-1.5 overflow-x-auto sm:flex-wrap [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+                        {BUYER_ARGS.map((a) => {
+                          const done = (sp.used ?? []).includes(a.key);
+                          return (
+                            <button
+                              key={a.key}
+                              type="button"
+                              disabled={done}
+                              onClick={() => useBuyerArgument(a.key)}
+                              className="border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-left font-mono text-[10px] leading-tight text-amber-200 hover:bg-amber-500/25 disabled:opacity-30"
+                            >
+                              {gameLocale === 'en' ? a.en : gameLocale === 'es' ? a.es : a.fr}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={acceptBuyerOffer}
+                          className="flex-1 border border-emerald-400/60 bg-emerald-950/60 px-2 py-2 font-mono text-[11px] font-semibold uppercase text-emerald-200 hover:bg-emerald-900/80"
+                        >
+                          {tt(`Accepter ${mny(sp.offer)}`, `Accept ${mny(sp.offer)}`, `Aceptar ${mny(sp.offer)}`)}
+                        </button>
+                        <button type="button" onClick={leaveSpecial} className="border border-white/20 bg-black/60 px-3 py-2 font-mono text-[11px] uppercase text-zinc-300 hover:border-white/40">
+                          {t.pass}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })() : currentCase.arcStep === 2 ? (() => {
+                  const hasArcItem = inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey);
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-3 py-1">
+                      <p className="min-w-0 flex-1 text-sm text-zinc-300">
+                        {hasArcItem
+                          ? tt(`${currentCase.name} veut la pièce que tu gardes et la paie ${mny(currentCase.arcRewardCash || 0)}. Livre-la pour clore la piste.`, `${currentCase.name} wants the piece you kept and pays ${mny(currentCase.arcRewardCash || 0)}. Deliver it to close the case.`, `${currentCase.name} quiere la pieza que guardas y paga ${mny(currentCase.arcRewardCash || 0)}. Entrégala para cerrar el caso.`)
+                          : tt('Tu n’as plus la pièce : ce client repart et la piste se referme.', 'You no longer have the piece: this client leaves and the case closes.', 'Ya no tienes la pieza: este cliente se va y el caso se cierra.')}
+                      </p>
+                      <div className="flex gap-2">
+                        {hasArcItem && (
+                          <button onClick={resolveArcStep2} className="brass px-5 py-2 text-sm font-semibold text-[#1a1206]">
+                            {t.arcDeliver(formatMoney(currentCase.arcRewardCash || 0, gameLocale))}
+                          </button>
+                        )}
+                        <button
+                          onClick={hasArcItem ? passClient : abandonArcStep2}
+                          className="border border-white/20 px-4 py-2 text-sm text-zinc-200 hover:border-white/40"
+                        >
+                          {hasArcItem ? t.pass : t.arcClose}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <div className="space-y-1.5 sm:space-y-2.5">
                     {/* Ligne 1 : Outils physiques à gauche + Compteur mécanique de liasses à droite */}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:gap-3">
+                      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 max-sm:order-1 max-lg:[@media(max-height:520px)]:hidden">
                         <button
                           onClick={() => {
                             if (weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract) return;
-                            if (!jokerIds.includes('a-l-aveugle')) setInspected(true);
+                            if (jokerIds.includes('a-l-aveugle')) {
+                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
+                              return;
+                            }
+                            setInspected(true);
+                            setMobileNotebookOpen(true);
                             sound.playInspect();
                           }}
                           disabled={Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract)}
                           title={
                             weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract
-                              ? 'Loupe fêlée cette semaine'
-                              : 'Examiner la pièce à la loupe'
+                              ? tt('Loupe fêlée cette semaine', 'Cracked loupe this week', 'Lupa rota esta semana')
+                              : tt('Examiner la pièce à la loupe', 'Examine the piece with the loupe', 'Examinar la pieza con la lupa')
                           }
                           className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all disabled:opacity-40 ${
                             inspected
@@ -3887,20 +4941,25 @@ export default function App() {
                           }`}
                         >
                           <Search className="h-3.5 w-3.5" />
-                          <span>{weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract ? t.loupeOff : t.loupe}</span>
+                          <span className="max-sm:hidden">{weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract ? t.loupeOff : t.loupe}</span>
                         </button>
 
                         <button
                           onClick={() => {
                             if (nightEvent?.disableUv && !currentCase.isDailyContract) return;
-                            if (!jokerIds.includes('a-l-aveugle')) setUvScanned(true);
+                            if (jokerIds.includes('a-l-aveugle')) {
+                              setError(tt('Joker « À l’aveugle » actif : Loupe et UV sont désactivées (en échange, revente ×1,6).', 'Blind Buyer joker active: Loupe and UV are disabled (in exchange, resale ×1.6).', 'Comodín «A ciegas» activo: Lupa y UV desactivadas (a cambio, reventa ×1,6).'));
+                              return;
+                            }
+                            setUvScanned(true);
+                            setMobileNotebookOpen(true);
                             sound.playInspect();
                           }}
                           disabled={Boolean(nightEvent?.disableUv && !currentCase.isDailyContract)}
                           title={
                             nightEvent?.disableUv && !currentCase.isDailyContract
-                              ? 'Panne secteur : lampe UV HS ce soir'
-                              : 'Passer la lampe UV'
+                              ? tt('Panne secteur : lampe UV HS ce soir', 'Power cut: UV lamp is out tonight', 'Apagón: lámpara UV fuera de servicio esta noche')
+                              : tt('Passer la lampe UV', 'Sweep the UV lamp', 'Pasar la lámpara UV')
                           }
                           className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all disabled:opacity-40 ${
                             uvScanned
@@ -3909,7 +4968,7 @@ export default function App() {
                           }`}
                         >
                           <Flashlight className="h-3.5 w-3.5" />
-                          <span>{nightEvent?.disableUv && !currentCase.isDailyContract ? t.uvOff : t.uv}</span>
+                          <span className="max-sm:hidden">{nightEvent?.disableUv && !currentCase.isDailyContract ? t.uvOff : t.uv}</span>
                         </button>
 
                         <button
@@ -3917,6 +4976,7 @@ export default function App() {
                             const next = !radioOpen;
                             setRadioOpen(next);
                             if (next) {
+                              setMobileNotebookOpen(true);
                               sound.playInspect();
                               ambience.crackle();
                             }
@@ -3928,18 +4988,19 @@ export default function App() {
                           }`}
                         >
                           <Radio className="h-3.5 w-3.5" />
-                          <span>{t.radio}</span>
+                          <span className="max-sm:hidden">{t.radio}</span>
                         </button>
                       </div>
 
                       {/* Compteur mécanique de billets + Boutons */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center border border-amber-500/40 bg-black/80">
+                      <div className="h-0 basis-full max-sm:order-4 sm:hidden max-lg:[@media(max-height:520px)]:hidden" aria-hidden />
+                      <div className="max-sm:contents flex flex-wrap items-center gap-2">
+                        <div className="flex items-center border border-amber-500/40 bg-black/80 max-sm:order-4">
                           <button
                             type="button"
                             disabled={cash < 100}
                             onClick={() => setOfferAmount((v) => Math.max(100, Math.min(cash, v) - 500))}
-                            className="px-2 py-1.5 font-mono text-xs text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            className="max-sm:hidden px-2 py-1.5 font-mono text-xs text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
                           >
                             -500
                           </button>
@@ -3951,7 +5012,7 @@ export default function App() {
                           >
                             -100
                           </button>
-                          <div className="min-w-[110px] px-2.5 py-0.5 text-center">
+                          <div className="min-w-[88px] sm:min-w-[110px] px-2 sm:px-2.5 py-0.5 text-center">
                             {cash < 100 ? (
                               <span className="block font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-red-400">
                                 {gameLocale === 'en' ? `$${formatMoney(cash, gameLocale)}` : `${formatMoney(cash, gameLocale)} $`}
@@ -4005,7 +5066,7 @@ export default function App() {
                             onClick={() =>
                               setOfferAmount((v) => Math.min(cash, currentCase.initialPrice, v + 500))
                             }
-                            className="border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            className="max-sm:hidden border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
                           >
                             +500
                           </button>
@@ -4014,7 +5075,7 @@ export default function App() {
                         <button
                           onClick={slapCashOnCounter}
                           disabled={loading || cash < 100}
-                          className="brass px-4 py-1.5 font-[family-name:var(--font-display)] text-xl tracking-widest uppercase text-[#1a1206] transition-transform hover:scale-[1.02] disabled:opacity-40"
+                          className="brass max-sm:order-5 max-sm:min-w-0 max-sm:flex-1 max-sm:py-2 max-[359px]:text-base max-[359px]:px-2 px-4 py-1.5 font-[family-name:var(--font-display)] text-xl tracking-widest uppercase text-[#1a1206] transition-transform hover:scale-[1.02] disabled:opacity-40"
                         >
                           {cash < 100 ? t.cashEmpty : t.slapCash}
                         </button>
@@ -4022,8 +5083,8 @@ export default function App() {
                         <button
                           onClick={passClient}
                           disabled={loading}
-                          title="Décliner poliment sans pénalité de Heat"
-                          className="border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[10px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
+                          title={tt('Décliner poliment sans pénalité de Heat', 'Decline politely with no Heat penalty', 'Rechazar con educación sin penalización de Heat')}
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:order-2 max-sm:ml-auto border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[10px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
                         >
                           {t.pass}
                         </button>
@@ -4032,8 +5093,8 @@ export default function App() {
                           <button
                             onClick={phantomBuyout}
                             disabled={loading}
-                            title="Revend jusqu’à 4 pièces du coffre à ×1,2 — plafond 15 000 $"
-                            className="border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
+                            title={tt('Revend jusqu’à 4 pièces du coffre à ×1,2 — plafond 15 000 $', 'Resells up to 4 vault pieces at ×1.2 — $15,000 cap', 'Revende hasta 4 piezas de la caja fuerte a ×1,2 — tope de 15 000 $')}
+                            className="max-sm:order-3 border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
                           >
                             {t.phantomBuyout(Math.min(PHANTOM_MAX_ITEMS, inventory.length))}
                           </button>
@@ -4042,8 +5103,8 @@ export default function App() {
                         <button
                           onClick={rejectTrap}
                           disabled={loading}
-                          title="Le démasquer : un infiltré décampe, un client réglo s'en va"
-                          className="border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
+                          title={tt('Le démasquer : un infiltré décampe, un client réglo s\'en va', 'Expose him: an undercover agent bolts, an honest client walks away', 'Desenmascararlo: un infiltrado huye, un cliente legal se va')}
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:order-3 border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
                         >
                           {t.expose}
                         </button>
@@ -4055,9 +5116,10 @@ export default function App() {
                       {(() => {
                         const undercut = Math.max(100, Math.round((askedPrice * 0.8) / 50) * 50);
                         const unlockedFaille = history.length >= FLAW_REVEAL_TURNS;
-                        const profile = findProfileForArchetype(currentCase.archetype);
+                        const castForChip = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
+                        const profile = findProfileForArchetype(castForChip?.profileId ?? currentCase.archetype);
                         return (
-                          <div className="flex w-full items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 sm:flex-wrap sm:overflow-visible [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+                          <div className="max-lg:[@media(max-height:520px)]:hidden grid w-full grid-cols-2 gap-1.5 py-0.5 sm:flex sm:flex-wrap sm:items-center [&>*]:whitespace-normal [&>*]:text-left sm:[&>*]:whitespace-nowrap">
                             {undercut <= cash && undercut < askedPrice && (
                               <button
                                 type="button"
@@ -4121,11 +5183,13 @@ export default function App() {
                                 triggerHaptic(15);
                                 sendMessage(
                                   unlockedFaille
-                                    ? t.chipFlawMsg(
+                                    ? flawLine(
                                         localizeCastText(
-                                          currentCase.gender === 'f' && profile.femaleWeaknessHint
-                                            ? profile.femaleWeaknessHint
-                                            : profile.weaknessHint,
+                                          castForChip
+                                            ? castForChip.weaknessHint
+                                            : currentCase.gender === 'f' && profile.femaleWeaknessHint
+                                              ? profile.femaleWeaknessHint
+                                              : profile.weaknessHint,
                                           gameLocale,
                                         ),
                                       )
@@ -4158,7 +5222,7 @@ export default function App() {
                               ? `${currentCase.name} ...`
                               : t.inputPlaceholder
                           }
-                          className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
+                          className="min-w-0 flex-1 bg-transparent text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
                         />
                         <button
                           type="button"
@@ -4198,6 +5262,160 @@ export default function App() {
         </main>
       )}
 
+      {/* Aide : règles, jauges et atouts actifs */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowHelp(false)}>
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+          <div
+            className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-white/10 bg-[#0c0d12] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 font-mono shadow-2xl sm:rounded-xl sm:pt-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-amber-300">{tt('Comment jouer', 'How to play', 'Cómo jugar')}</h3>
+              <button type="button" onClick={() => setShowHelp(false)} className="p-1 text-zinc-500 hover:text-zinc-200">✕</button>
+            </div>
+            <ol className="space-y-1.5 text-xs leading-relaxed text-zinc-300">
+              <li><span className="text-amber-400">1.</span> {tt('Négocie avec tes mots (ou les boutons) : achète sous la valeur de rue.', 'Negotiate in your own words (or with the buttons): buy under street value.', 'Negocia con tus palabras (o con los botones): compra por debajo del valor de calle.')}</li>
+              <li><span className="text-amber-400">2.</span> {tt('Loupe, UV et Radio révèlent la pièce et le piège. Un infiltré démasqué rapporte une prime.', 'Loupe, UV and Radio reveal the piece and the trap. Exposing an undercover agent pays a bounty.', 'Lupa, UV y Radio revelan la pieza y la trampa. Desenmascarar a un infiltrado da una prima.')}</li>
+              <li><span className="text-amber-400">3.</span> {tt('Au Coffre : nettoie, revends, paie le loyer du soir (affiché en haut).', 'In the Vault: clean, resell, pay tonight’s rent (shown at the top).', 'En la Caja: limpia, revende, paga el alquiler de esta noche (arriba).')}</li>
+            </ol>
+            <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
+            <ul className="space-y-1 text-xs leading-relaxed text-zinc-300">
+              <li><span className="text-amber-300">{t.fear}</span> — {tt('plus elle monte, plus son prix plancher baisse.', 'the higher it goes, the lower his floor price.', 'cuanto más sube, más baja su precio mínimo.')}</li>
+              <li><span className="text-orange-400">{t.anger}</span> — {tt('trop haute, il claque la porte.', 'too high and he walks out.', 'demasiado alta y se va dando un portazo.')}</li>
+              <li><span className="text-sky-300">{t.suspicion}</span> — {tt('trop haute, il flaire le piège ou part.', 'too high and he smells a trap or leaves.', 'demasiado alta y huele la trampa o se va.')}</li>
+            </ul>
+            <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Tes atouts', 'Your jokers', 'Tus comodines')} ({jokerIds.length})</h4>
+            {jokerIds.length === 0 ? (
+              <p className="text-xs leading-relaxed text-zinc-400">{tt('Aucun pour l’instant. Tu en choisis un parmi trois à chaque nuit payée : ils changent tes règles (prix, jauges, revente).', 'None yet. You pick one of three after each paid night: they change your rules (price, gauges, resale).', 'Ninguno por ahora. Eliges uno de tres tras cada noche pagada: cambian tus reglas (precio, medidores, reventa).')}</p>
+            ) : (
+              <ul className="space-y-2">
+                {jokerIds.map((jid) => {
+                  const jk = JOKER_POOL.find((j) => j.id === jid);
+                  const locJk = t.jokers[jid] ?? jk;
+                  return (
+                    <li key={jid} className="flex items-start gap-2.5 rounded border border-amber-500/20 bg-amber-500/5 p-2">
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded border border-amber-500/30 text-amber-300"><JokerIcon id={jid} className="h-4 w-4" /></span>
+                      <span className="min-w-0 text-xs">
+                        <span className="block font-bold text-amber-200">{locJk?.name ?? jid}</span>
+                        <span className="block leading-snug text-zinc-300">{locJk?.desc ?? ''}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Fiche du client (mobile) : avatar, profil, tempérament, historique des jauges */}
+      {showClientSheet && (() => {
+        const castChar = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
+        const temp = temperamentOf(currentCase.castId);
+        const playerTurns = history.filter((h) => h.role === 'player').length;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" onClick={() => setShowClientSheet(false)}>
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <div
+              className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0c0d12] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 font-mono shadow-2xl lg:relative lg:inset-x-auto lg:bottom-auto lg:w-full lg:max-w-md lg:rounded-xl lg:border lg:pt-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+              <div className="flex items-start gap-3">
+                <img
+                  src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
+                  alt=""
+                  className="h-28 w-24 shrink-0 rounded-lg border border-amber-500/40 object-cover object-[50%_18%]"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-[family-name:var(--font-display)] text-xl uppercase tracking-wider text-zinc-100">{currentCase.name}</h3>
+                  <p className="mt-0.5 text-[11px] uppercase text-zinc-400">
+                    {currentCase.age} {tt('ans', 'y.o.', 'años')} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-zinc-500">{localizeFaction(currentCase.faction, gameLocale)}</p>
+                  {tell && <p className="mt-2 text-[11px] italic leading-snug text-zinc-300">* {tell}</p>}
+                </div>
+                <button type="button" onClick={() => setShowClientSheet(false)} className="p-1 text-zinc-500">✕</button>
+              </div>
+              <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Profil', 'Profile', 'Perfil')}</div>
+                {temp && playerTurns >= 3 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {temp.tags.length === 0 && <span className="text-zinc-400">{tt('Tempérament sans relief.', 'No strong temperament.', 'Temperamento sin relieve.')}</span>}
+                    {temp.tags.map((k) => (
+                      <span key={k} className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-200">{TEMPER_LABEL[k]}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-zinc-500">{tt('Parle-lui encore un peu : son tempérament se devine à ses réactions (3 échanges).', 'Keep talking: his temperament shows in his reactions (3 exchanges).', 'Sigue hablando: su temperamento se ve en sus reacciones (3 intercambios).')}</p>
+                )}
+                {castChar && history.length >= FLAW_REVEAL_TURNS ? (
+                  <>
+                    <p><span className="text-amber-400">{t.flawLabel}</span> {localizeCastText(castChar.weaknessHint, gameLocale)}</p>
+                    <p><span className="text-red-400">{t.redLineLabel}</span> {localizeCastText(castChar.redLineHint, gameLocale)}</p>
+                  </>
+                ) : (
+                  <p className="text-zinc-500">{tt(`Faille et ligne rouge : dossier ouvert après ${FLAW_REVEAL_TURNS} échanges.`, `Weak spot and red line: file opens after ${FLAW_REVEAL_TURNS} exchanges.`, `Punto débil y línea roja: el expediente se abre tras ${FLAW_REVEAL_TURNS} intercambios.`)}</p>
+                )}
+              </div>
+              {psychoAudit.length > 1 && (
+                <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-[11px]">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Historique des jauges', 'Gauge history', 'Historial de medidores')}</div>
+                  {psychoAudit.slice(1).map((entry) => (
+                    <div key={entry.id} className="border-b border-white/5 pb-1 text-zinc-300">
+                      <div className="flex justify-between gap-2">
+                        <span className="min-w-0 truncate font-semibold text-amber-200/90">#{entry.turn} · {hitLoc(entry.action)}</span>
+                        {entry.priceDelta !== 0 && <span className={entry.priceDelta < 0 ? 'font-bold text-emerald-400' : 'text-red-400'}>{entry.priceDelta < 0 ? '' : '+'}{mny(entry.priceDelta)}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 text-[10px] text-zinc-400">
+                        {entry.peurDelta !== 0 && <span className="text-amber-300">{t.fear} {entry.peur - entry.peurDelta}→{entry.peur}%</span>}
+                        {entry.colereDelta !== 0 && <span className="text-red-400">{t.anger} {entry.colere - entry.colereDelta}→{entry.colere}%</span>}
+                        {entry.mefianceDelta !== 0 && <span className="text-sky-300">{t.suspicion} {entry.mefiance - entry.mefianceDelta}→{entry.mefiance}%</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Fiche objet : feuille du bas façon iOS / Android (mobile) */}
+      {showItemSheet && (
+        <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setShowItemSheet(false)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0c0d12] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 font-mono shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+            <div className="flex items-start gap-3">
+              <img src={`/assets/items/${itemKindFor(localizeItemName(currentCase.item.name, gameLocale))}.webp`} alt="" className="h-20 w-24 shrink-0 object-contain mix-blend-lighten" onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }} />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-bold uppercase leading-tight tracking-wider text-amber-300">{localizeItemName(currentCase.item.name, gameLocale)}</h3>
+                <p className="mt-1 text-[11px] text-zinc-400">{currentCase.item.category} · {localizeFaction(currentCase.faction, gameLocale)}</p>
+                <p className="mt-1 text-[11px] font-semibold text-emerald-400">{tt('Valeur de rue', 'Street value', 'Valor de calle')} ~{mny(currentCase.streetValue)}</p>
+              </div>
+              <button type="button" onClick={() => setShowItemSheet(false)} className="p-1 text-zinc-500">✕</button>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-zinc-300">{localizeItemText(currentCase.item.surfaceDesc, gameLocale)}</p>
+            <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs">
+              <div className={inspected ? 'text-amber-200' : 'text-zinc-500'}>
+                <span className="font-bold uppercase text-amber-400">{t.loupe}</span>{' : '}
+                {inspected ? localizeItemText(currentCase.item.hiddenClue, gameLocale) : tt('Pas encore examinée. Touche Loupe.', 'Not examined yet. Tap Loupe.', 'Aún sin examinar. Toca Lupa.')}
+              </div>
+              <div className={uvScanned ? 'text-sky-300' : 'text-zinc-500'}>
+                <span className="font-bold uppercase text-sky-400">{t.uv}</span>{' : '}
+                {uvScanned ? localizeItemText(currentCase.item.uvClue, gameLocale) : tt('Pas encore passée à la lampe UV.', 'Not swept with the UV lamp yet.', 'Aún sin pasar la lámpara UV.')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Balatro-style Syndicate Atout Draft Modal */}
       {jokerDraft && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
@@ -4221,18 +5439,37 @@ export default function App() {
                   <button
                     key={jk.id}
                     onClick={() => pickJokerAndAdvance(jk.id)}
-                    className="text-left bg-zinc-950 hover:bg-zinc-900 border border-white/10 hover:border-amber-500/60 rounded-lg p-4 flex flex-col justify-between space-y-3 transition-all group"
+                    className="text-left bg-zinc-950 hover:bg-[#151518] border border-white/10 hover:border-amber-500/60 rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all group shadow-xl hover:shadow-amber-500/10"
                   >
-                    <div className="space-y-2">
-                      <span className="inline-block text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
-                        {locJk.tag}
-                      </span>
-                      <h3 className="text-sm font-semibold text-zinc-100 group-hover:text-amber-300">
+                    <div className="space-y-3">
+                      <div className="relative h-28 w-full overflow-hidden rounded-lg bg-black/60 border border-white/10 flex items-center justify-center">
+                        <img
+                          src={`/assets/jokers/${jk.id}.webp`}
+                          alt=""
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute top-2 left-2 h-8 w-8 rounded bg-black/60 border border-amber-500/30 flex items-center justify-center text-amber-300 backdrop-blur-sm">
+                          <JokerIcon id={jk.id} className="w-4 h-4" />
+                        </div>
+                        <span className="absolute top-2 right-2 text-[10px] font-mono bg-black/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider backdrop-blur-sm">
+                          {locJk.tag}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-zinc-100 group-hover:text-amber-300 transition-colors">
                         {locJk.name}
                       </h3>
                       <p className="text-xs text-zinc-400 leading-relaxed">{locJk.desc}</p>
                     </div>
-                    <span className="text-xs font-medium text-amber-400">{t.jokerDraftActivate}</span>
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-amber-400 group-hover:underline">{t.jokerDraftActivate}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono tracking-wider">
+                        {tt('✦ ATOUT', '✦ PERK', '✦ COMODÍN')}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
@@ -4280,8 +5517,55 @@ export default function App() {
                   localStorage.setItem('fence_player_handle', val);
                 }}
                 className="w-full rounded border border-white/10 bg-black/70 px-2.5 py-1.5 text-xs font-bold text-amber-300 focus:border-amber-400 focus:outline-none tracking-wider"
-                placeholder="MARC"
+                placeholder={tt('Ton pseudo', 'Your nickname', 'Tu apodo')}
               />
+            </div>
+
+            {/* Compte : connexion / création de compte (sauvegarde cloud) */}
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase text-zinc-500 tracking-wider">
+                {tt('Compte', 'Account', 'Cuenta')}
+              </span>
+              {authUser ? (
+                <div className="flex items-center justify-between gap-2 rounded border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1.5 text-[11px] text-emerald-300">
+                  <span className="min-w-0 truncate" title={authUser.email}>{authUser.name || authUser.email} <span className="text-[9px] uppercase text-zinc-500">({cloudStatus})</span></span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                      cloudReadyRef.current = false;
+                      setAuthUser(null);
+                      setCloudStatus('idle');
+                    }}
+                    className="shrink-0 text-zinc-400 underline hover:text-red-300"
+                  >
+                    {t.logout}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (oauthConfigured) {
+                      window.location.href = '/api/auth/google';
+                    } else {
+                      setError(tt('Connexion Google prête : configure GOOGLE_CLIENT_ID et SECRET dans .env.local.', 'Google sign-in ready: set GOOGLE_CLIENT_ID and SECRET in .env.local.', 'Inicio de sesión de Google listo: configura GOOGLE_CLIENT_ID y SECRET en .env.local.'));
+                    }
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] text-zinc-200 hover:bg-white/10"
+                >
+                  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" aria-hidden>
+                    <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+                    <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+                    <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z"/>
+                    <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"/>
+                  </svg>
+                  {tt('Se connecter / créer un compte avec Google', 'Sign in / sign up with Google', 'Iniciar sesión / crear cuenta con Google')}
+                </button>
+              )}
+              <p className="text-[10px] leading-snug text-zinc-500">
+                {tt('Un compte sauvegarde ta progression dans le cloud et te permet de publier ton score.', 'An account saves your progress in the cloud and lets you publish your score.', 'Una cuenta guarda tu progreso en la nube y te permite publicar tu puntuación.')}
+              </p>
             </div>
 
             {/* Language Segmented Pill */}
@@ -4327,7 +5611,7 @@ export default function App() {
                     : 'border-white/5 bg-black/40 text-zinc-500'
                 }`}
               >
-                <span>{gameLocale === 'en' ? 'Haptics' : 'Haptique'}</span>
+                <span>{tt('Haptique', 'Haptics', 'Háptico')}</span>
                 <span className="text-[9px] uppercase font-bold">{hapticsEnabled ? 'ON' : 'OFF'}</span>
               </button>
 
@@ -4340,40 +5624,36 @@ export default function App() {
                     : 'border-white/5 bg-black/40 text-zinc-500'
                 }`}
               >
-                <span>{gameLocale === 'en' ? 'Sound' : 'Son'}</span>
+                <span>{tt('Son', 'Sound', 'Sonido')}</span>
                 <span className="text-[9px] uppercase font-bold">{!muted ? 'ON' : 'OFF'}</span>
               </button>
             </div>
 
-            {/* Cloud Sync State Row */}
-            <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-zinc-400">
-              <span className="text-zinc-500 uppercase">Cloud Sync</span>
-              {authUser ? (
-                <div className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="max-w-[120px] truncate">{authUser.name || authUser.email}</span>
-                  <span className="text-zinc-500 text-[9px] uppercase">({cloudStatus})</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (oauthConfigured) window.location.href = '/api/auth/google';
-                  }}
-                  className="text-amber-400 hover:text-amber-300 underline"
-                >
-                  {gameLocale === 'en' ? 'Connect Google' : 'Lier Google'}
-                </button>
-              )}
+            {/* Administration / Console Secrète */}
+            <div className="border-t border-white/5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileModal(false);
+                  navigateTo('/admin');
+                }}
+                className="w-full py-1.5 px-3 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-400 flex items-center justify-between transition cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <KeyRound className="w-3 h-3 text-amber-500/70" />
+                  Console Back-Office (Admin)
+                </span>
+                <span className="text-zinc-600">/admin →</span>
+              </button>
             </div>
 
             {/* Career Summary Ticker */}
             <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-zinc-500">
-              <span>{gameLocale === 'en' ? 'Profit' : 'Bénéfice'}: <strong className="text-amber-300">${formatMoney(totalProfit, gameLocale)}</strong></span>
+              <span>{tt('Bénéfice', 'Profit', 'Beneficio')}: <strong className="text-amber-300">{mny(totalProfit)}</strong></span>
               <span>·</span>
-              <span>Swiss: <strong className="text-emerald-400">${formatMoney(swissBank, gameLocale)}</strong></span>
+              <span>{tt('Suisse', 'Swiss', 'Suiza')}: <strong className="text-emerald-400">{mny(swissBank)}</strong></span>
               <span>·</span>
-              <span>Day: <strong className="text-zinc-300">{day}</strong></span>
+              <span>{tt('Jour', 'Day', 'Día')}: <strong className="text-zinc-300">{day}</strong></span>
             </div>
           </div>
         </div>

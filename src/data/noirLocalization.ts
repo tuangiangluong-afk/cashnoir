@@ -1,5 +1,6 @@
+import { MORE_EPISODE_TRANSLATIONS } from './seasonsMore';
 import { localizeCastText } from './castI18n';
-import { ITEM_BASE_EXTRA } from './itemsI18n';
+import { ITEM_BASE_EXTRA, ITEM_NAME_EXTRA } from './itemsI18n';
 import { CODEX_ITEMS_I18N } from './codexI18n';
 import { COLLECTIONS_DATA } from './codex';
 import type { Locale } from './seoContent';
@@ -67,7 +68,7 @@ const SUFFIX_TRANSLATIONS: Record<string, { en: string; es: string }> = {
   'volé avant inventaire': { en: 'stolen pre-audit', es: 'robado antes de auditar' },
 };
 
-Object.assign(ITEM_BASE_TRANSLATIONS, ITEM_BASE_EXTRA);
+Object.assign(ITEM_BASE_TRANSLATIONS, ITEM_BASE_EXTRA, ITEM_NAME_EXTRA);
 for (const col of COLLECTIONS_DATA) {
   for (const it of col.items) {
     const tr = CODEX_ITEMS_I18N[it.id];
@@ -211,6 +212,18 @@ const ARCHETYPE_TRANSLATIONS: Record<string, { en: string; es: string }> = {
     es: 'Contrabandista de Carga Nocturna',
   },
 };
+
+Object.assign(ARCHETYPE_TRANSLATIONS, {
+  'Cadre sup’ en sueur, tailleur froissé': { en: 'Sweating executive, rumpled suit', es: 'Ejecutiva sudorosa, traje arrugado' },
+  'Passeur de frontière, cicatrice à la tempe': { en: 'Border smuggler, scar on the temple', es: 'Pasador de frontera, cicatriz en la sien' },
+  'Passeuse de frontière, cicatrice à la tempe': { en: 'Border smuggler, scar on the temple', es: 'Pasadora de frontera, cicatriz en la sien' },
+  'Héritier déchu, cravate défaite et montre gagée': { en: 'Fallen heir, loosened tie and a pawned watch', es: 'Heredero caído, corbata floja y reloj empeñado' },
+  'Héritière déchue, talons hauts et mascara coulé': { en: 'Fallen heiress, high heels and smudged mascara', es: 'Heredera caída, tacones y rímel corrido' },
+  'Curé défroqué, col romain sous le blouson': { en: 'Defrocked priest, clerical collar under the jacket', es: 'Cura que colgó los hábitos, alzacuello bajo la chaqueta' },
+  'Religieuse défroquée, croix d’argent sous le manteau': { en: 'Defrocked nun, silver cross under the coat', es: 'Monja que colgó los hábitos, cruz de plata bajo el abrigo' },
+  'Hackeur paranoïaque, capuche et écran bleu': { en: 'Paranoid hacker, hood and blue screen', es: 'Hacker paranoico, capucha y pantalla azul' },
+  'Hackeuse paranoïaque, capuche et doigts gantés': { en: 'Paranoid hacker, hood and gloved fingers', es: 'Hacker paranoica, capucha y dedos enguantados' },
+});
 
 export function localizeArchetype(jobOrArchetype: string, locale: Locale): string {
   if (locale === 'fr') return jobOrArchetype;
@@ -505,6 +518,8 @@ export function localizeSeasonEpisode(
   locale: Locale,
 ): { title: string; synopsis: string; stakes: string } {
   if (locale === 'fr') return { title: ep.title, synopsis: ep.synopsis, stakes: ep.stakes };
+  const more = MORE_EPISODE_TRANSLATIONS[ep.id]?.[locale];
+  if (more) return { title: more[0], synopsis: more[1], stakes: more[2] };
   const trans = EPISODE_TRANSLATIONS[ep.id];
   if (!trans) return { title: ep.title, synopsis: ep.synopsis, stakes: ep.stakes };
   return {

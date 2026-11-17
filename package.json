@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.mjs",
+    "selftest": "node scripts/selftest.mjs",
+    "econ": "node scripts/run-ts.mjs scripts/econ-sim.ts",
     "build": "tsc -b && vite build && node scripts/prerender.mjs",
     "preview": "vite preview"
   },

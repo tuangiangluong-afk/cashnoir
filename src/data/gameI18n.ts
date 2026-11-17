@@ -245,7 +245,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `ARRIÈRE-BOUTIQUE · NUIT ${d}`,
     syndicateLedger: 'REGISTRE & TAXE DU SYNDICAT',
     taxSub: (rentShare, auctions) =>
-      `Taxe : 500 $ + 450 $/j + 8 % caisse (${rentShare} $)` +
+      `Taxe : 500 $ + 350 $/j + impôt progressif sur le cash (8 % → 25 %) (${rentShare} $)` +
       (auctions > 0 ? ` · ${auctions} enchère(s) ce soir` : ''),
     eventLabel: 'ÉVÉNEMENT',
     raidAlert: 'ALERTE RAID : la police passe cette nuit (saisie + 30 % caisse).',
@@ -267,7 +267,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     modCollection: 'Pièce de collection · ×1,35',
     modCounterfeit: 'Contrefaçon · 40 % de la valeur',
     cleanedBadge: 'BLANCHI',
-    cleanBtn: 'Nettoyer (-150 $)',
+    cleanBtn: 'Nettoyer (-250 $)',
     fastSellBtn: (amt) => `Vente rapide (+${amt} $)`,
     auctionBtn: (amt) => `Enchères (+${amt} $)`,
     arcsTitle: (s, tot) => `Pistes & Énigmes · ${s}/${tot} bouclées`,
@@ -395,6 +395,12 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
       'vitrine-armee': { name: 'Vitrine Armée', tag: '+15 PEUR / ARME', desc: 'Chaque arme au coffre ajoute +15 de Peur au client dès son entrée.' },
       'blanchisseur-express': { name: 'Blanchisseur Express', tag: 'NETTOYAGE 0 $ · LOYER +10 %', desc: 'Nettoyage des pièces gratuit, mais taxe syndicat +10 %.' },
       'marcheur-ombre': { name: 'Marcheur de l’Ombre', tag: 'HEAT RAID 90%', desc: 'Le raid de police ne se déclenche qu’à 90 % de Heat au lieu de 75 %.' },
+      radar: { name: 'Radar à Pièges', tag: 'DÉTECTION PIÈGE', desc: "Les pièges subtils sont détectés par la Loupe (pas besoin d'UV)." },
+      negociateur: { name: 'Négociateur Né', tag: '-10 % PRIX INITIAL', desc: 'Les clients commencent systématiquement 10 % moins cher.' },
+      reseau: { name: 'Réseau de Clôtures', tag: '+1 ENCHÈRE/NUIT', desc: 'Tu peux faire une enchère de plus par nuit sans pénalité de saturation.' },
+      fantome: { name: 'Fantôme du Quartier', tag: '-5 HEAT/DEAL', desc: 'Chaque deal conclu génère 5 % de Heat en moins.' },
+      collectionneur: { name: 'Œil du Collectionneur', tag: 'DÉTECTE CONTREFAÇON', desc: "Les contrefaçons sont marquées dès l'ouverture (avant Loupe/UV)." },
+      'double-fond': { name: 'Double Fond', tag: '2 PIÈCES PROTÉGÉES', desc: 'En cas de saisie policière, 2 pièces du coffre sont planquées dans le double fond.' },
     },
 
     slapCash: 'Claquer Cash',
@@ -422,10 +428,10 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     briefStep3: '3/3 · Revends au coffre : ',
     briefStep2: '2/3 · Fais-le craquer : ',
     briefStep1: '1/3 · Inspecte la pièce : ',
-    briefDesc3: 'Passe à l’onglet Coffre pour blanchir ou mettre aux enchères.',
+    briefDesc3: 'Passe à l’onglet Coffre pour blanchir ou mettre aux enchères. N’oublie pas le loyer du soir, affiché en haut.',
     briefDesc2: 'Utilise "Cuisiner" dans ton carnet ou claque une offre cash.',
     briefDesc1: 'Clique sur l’objet posé sur le comptoir ou sur la Loupe.',
-    stampSealed: 'SCELLÉ',
+    stampSealed: 'CONCLU',
     stampTrap: 'PIÈGE !',
     stampHoldup: 'BRAQUAGE',
     stampWalkout: 'CLAQUÉ',
@@ -502,7 +508,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `BACKROOM · NIGHT ${d}`,
     syndicateLedger: 'SYNDICATE LEDGER & TAX',
     taxSub: (rentShare, auctions) =>
-      `Tax: $500 + $450/day + 8% cash ($${rentShare})` +
+      `Tax: $500 + $350/day + progressive tax on cash (8% → 25%) ($${rentShare})` +
       (auctions > 0 ? ` · ${auctions} auction(s) tonight` : ''),
     eventLabel: 'EVENT',
     raidAlert: 'RAID ALERT: Police patrol tonight (seizure + 30% cash cut).',
@@ -524,7 +530,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     modCollection: 'Collector Piece · ×1.35',
     modCounterfeit: 'Counterfeit · 40% street value',
     cleanedBadge: 'CLEANED',
-    cleanBtn: 'Clean (-$150)',
+    cleanBtn: 'Clean (-$250)',
     fastSellBtn: (amt) => `Quick flip (+$${amt})`,
     auctionBtn: (amt) => `Auction (+$${amt})`,
     arcsTitle: (s, tot) => `Cases & Clues · ${s}/${tot} solved`,
@@ -652,6 +658,12 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
       'vitrine-armee': { name: 'Armed Display', tag: '+15 FEAR / WEAPON', desc: 'Every firearm in vault adds +15 Fear to clients upon arrival.' },
       'blanchisseur-express': { name: 'Express Cleaner', tag: 'CLEANING $0 · TAX +10%', desc: 'Item cleaning is free, but syndicate tax increases by 10%.' },
       'marcheur-ombre': { name: 'Shadow Walker', tag: 'RAID THRESHOLD 90%', desc: 'Police raids only trigger at 90% Heat instead of 75%.' },
+      radar: { name: 'Trap Radar', tag: 'TRAP DETECTION', desc: 'Subtle traps are revealed with Loupe alone (no UV needed).' },
+      negociateur: { name: 'Born Negotiator', tag: '-10% INITIAL PRICE', desc: 'Clients systematically start with 10% lower asking prices.' },
+      reseau: { name: 'Fencing Network', tag: '+1 AUCTION/NIGHT', desc: 'Run one extra auction each night without market saturation penalties.' },
+      fantome: { name: 'District Ghost', tag: '-5 HEAT/DEAL', desc: 'Every completed deal generates 5% less Heat.' },
+      collectionneur: { name: "Collector's Eye", tag: 'SPOT FORGERIES', desc: 'Counterfeits are flagged immediately upon arrival (before Loupe/UV).' },
+      'double-fond': { name: 'False Bottom', tag: '2 PROTECTED PIECES', desc: 'During police seizures, 2 pieces in your vault are stashed in a secret compartment.' },
     },
 
     slapCash: 'Slap Cash',
@@ -679,7 +691,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     briefStep3: '3/3 · Flip in Vault: ',
     briefStep2: '2/3 · Break their bluff: ',
     briefStep1: '1/3 · Inspect contraband: ',
-    briefDesc3: 'Head to Vault tab to launder or auction on the black market.',
+    briefDesc3: 'Head to the Vault tab to launder or auction on the black market. Don’t forget tonight’s rent, shown at the top.',
     briefDesc2: 'Use "Grill" from notebook or slap cash on the table.',
     briefDesc1: 'Click the item on the counter or activate the Loupe.',
     stampSealed: 'SEALED',
@@ -759,7 +771,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     backroomNight: (d) => `TRASHO TIENDA · NOCHE ${d}`,
     syndicateLedger: 'REGISTRO Y TRIBUTO DEL SINDICATO',
     taxSub: (rentShare, auctions) =>
-      `Tributo: 500 $ + 450 $/día + 8 % caja (${rentShare} $)` +
+      `Tributo: 500 $ + 350 $/día + impuesto progresivo sobre la caja (8 % → 25 %) (${rentShare} $)` +
       (auctions > 0 ? ` · ${auctions} subasta(s) esta noche` : ''),
     eventLabel: 'EVENTO',
     raidAlert: 'ALERTA REDADA: La policía pasa esta noche (confiscación + 30 % caja).',
@@ -781,7 +793,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     modCollection: 'Pieza de Colección · ×1,35',
     modCounterfeit: 'Falsificación · 40 % del valor',
     cleanedBadge: 'LAVADO',
-    cleanBtn: 'Limpiar (-150 $)',
+    cleanBtn: 'Limpiar (-250 $)',
     fastSellBtn: (amt) => `Venta rápida (+${amt} $)`,
     auctionBtn: (amt) => `Subasta (+${amt} $)`,
     arcsTitle: (s, tot) => `Casos y Pistas · ${s}/${tot} cerradas`,
@@ -909,6 +921,12 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
       'vitrine-armee': { name: 'Escaparate Armado', tag: '+15 MIEDO / ARMA', desc: 'Cada arma en la bóveda suma +15 de Miedo al cliente al entrar.' },
       'blanchisseur-express': { name: 'Limpieza Exprés', tag: 'LIMPIEZA 0 $ · TRIBUTO +10%', desc: 'Limpieza gratis, pero el tributo del sindicato sube un 10%.' },
       'marcheur-ombre': { name: 'Caminante Sombrío', tag: 'REDADA A 90%', desc: 'Las redadas solo se activan con 90% de Heat en vez de 75%.' },
+      radar: { name: 'Radar de Trampas', tag: 'DETECCIÓN TRAMPAS', desc: 'Las trampas sutiles se revelan con la Lupa (sin necesidad de UV).' },
+      negociateur: { name: 'Negociador Nato', tag: '-10% PRECIO INICIAL', desc: 'Los clientes empiezan sistemáticamente pidiendo un 10% menos.' },
+      reseau: { name: 'Red de Receptores', tag: '+1 SUBASTA/NOCHE', desc: 'Puedes subastar una pieza extra por noche sin penalización de mercado.' },
+      fantome: { name: 'Fantasma del Barrio', tag: '-5 HEAT/TRATO', desc: 'Cada trato cerrado genera un 5% menos de Heat.' },
+      collectionneur: { name: 'Ojo del Coleccionista', tag: 'DETECTA FALSIFICACIÓN', desc: 'Las falsificaciones se marcan nada más abrir (antes de Lupa/UV).' },
+      'double-fond': { name: 'Doble Fondo', tag: '2 PIEZAS PROTEGIDAS', desc: 'En caso de redada policial, 2 piezas de la bóveda quedan ocultas en el doble fondo.' },
     },
 
     slapCash: 'Soltar Cash',
@@ -936,7 +954,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     briefStep3: '3/3 · Revende en bóveda: ',
     briefStep2: '2/3 · Hazle ceder: ',
     briefStep1: '1/3 · Inspecciona la pieza: ',
-    briefDesc3: 'Pasa a la pestaña Bóveda para blanquear o subastar en el mercado negro.',
+    briefDesc3: 'Pasa a la pestaña Bóveda para blanquear o subastar en el mercado negro. No olvides el alquiler de esta noche, arriba.',
     briefDesc2: 'Usa "Presionar" en tu libreta o suelta una oferta en efectivo.',
     briefDesc1: 'Haz clic en el objeto del mostrador o activa la Lupa.',
     stampSealed: 'SELLADO',

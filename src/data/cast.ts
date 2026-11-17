@@ -208,7 +208,14 @@ const RAW_CAST: RawCastTuple[] = [
 const LAST_NAMES_EXT = [
   'Bouchard', 'Rousseau', 'Keller', 'Novak', 'Diallo', 'Ferrari', 'Silva', 'Lindqvist',
   'Kowalski', 'Chen', 'Sato', 'Al-Mansoor', 'Conti', 'Varga', 'Okafor', 'Mercier',
-  'Delacroix', 'Bauer', 'Haddad', 'Reyes',
+  'Delacroix', 'Bauer', 'Haddad', 'Reyes', 'Fontaine', 'Giraud', 'Lambert', 'Roche',
+  'Vasseur', 'Navarro', 'Rossi', 'Schneider', 'Petrov', 'Larsson', 'Berg', 'Santos',
+  'Costa', 'Dubois', 'Moreau', 'Laurent', 'Simon', 'Michel', 'Lefebvre', 'Leroy',
+  'Roux', 'David', 'Bertrand', 'Morel', 'Fournier', 'Girard', 'Bonnet', 'Dupont',
+  'Vincent', 'Muller', 'Lefevre', 'Faure', 'Andre', 'Blanc', 'Guerin', 'Boyer',
+  'Garnier', 'Chevalier', 'Francois', 'Legrand', 'Gauthier', 'Garcia', 'Perez', 'Lopez',
+  'Sanchez', 'Fernandez', 'Gonzalez', 'Rodriguez', 'Martinez', 'Hernandez', 'Diaz', 'Torres',
+  'Ramirez', 'Ramos', 'Flores', 'Alvarez', 'Castillo', 'Vargas', 'Morales', 'Ortega',
 ];
 
 const EXTRA_JOBS_M = [
@@ -227,8 +234,18 @@ const EXTRA_JOBS_F = [
   'Biologiste sans labo', 'Galériste en liquidation', 'Traductrice d’écoutes judiciaires',
 ];
 
-const FIRST_M = ['Marek', 'Driss', 'Vance', 'Tarik', 'Milo', 'Yanis', 'Benoît', 'Lucas', 'Hugo', 'Matteo', 'Samir', 'Ivan', 'Enzo', 'Roman', 'Karim', 'Damien', 'Théo', 'Julien', 'Cédric', 'Arnaud'];
-const FIRST_F = ['Inès', 'Nora', 'Chloé', 'Zara', 'Elena', 'Marina', 'Claire', 'Camille', 'Sarah', 'Leïla', 'Amélie', 'Roxane', 'Eva', 'Maya', 'Lucie', 'Diane', 'Katya', 'Soraya', 'Jade', 'Salomé'];
+const FIRST_M = [
+  'Marek', 'Driss', 'Vance', 'Tarik', 'Milo', 'Yanis', 'Benoît', 'Lucas', 'Hugo', 'Matteo',
+  'Samir', 'Ivan', 'Enzo', 'Roman', 'Karim', 'Damien', 'Théo', 'Julien', 'Cédric', 'Arnaud',
+  'Maxime', 'Adrien', 'Gabriel', 'Victor', 'Dimitri', 'Rachid', 'Sacha', 'Milan', 'Florian', 'Basile',
+  'Antonin', 'Grégory', 'Mathias', 'Gilles', 'Serge', 'Boris', 'Fabrice', 'Xavier', 'Alain', 'Cyril',
+];
+const FIRST_F = [
+  'Inès', 'Nora', 'Chloé', 'Zara', 'Elena', 'Marina', 'Claire', 'Camille', 'Sarah', 'Leïla',
+  'Amélie', 'Roxane', 'Eva', 'Maya', 'Lucie', 'Diane', 'Katya', 'Soraya', 'Jade', 'Salomé',
+  'Astrid', 'Yasmine', 'Valentine', 'Juliette', 'Natacha', 'Agnès', 'Delphine', 'Myriam', 'Elsa', 'Estelle',
+  'Sabrina', 'Coline', 'Tatiana', 'Laure', 'Pauline', 'Fanny', 'Clémence', 'Hélène', 'Sybille', 'Noémie',
+];
 
 const FACTIONS_CYCLE = [
   'Mairie & Promoteurs',
@@ -343,9 +360,9 @@ function buildProceduralRoster(): CastCharacter[] {
     const isFemale = i % 2 === 1;
     const gender: 'm' | 'f' = isFemale ? 'f' : 'm';
     const firstName = isFemale
-      ? FIRST_F[(i * 3) % FIRST_F.length]
-      : FIRST_M[(i * 3) % FIRST_M.length];
-    const lastName = LAST_NAMES_EXT[(i * 7 + (isFemale ? 3 : 0)) % LAST_NAMES_EXT.length];
+      ? FIRST_F[Math.floor(i / 2) % FIRST_F.length]
+      : FIRST_M[Math.floor(i / 2) % FIRST_M.length];
+    const lastName = LAST_NAMES_EXT[i % LAST_NAMES_EXT.length];
     const job = isFemale
       ? EXTRA_JOBS_F[i % EXTRA_JOBS_F.length]
       : EXTRA_JOBS_M[i % EXTRA_JOBS_M.length];

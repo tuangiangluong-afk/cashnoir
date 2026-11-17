@@ -33,8 +33,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Déteste qu’on le prenne pour un rigolo ou un pigeon.',
     femaleRedLineHint: 'Déteste qu’on la prenne pour une rigolote ou un pigeon.',
     baseGauges: { peur: 28, colere: 15, mefiance: 55 },
-    weakRegex: /usurier|dette|retard|5h|aube|temps|vite|créancier|poker|pari/i,
-    angerRegex: /rigolo|clown|arnaque|poubelle|dégage|pigeon/i,
+    weakRegex: /usurier|dette|retard|5h|aube|temps|vite|créancier|poker|pari|(?<![\p{L}])(?:debt|loan shark|usurer|late|dawn|time|hurry|creditor|poker|bet|deuda|usurero|tarde|amanecer|tiempo|prisa|acreedor|póker|apuesta)(?![\p{L}])/iu,
+    angerRegex: /rigolo|clown|arnaque|poubelle|dégage|pigeon|(?<![\p{L}])(?:joker|clown|scam|trash|get lost|sucker|bromista|payaso|estafa|basura|lárgate|pardillo)(?![\p{L}])/iu,
     fearBonus: 22,
     angerPenalty: 18,
     openings: [
@@ -64,8 +64,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Explose si tu le menaces physiquement.',
     femaleRedLineHint: 'Explose si tu la menaces physiquement.',
     baseGauges: { peur: 35, colere: 10, mefiance: 72 },
-    weakRegex: /femme|mari|patron|boîte|scandale|famille|presse|réputation|collègue|conseil/i,
-    angerRegex: /frapper|flingue|arme|buter|casse|menace/i,
+    weakRegex: /femme|mari|patron|boîte|scandale|famille|presse|réputation|collègue|conseil|(?<![\p{L}])(?:wife|husband|boss|company|scandal|family|press|reputation|colleague|board|esposa|marido|jefe|empresa|escándalo|familia|prensa|reputación|colega|consejo)(?![\p{L}])/iu,
+    angerRegex: /frapper|flingue|arme|buter|casse|menace|(?<![\p{L}])(?:hit|gun|weapon|kill|break|threat|golpear|pistola|arma|matar|romper|amenaza)(?![\p{L}])/iu,
     fearBonus: 25,
     angerPenalty: 20,
     openings: [
@@ -95,8 +95,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Se braque si tu avoues directement acheter du volé.',
     femaleRedLineHint: 'Se braque si tu avoues directement acheter du volé.',
     baseGauges: { peur: 12, colere: 20, mefiance: 55 },
-    weakRegex: /radio|brigade|micro|oreillette|souricière|infiltré|indic|piège|procédure|commissariat/i,
-    angerRegex: /volé|recel|braquage|illégal|tuer/i,
+    weakRegex: /radio|brigade|micro|oreillette|souricière|infiltré|indic|piège|procédure|commissariat|(?<![\p{L}])(?:squad|mic|earpiece|trap|undercover|informant|procedure|station|brigada|micrófono|trampa|infiltrado|confidente|procedimiento|comisaría)(?![\p{L}])/iu,
+    angerRegex: /volé|recel|braquage|illégal|tuer|(?<![\p{L}])(?:stolen|fence|robbery|illegal|robado|receptación|atraco|ilegal|matar)(?![\p{L}])/iu,
     fearBonus: 18,
     angerPenalty: 22,
     openings: [
@@ -126,8 +126,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Déteste qu’on se moque de son train de vie ou de son statut.',
     femaleRedLineHint: 'Déteste qu’on se moque de son train de vie ou de son statut.',
     baseGauges: { peur: 30, colere: 25, mefiance: 50 },
-    weakRegex: /père|papa|famille|héritage|honte|parents|maman|château|avocat/i,
-    angerRegex: /gamin|gosse|ruiné|clochard|snob|pourri/i,
+    weakRegex: /père|papa|famille|héritage|honte|parents|maman|château|avocat|(?<![\p{L}])(?:father|dad|inheritance|shame|parents|mom|castle|lawyer|padre|papá|herencia|vergüenza|padres|mamá|castillo|abogado)(?![\p{L}])/iu,
+    angerRegex: /gamin|gosse|ruiné|clochard|snob|pourri|(?<![\p{L}])(?:kid|ruined|bum|snob|rotten|niñato|arruinado|vagabundo|esnob|podrido)(?![\p{L}])/iu,
     fearBonus: 28,
     angerPenalty: 20,
     openings: [
@@ -157,8 +157,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Explose aux insultes gratuites ou aux offres ridicules.',
     femaleRedLineHint: 'Explose aux insultes gratuites ou aux offres ridicules.',
     baseGauges: { peur: 18, colere: 30, mefiance: 70 },
-    weakRegex: /défaut|usure|griffure|faux|contrefaçon|expert|cote|certificat|état/i,
-    angerRegex: /merde|poubelle|clochard|arnaqueur|escroc|voleur/i,
+    weakRegex: /défaut|usure|griffure|faux|contrefaçon|expert|cote|certificat|état|(?<![\p{L}])(?:flaw|wear|scratch|fake|forgery|expert|appraisal|certificate|condition|defecto|desgaste|arañazo|falso|falsificación|experto|tasación|certificado|estado)(?![\p{L}])/iu,
+    angerRegex: /merde|poubelle|clochard|arnaqueur|escroc|voleur|(?<![\p{L}])(?:shit|crook|swindler|thief|mierda|estafador|ladrón)(?![\p{L}])/iu,
     fearBonus: 20,
     angerPenalty: 28,
     openings: [
@@ -188,8 +188,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Explose si tu le traites de lâche ou de balance.',
     femaleRedLineHint: 'Explose si tu la traites de lâche ou de balance.',
     baseGauges: { peur: 20, colere: 30, mefiance: 60 },
-    weakRegex: /douane|frontière|interpol|passeport|convoi|contrôle|garde|port/i,
-    angerRegex: /lâche|balance|traître|mouchard|rat/i,
+    weakRegex: /douane|frontière|interpol|passeport|convoi|contrôle|garde|port|(?<![\p{L}])(?:customs|border|passport|convoy|inspection|guard|port|aduana|frontera|pasaporte|control|guardia|puerto)(?![\p{L}])/iu,
+    angerRegex: /lâche|balance|traître|mouchard|rat|(?<![\p{L}])(?:coward|snitch|traitor|rat|cobarde|chivato|traidor|rata)(?![\p{L}])/iu,
     fearBonus: 20,
     angerPenalty: 24,
     openings: [
@@ -219,8 +219,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Déteste la pitié et les remarques sur sa déchéance.',
     femaleRedLineHint: 'Déteste la pitié et les remarques sur son maquillage ou sa déchéance.',
     baseGauges: { peur: 34, colere: 16, mefiance: 58 },
-    weakRegex: /avocat|divorce|trust|héritage|famille|tribunal|pension|curateur/i,
-    angerRegex: /pitié|pauvre|mascara|maquillage|princesse|déchéance|ruine/i,
+    weakRegex: /avocat|divorce|trust|héritage|famille|tribunal|pension|curateur|(?<![\p{L}])(?:lawyer|divorce|trust|inheritance|family|court|alimony|guardian|abogado|divorcio|fideicomiso|herencia|familia|tribunal|pensión|tutor)(?![\p{L}])/iu,
+    angerRegex: /pitié|pauvre|mascara|maquillage|princesse|déchéance|ruine|(?<![\p{L}])(?:pity|poor|mascara|makeup|princess|downfall|ruin|lástima|pobre|rímel|maquillaje|princesa|decadencia|ruina)(?![\p{L}])/iu,
     fearBonus: 26,
     angerPenalty: 18,
     openings: [
@@ -250,8 +250,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Ne supporte pas qu’on le traite d’hypocrite ou de voleur d’église.',
     femaleRedLineHint: 'Ne supporte pas qu’on la traite d’hypocrite ou de voleuse de sacristie.',
     baseGauges: { peur: 30, colere: 12, mefiance: 64 },
-    weakRegex: /diocèse|confession|paroisse|évêque|église|messe|curé|couvent|supérieure/i,
-    angerRegex: /hypocrite|voleur|voleuse|péché|imposteur|pourri|sacrilège/i,
+    weakRegex: /diocèse|confession|paroisse|évêque|église|messe|curé|couvent|supérieure|(?<![\p{L}])(?:diocese|confession|parish|bishop|church|mass|priest|convent|diócesis|confesión|parroquia|obispo|iglesia|misa|cura|convento)(?![\p{L}])/iu,
+    angerRegex: /hypocrite|voleur|voleuse|péché|imposteur|pourri|sacrilège|(?<![\p{L}])(?:hypocrite|thief|sin|impostor|rotten|sacrilege|hipócrita|ladrón|pecado|podrido|sacrilegio)(?![\p{L}])/iu,
     fearBonus: 24,
     angerPenalty: 20,
     openings: [
@@ -281,8 +281,8 @@ export const PSYCHO_PROFILES: PsychoProfile[] = [
     redLineHint: 'Explose si tu le traites de script kiddie ou d’amateur.',
     femaleRedLineHint: 'Explose si tu la traites de script kiddie ou d’amatrice.',
     baseGauges: { peur: 24, colere: 22, mefiance: 72 },
-    weakRegex: /ip|trace|dgsi|serveur|hack|cyber|numérique|log|rootkit|brèche/i,
-    angerRegex: /script\s*kiddie|amateur|amatrice|gamin|nerd|geek|minable/i,
+    weakRegex: /ip|(?<![\p{L}])(?:trace|dgsi|serveur|hack|cyber|numérique|log|rootkit|brèche|trace|server|hack|cyber|digital|logs|rootkit|breach|rastro|servidor|hackeo|ciber|brecha)(?![\p{L}])/iu,
+    angerRegex: /script\s*kiddie|(?<![\p{L}])(?:amateur|amatrice|gamin|nerd|geek|minable|amateur|nerd|geek|loser|aficionado|friki|perdedor)(?![\p{L}])/iu,
     fearBonus: 22,
     angerPenalty: 22,
     openings: [
@@ -315,8 +315,32 @@ export function findProfileForArchetype(archetype: string): PsychoProfile {
   );
 }
 
-const INJECTION_RE =
-  /ignore\s+(all\s+)?previous|system\s*prompt|jailbreak|roleplay|assistant|donne[- ]moi.*prix|fixe\s+le\s+prix\s+à|act\s+as|oublie\s+tes\s+r[èe]gles|<\s*script|```/i;
+// Détection d'injection de prompt : texte normalisé (accents, casse, caractères invisibles, leetspeak léger) puis motifs FR/EN/ES.
+const normalizeForInjection = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f\u200b-\u200f\u2060\ufeff]/g, '')
+    .toLowerCase()
+    .replace(/(?<=[a-z])[01345$@](?=[a-z])/g, (c) => ({ '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '$': 's', '@': 'a' } as Record<string, string>)[c])
+    .replace(/\s+/g, ' ');
+
+const INJECTION_PATTERNS: RegExp[] = [
+  /ignor\w*.{0,30}(instruction|regl[ae]s?|consigne|prompt|previous|prior|anterior|precedent|above)/,
+  /(oubli\w*|forget|olvida\w*).{0,30}(regl[ae]s?|instruction|consigne|rule|prompt|todo|everything|tout)/,
+  /system\s*(prompt|message|instruction)|prompt\s*(system|systeme)|developer mode|mode\s*(dev|developpeur|debug)|jailbreak|do anything now|\bdan\b/,
+  /(tu es|you are|eres|you re)\s+(maintenant|now|ahora)/,
+  /(agis|act|actua|comporte[- ]toi|behave|pretend|fais semblant)\s+(comme|as|como|que)/,
+  /(fixe|set|mets|change|cambia|pon|baisse|lower|reduce)\w*.{0,20}(prix|price|precio).{0,20}(a|to|en)\s*\d/,
+  /(reponds|answer|reply|respond|responde|output|write).{0,25}(json|deal_accepte|action_speciale|accept)/,
+  /action_speciale|deal_accepte|prix_actuel|indice_comportemental|\"?jauges\"?\s*:|\{\s*\"?dialogue/,
+  /\b(assistant|roleplay|role play|llm|chatgpt|openai|gemini|ai model|language model)\b/,
+  /<\s*script|```|\[\s*(system|inst)\s*\]|<\s*\/?\s*(system|instruction)/,
+];
+
+export function isInjection(message: string): boolean {
+  const n = normalizeForInjection(message);
+  return INJECTION_PATTERNS.some((re) => re.test(n)) || /donne[- ]moi.*prix/i.test(message);
+}
 
 export function evaluatePsychoTriggers(
   message: string,
@@ -324,6 +348,8 @@ export function evaluatePsychoTriggers(
   clientName: string,
   day: number,
   used: { nameHit?: boolean; weakHit?: boolean } = {},
+  /** Déclencheurs propres au personnage (faille / ligne rouge écrites pour lui) en plus de ceux de son profil. */
+  cast?: { profileId?: string; weak?: string; anger?: string; weakWords?: string[] },
 ): {
   fearDelta: number;
   angerDelta: number;
@@ -333,7 +359,7 @@ export function evaluatePsychoTriggers(
   hitWeak: boolean;
   hitLabel?: string;
 } {
-  if (INJECTION_RE.test(message)) {
+  if (isInjection(message)) {
     return {
       fearDelta: 0,
       angerDelta: 25,
@@ -345,7 +371,7 @@ export function evaluatePsychoTriggers(
     };
   }
 
-  const profile = findProfileForArchetype(archetype);
+  const profile = findProfileForArchetype(cast?.profileId ?? archetype);
   const scale = Math.max(0.6, 1 - Math.max(0, day - 1) * 0.04);
 
   const nameClean = clientName.trim();
@@ -354,10 +380,21 @@ export function evaluatePsychoTriggers(
     new RegExp(`\\b${nameClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(message);
   const hitName = hitNameRaw && !used.nameHit;
 
-  const hitWeakRaw = profile.weakRegex.test(message);
+  const safeRx = (src?: string) => {
+    if (!src) return null;
+    try {
+      return new RegExp(src, 'i');
+    } catch {
+      return null;
+    }
+  };
+  // Langue du joueur quelconque : au moins 2 mots significatifs de la faille (déjà traduite) suffisent.
+  const flat = message.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const wordHits = (cast?.weakWords ?? []).filter((w) => flat.includes(w)).length;
+  const hitWeakRaw = profile.weakRegex.test(message) || Boolean(safeRx(cast?.weak)?.test(message)) || wordHits >= 2;
   const hitWeak = hitWeakRaw && !used.weakHit;
 
-  const hitAnger = profile.angerRegex.test(message);
+  const hitAnger = profile.angerRegex.test(message) || Boolean(safeRx(cast?.anger)?.test(message));
 
   let fearDelta = 0;
   let angerDelta = 0;
@@ -388,4 +425,30 @@ export function evaluatePsychoTriggers(
     hitWeak,
     hitLabel: labels.length > 0 ? labels.join(' · ') : undefined,
   };
+}
+
+/** Tempérament propre à un personnage : dérivé de son id (stable), il module la façon dont ses jauges bougent. */
+export interface Temperament {
+  fear: number;
+  anger: number;
+  trust: number;
+  tags: ('nervous' | 'coolheaded' | 'hothead' | 'phlegmatic' | 'wary' | 'trusting')[];
+}
+
+export function temperamentOf(castId?: string): Temperament | null {
+  if (!castId) return null;
+  let h = 2166136261;
+  for (const c of castId) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const r = (k: number) => (Math.imul(h ^ (k * 2654435761), 2246822519) >>> 0) % 1000 / 1000;
+  const fear = 0.7 + r(1) * 0.65;
+  const anger = 0.7 + r(2) * 0.65;
+  const trust = Math.round(-8 + r(3) * 20);
+  const tags: Temperament['tags'] = [];
+  if (fear > 1.15) tags.push('nervous');
+  else if (fear < 0.85) tags.push('coolheaded');
+  if (anger > 1.15) tags.push('hothead');
+  else if (anger < 0.85) tags.push('phlegmatic');
+  if (trust > 6) tags.push('wary');
+  else if (trust < -3) tags.push('trusting');
+  return { fear, anger, trust, tags };
 }

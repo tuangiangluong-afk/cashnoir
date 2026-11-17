@@ -8,12 +8,12 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  AEO_FAQ,
   BLOG_ARTICLES,
   GUIDE_PAGES,
   SITE_COPY,
   VERSUS_PAGES,
 } from '../src/data/seoContent.ts';
+import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../src/data/seoI18n.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
@@ -29,9 +29,13 @@ const urlFor = (locale, sub) => (locale === 'en' ? sub || '/' : `/${locale}${sub
 function page(locale, sub) {
   const copy = SITE_COPY[locale];
   const [, kind, slug] = sub.split('/');
-  const blog = kind === 'blog' && slug ? BLOG_ARTICLES.find((a) => a.slug === slug) : null;
-  const vs = kind === 'vs' ? VERSUS_PAGES.find((v) => v.slug === slug) : null;
-  const guide = kind === 'guides' ? GUIDE_PAGES.find((g) => g.slug === slug) : null;
+  const blogs = BLOG_ARTICLES.map((a) => localizeBlog(a, locale));
+  const faq = localizeFaq(locale);
+  const blog = kind === 'blog' && slug ? blogs.find((a) => a.slug === slug) : null;
+  const vsRaw = kind === 'vs' ? VERSUS_PAGES.find((v) => v.slug === slug) : null;
+  const vs = vsRaw ? localizeVersus(vsRaw, locale) : null;
+  const guideRaw = kind === 'guides' ? GUIDE_PAGES.find((g) => g.slug === slug) : null;
+  const guide = guideRaw ? localizeGuide(guideRaw, locale) : null;
 
   let title = copy.metaTitle;
   let desc = copy.metaDesc;
@@ -58,7 +62,7 @@ function page(locale, sub) {
       .join('')}</ol></article>`;
   } else if (kind === 'blog') {
     title = `${copy.blogIndexTitle} — CASH NOIR`;
-    body = `<h1>${esc(copy.blogIndexTitle)}</h1><ul>${BLOG_ARTICLES.map(
+    body = `<h1>${esc(copy.blogIndexTitle)}</h1><ul>${blogs.map(
       (a) => `<li><a href="${urlFor(locale, `/blog/${a.slug}`)}">${esc(a.title)}</a> — ${esc(a.excerpt)}</li>`,
     ).join('')}</ul>`;
   } else {
@@ -66,7 +70,7 @@ function page(locale, sub) {
       copy.heroSub,
     )}</p><h2>${esc(copy.aiTitle)}</h2><p>${esc(copy.aiLead)}</p><ul>${copy.aiPoints
       .map((p) => `<li><strong>${esc(p.label)}</strong> — ${esc(p.text)}</li>`)
-      .join('')}</ul><h2>FAQ</h2>${AEO_FAQ.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}`;
+      .join('')}</ul><h2>FAQ</h2>${faq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)}</p>`).join('')}`;
   }
 
   const nav = [
@@ -74,7 +78,7 @@ function page(locale, sub) {
     ['/play', copy.navPlay],
     ['/blog', copy.navBlog],
     ...VERSUS_PAGES.map((v) => [`/vs/${v.slug}`, `vs ${v.competitor}`]),
-    ...GUIDE_PAGES.map((g) => [`/guides/${g.slug}`, g.title]),
+    ...GUIDE_PAGES.map((g) => [`/guides/${g.slug}`, localizeGuide(g, locale).title]),
   ]
     .map(([p, label]) => `<a href="${p === '/play' ? p : urlFor(locale, p === '/' ? '' : p)}">${esc(label)}</a>`)
     .join(' · ');
@@ -106,7 +110,7 @@ function page(locale, sub) {
           },
           {
             '@type': 'FAQPage',
-            mainEntity: AEO_FAQ.map((f) => ({
+            mainEntity: faq.map((f) => ({
               '@type': 'Question',
               name: f.q,
               acceptedAnswer: { '@type': 'Answer', text: f.a },
@@ -137,7 +141,8 @@ function page(locale, sub) {
   return template
     .replace(/<html lang="[^"]*"/, () => `<html lang="${copy.htmlLang}"`)
     .replace(/<title>[^<]*<\/title>/, () => head)
-    .replace('<div id="root"></div>', () => `<div id="root"><main>${body}<nav>${nav}</nav></main></div>`);
+    .replace('</head>', () => '<style>#root>main[data-ssr]{opacity:0;animation:ssr-in 0s 2.5s forwards}@keyframes ssr-in{to{opacity:1}}</style></head>')
+    .replace('<div id="root"></div>', () => `<div id="root"><main data-ssr>${body}<nav>${nav}</nav></main></div>`);
 }
 
 const subs = [

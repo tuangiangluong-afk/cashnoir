@@ -1,3 +1,4 @@
+import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert } from 'lucide-react';
 import {
@@ -5,7 +6,6 @@ import {
   BLOG_ARTICLES,
   VERSUS_PAGES,
   GUIDE_PAGES,
-  AEO_FAQ,
   type Locale,
 } from '../data/seoContent';
 import { getCurrentSeason, SEASON_EPISODES } from '../data/seasons';
@@ -62,6 +62,10 @@ export function MarketingSite({
   const locale = detectLocale(pathname);
   const subPath = stripLocalePrefix(pathname);
   const copy = SITE_COPY[locale];
+  const BLOGS = BLOG_ARTICLES.map((a) => localizeBlog(a, locale));
+  const VERSUS = VERSUS_PAGES.map((v) => localizeVersus(v, locale));
+  const GUIDES = GUIDE_PAGES.map((g) => localizeGuide(g, locale));
+  const FAQ = localizeFaq(locale);
   const season = getCurrentSeason(new Date().toISOString().slice(0, 10));
   const [teaserStep, setTeaserStep] = useState<'idle' | 'uv' | 'bluff'>('idle');
   const [dailyTop, setDailyTop] = useState<Array<{ pseudo: string; margin: number }>>([]);
@@ -100,13 +104,13 @@ export function MarketingSite({
   };
 
   const activeBlog = subPath.startsWith('/blog/')
-    ? BLOG_ARTICLES.find((a) => a.slug === subPath.replace('/blog/', ''))
+    ? BLOGS.find((a) => a.slug === subPath.replace('/blog/', ''))
     : null;
   const activeVs = subPath.startsWith('/vs/')
-    ? VERSUS_PAGES.find((v) => v.slug === subPath.replace('/vs/', ''))
+    ? VERSUS.find((v) => v.slug === subPath.replace('/vs/', ''))
     : null;
   const activeGuide = subPath.startsWith('/guides/')
-    ? GUIDE_PAGES.find((g) => g.slug === subPath.replace('/guides/', ''))
+    ? GUIDES.find((g) => g.slug === subPath.replace('/guides/', ''))
     : null;
   const isBlogIndex = subPath === '/blog';
 
@@ -173,7 +177,7 @@ export function MarketingSite({
             },
             {
               '@type': 'FAQPage',
-              mainEntity: AEO_FAQ.map((f) => ({
+              mainEntity: FAQ.map((f) => ({
                 '@type': 'Question',
                 name: f.q,
                 acceptedAnswer: { '@type': 'Answer', text: f.a },
@@ -357,7 +361,7 @@ export function MarketingSite({
             </h1>
           </div>
           <div className="divide-y divide-white/10">
-            {BLOG_ARTICLES.map((art) => (
+            {BLOGS.map((art) => (
               <a
                 key={art.slug}
                 href={localePath(`/blog/${art.slug}`)}
@@ -790,6 +794,17 @@ export function MarketingSite({
             </a>
             <a href="/sitemap.xml" className="hover:text-zinc-200">
               sitemap.xml
+            </a>
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('/admin');
+              }}
+              className="text-zinc-600 hover:text-amber-400 transition"
+              title="Console d'administration du Syndicat"
+            >
+              [admin]
             </a>
           </div>
         </div>

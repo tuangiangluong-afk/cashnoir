@@ -1,6 +1,7 @@
 import type { Gauges } from './types';
 import type { Locale } from '../data/seoContent';
 import { formatMoney } from '../data/gameI18n';
+import { scriptedNpcRaw } from './scriptedNpc';
 
 export type LLMProvider = 'ollama' | 'gemini' | 'groq' | 'deepseek';
 
@@ -19,6 +20,8 @@ export interface NPCResponse {
   jauges: Gauges;
   prix_actuel_demande: number;
   action_speciale: 'aucune' | 'deal_accepte' | 'quitte_la_boutique' | 'sort_son_arme';
+  /** Vrai quand la réplique vient du vendeur scripté (IA indisponible ou quota atteint). */
+  scripted?: boolean;
 }
 
 const JSON_CONTRACTS: Record<Locale, string> = {
@@ -85,7 +88,7 @@ function sanitizeText(raw: unknown, fallback: string): string {
   return s || fallback;
 }
 
-function parseNPCJson(
+export function parseNPCJson(
   rawText: string,
   fallbackGauges: Gauges,
   currentPrice: number,
@@ -95,6 +98,7 @@ function parseNPCJson(
   locale: Locale = 'fr',
   gender: 'm' | 'f' = 'm',
   fearCap = 25,
+  leaveGuard = true,
 ): NPCResponse {
   const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
@@ -143,7 +147,11 @@ function parseNPCJson(
   const mentionedPrice = dialoguePriceMatches.find((p) => p < currentPrice && p !== playerOffer);
   const hasConcededInDialogue = Boolean(mentionedPrice && mentionedPrice < currentPrice);
   if (hasConcededInDialogue && mentionedPrice) {
-    nextPrice = Math.min(nextPrice, Math.max(floorPrice, Math.round(mentionedPrice / 50) * 50));
+    // Plafond de baisse par tour (25 %, 5 % pour un simple indice matériel), sauf si la peur était déjà installée.
+    const maxDrop = fearCap < 25 ? 0.95 : 0.75;
+    const lowestAllowed =
+      fallbackGauges.peur >= 55 ? floorPrice : Math.max(floorPrice, Math.round((currentPrice * maxDrop) / 50) * 50);
+    nextPrice = Math.min(nextPrice, Math.max(lowestAllowed, Math.round(mentionedPrice / 50) * 50));
     dynamicFloor = Math.min(dynamicFloor, nextPrice);
   }
 
@@ -167,7 +175,7 @@ function parseNPCJson(
   // Anti-capitulation : quand le vendeur n'est pas terrifié (peur < 55) ET n'a pas spontanément
   // concédé un prix inférieur dans son dialogue, il ne baisse pas de plus de 25 % d'un coup.
   // S'il a la trouille (peur >= 55) ou a lui-même proposé ce prix, il peut craquer jusqu'au plancher.
-  if (jauges.peur < 55 && !hasConcededInDialogue) {
+  if (jauges.peur < 55) {
     nextPrice = Math.max(nextPrice, Math.max(floorPrice, Math.round((currentPrice * (fearCap < 25 ? 0.95 : 0.75)) / 50) * 50));
   } else {
     nextPrice = Math.max(dynamicFloor, nextPrice);
@@ -187,22 +195,34 @@ function parseNPCJson(
     playerOffer < currentPrice * LOWBALL_RATIO;
 
   if (lowball) {
-    jauges.colere = clamp(Math.min(fallbackGauges.colere + 25, jauges.colere + 18), 0, 100);
+    jauges.colere = clamp(Math.min(fallbackGauges.colere + 25, jauges.colere + 12), 0, 100);
     nextPrice = Math.min(currentPrice, Math.max(floorPrice, Math.round((currentPrice * 0.92) / 50) * 50));
     if (action === 'deal_accepte') action = 'aucune';
   }
 
+  // Le modèle ne peut pas faire partir le vendeur sur un simple bluff : il faut une vraie montée de méfiance ou de colère.
+  if (leaveGuard && action === 'quitte_la_boutique' && jauges.mefiance < 72 && jauges.colere < 62) action = 'aucune';
+
+  // Un deal ne peut JAMAIS être conclu sans offre explicite du joueur.
+  // Si le joueur utilise un outil (Radio, UV, Loupe) ou pose une question sans offre de cash,
+  // le PNJ peut paniquer et baisser son prix demandé, mais l'action reste 'aucune' (le joueur garde la main pour accepter ou contre-attaquer).
+  if (playerOffer === undefined && action === 'deal_accepte') {
+    action = 'aucune';
+  }
+
   // Enforcement déterministe des seuils et de l'acceptation d'offre
   let forcedOutcome: 'deal' | 'gun' | 'leave' | 'lowball' | null = lowball ? 'lowball' : null;
-  const offerOk = playerOffer === undefined || playerOffer >= dynamicFloor || playerOffer >= nextPrice;
+  const offerOk = playerOffer !== undefined && (playerOffer >= dynamicFloor || playerOffer >= nextPrice);
   if (action === 'deal_accepte' && !offerOk) action = 'aucune';
   if (
-    action === 'deal_accepte' ||
-    (!lowball && playerOffer !== undefined && offerOk && fallbackGauges.colere < 78)
+    !lowball &&
+    playerOffer !== undefined &&
+    offerOk &&
+    fallbackGauges.colere < 78
   ) {
     forcedOutcome = 'deal';
     action = 'deal_accepte';
-    nextPrice = playerOffer !== undefined ? playerOffer : nextPrice;
+    nextPrice = playerOffer;
   } else if (jauges.colere >= 80) {
     if (action !== 'sort_son_arme') forcedOutcome = 'gun';
     action = 'sort_son_arme';
@@ -234,17 +254,30 @@ function parseNPCJson(
 
   // Synchronise tout prix dans le dialogue avec nextPrice réel si aucun outcome forcé
   if (!forcedOutcome) {
-    const formattedNext = formatMoney(nextPrice, locale);
+    const formattedNext =
+      locale === 'en'
+        ? nextPrice.toLocaleString('en-US')
+        : locale === 'es'
+          ? nextPrice.toLocaleString('es-ES')
+          : nextPrice.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ');
     dialogue = dialogue.replace(
-      /(\d[\d\s\u202f\u00a0]{1,8})\s*(?:\$|dollars?)/gi,
-      (full, numStr) => {
-        const val = Number(String(numStr).replace(/[\s\u202f\u00a0]/g, ''));
+      /(?:\$\s*(\d{1,3}(?:[,\.]\d{3})+|\d+)|(\d{1,3}(?:[ \u202f\u00a0\.]\d{3})+|\d+)\s*(?:\$|dollars?))/gi,
+      (full, p1, p2) => {
+        const numStr = p1 || p2;
+        const val = Number(String(numStr).replace(/[\s\u202f\u00a0,\.]/g, ''));
         if (Number.isFinite(val) && val !== playerOffer && val !== nextPrice) {
           return locale === 'en' ? `$${formattedNext}` : `${formattedNext} $`;
         }
         return full;
       },
     );
+    // Remplacement aussi si le modèle répète l'ancien prix initial exact sans symbole
+    if (initialPrice && nextPrice !== initialPrice) {
+      const initStr = String(initialPrice);
+      const initFormatted = initialPrice.toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR').replace(/[\u202f\u00a0]/g, ' ');
+      const initRegex = new RegExp(`\\b(?:${initStr}|${initFormatted})\\b`, 'g');
+      dialogue = dialogue.replace(initRegex, formattedNext);
+    }
   }
 
   const isFemale = gender === 'f';
@@ -320,6 +353,7 @@ export async function queryNPC(
   run?: { runId: string; ticket: string },
   gender: 'm' | 'f' = 'm',
   fearCap = 25,
+  leaveGuard = true,
 ): Promise<NPCResponse> {
   const dynamicFloor = computeDynamicFloor(initialPrice, floorPrice, currentGauges.peur);
   const jsonContract = JSON_CONTRACTS[locale] || JSON_CONTRACTS.fr;
@@ -333,6 +367,7 @@ ACCEPTABLE FLOOR THRESHOLD: $${dynamicFloor} (if player offers at least $${dynam
         : ''
     }
 MANDATORY COMMERCIAL ROLE: YOU ARE THE SELLER demanding cash. The player is the BUYER. You NEVER give cash to the player. NEVER say "I give you $X". Say "I'll let you have it for $X", "give me $X and I walk", or "deal for $X".
+PRICE CONSISTENCY DIRECTIVE: Any price you speak in your dialogue MUST strictly match your current asking price or counter-offer. Never repeat an outdated initial price.
 MANDATORY LANGUAGE: Respond 100% in gritty spoken English.`
     : locale === 'es'
       ? `ESTADO ACTUAL DE LAS BARRAS: miedo=${currentGauges.peur}, ira=${currentGauges.colere}, desconfianza=${currentGauges.mefiance}.
@@ -343,6 +378,7 @@ UMBRAL MÍNIMO ACEPTABLE: ${dynamicFloor} $ (si el jugador ofrece al menos ${dyn
           : ''
       }
 ROL COMERCIAL OBLIGATORIO: ERES EL VENDEDOR pidiendo efectivo. El jugador es el COMPRADOR. NUNCA le das dinero al jugador. NUNCA digas "te doy X $". Di "te lo dejo en X $", "dame X $ y me voy", o "trato hecho por X $".
+DIRECTIVA DE PRECIO: Cualquier precio que digas en tu diálogo DEBE coincidir con tu precio pedido actual. Nunca repitas un precio desactualizado.
 IDIOMA OBLIGATORIO: Responde 100% en español callejero.`
       : `ÉTAT ACTUEL DES JAUGES : peur=${currentGauges.peur}, colere=${currentGauges.colere}, mefiance=${currentGauges.mefiance}.
 PRIX ACTUEL DEMANDÉ : ${currentPrice} $ (RÈGLE ABSOLUE : ne demande JAMAIS plus que ${currentPrice} $, le prix ne peut que baisser ou rester à ${currentPrice} $).
@@ -351,7 +387,8 @@ SEUIL ACCEPTABLE ACTUEL : ${dynamicFloor} $ (si le joueur propose au moins ${dyn
           ? `\nOFFRE CHIFFRÉE DU JOUEUR CE TOUR : ${playerOffer} $ (lis bien ce montant exact : ${playerOffer} $, ne le transforme pas en un autre nombre).`
           : ''
       }
-RÔLE COMMERCIAL OBLIGATOIRE : TU ES LE VENDEUR qui réclame du liquide. Le joueur est l'ACHETEUR. Tu ne donnes JAMAIS d'argent au joueur. Ne dis JAMAIS "je vous en donne X $" ni "je vous donne X $". Dis "je vous le cède pour X $", "laissez-moi partir avec X $", ou "donnez-moi X $ et je disparais".`;
+RÔLE COMMERCIAL OBLIGATOIRE : TU ES LE VENDEUR qui réclame du liquide. Le joueur est l'ACHETEUR. Tu ne donnes JAMAIS d'argent au joueur. Ne dis JAMAIS "je vous en donne X $" ni "je vous donne X $". Dis "je vous le cède pour X $", "laissez-moi partir avec X $", ou "donnez-moi X $ et je disparais".
+DIRECTIVE DE PRIX : Tout prix que tu prononces dans ton dialogue DOIT correspondre exactement à ton prix demandé actuel. Ne répète jamais un prix dépassé.`;
 
   const fullSystem = `${systemPrompt}
 
@@ -359,6 +396,7 @@ ${statusNote}
 ${jsonContract}`;
 
   let raw = '';
+  let scripted = false;
 
   if (config.provider === 'ollama') {
     const messages = [
@@ -384,33 +422,81 @@ ${jsonContract}`;
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Erreur Ollama (${res.status}): ${errText.slice(0, 180)}`);
+      throw new Error(locale === 'en' ? `Ollama error (${res.status}): ${errText.slice(0, 180)}` : locale === 'es' ? `Error de Ollama (${res.status}): ${errText.slice(0, 180)}` : `Erreur Ollama (${res.status}): ${errText.slice(0, 180)}`);
     }
 
     const data = await res.json();
     raw = data?.message?.content ?? '';
   } else {
     // Clés Gemini/Groq : exclusivement côté serveur, jamais dans le navigateur.
-    const res = await fetch('/api/npc', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: config.provider,
-        systemPrompt: fullSystem,
-        messages: history.map((turn) => ({ role: turn.role, content: turn.content })),
-        ...(run ? { runId: run.runId, ticket: run.ticket } : {}),
-      }),
-    });
-
-    const data = (await res.json().catch(() => ({}))) as { raw?: string; error?: string };
-    if (!res.ok) {
-      throw new Error(
-        data?.error || `Erreur ${config.provider} (${res.status}). Vérifie .env.local côté serveur.`,
-      );
+    let res: Response | null = null;
+    let data: { raw?: string; error?: string } = {};
+    try {
+      res = await fetch('/api/npc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: config.provider,
+          systemPrompt: fullSystem,
+          messages: history.map((turn) => ({ role: turn.role, content: turn.content })),
+          ...(run ? { runId: run.runId, ticket: run.ticket } : {}),
+        }),
+      });
+      data = (await res.json().catch(() => ({}))) as { raw?: string; error?: string };
+    } catch {
+      res = null;
     }
-    raw = String(data?.raw ?? '');
+
+    if (!res || !res.ok) {
+      // Fallback automatique vers le modèle local Ollama si le serveur externe ou Gemini a échoué
+      try {
+        const messages = [
+          { role: 'system', content: fullSystem },
+          ...history.map((turn) => ({
+            role: turn.role === 'player' ? 'user' : 'assistant',
+            content: turn.content,
+          })),
+        ];
+        const localRes = await fetch('http://127.0.0.1:11434/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gemma4:latest',
+            messages,
+            format: 'json',
+            stream: false,
+            options: { temperature: 0.7 },
+          }),
+        });
+        if (localRes.ok) {
+          const localData = await localRes.json();
+          raw = localData?.message?.content ?? '';
+        }
+      } catch {
+        // Ollama non disponible non plus, lever l'erreur d'origine
+      }
+
+      if (!raw && !run) {
+        // IA indisponible (quota gratuit, budget du jour, panne) : on bascule sur le vendeur scripté, sans coût.
+        raw = scriptedNpcRaw({ history, gauges: currentGauges, currentPrice, dynamicFloor, playerOffer, locale, gender });
+        scripted = true;
+      }
+      if (!raw) {
+        throw new Error(
+          data?.error ||
+            (locale === 'en'
+              ? `${config.provider} error (${res?.status ?? 504}). Check .env.local on the server.`
+              : locale === 'es'
+                ? `Error de ${config.provider} (${res?.status ?? 504}). Revisa .env.local en el servidor.`
+                : `Erreur ${config.provider} (${res?.status ?? 504}). Vérifie .env.local côté serveur.`),
+        );
+      }
+    } else {
+      raw = String(data?.raw ?? '');
+    }
   }
 
-  if (!raw) throw new Error('Réponse du modèle vide.');
-  return parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, playerOffer, locale, gender, fearCap);
+  if (!raw) throw new Error(locale === 'en' ? 'Empty model response.' : locale === 'es' ? 'Respuesta vacía del modelo.' : 'Réponse du modèle vide.');
+  const parsed = parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, playerOffer, locale, gender, fearCap, leaveGuard);
+  return scripted ? { ...parsed, scripted: true } : parsed;
 }
