@@ -278,7 +278,7 @@ export function parseNPCJson(
 
   const rawDialogue = String(parsed.dialogue || '');
   const hasRefusalCue =
-    /(?:pas\s+un\s+de\s+moins|trouverai\s+un\s+autre|jamais\s+vendu|hors\s+de\s+question|pas\s+question|certainement\s+pas|vous\s+r[êe]vez|no\s+way|not\s+a\s+chance|ni\s+de\s+coña|de\s+ninguna\s+manera)/i.test(
+    /(?:pas\s+un\s+de\s+moins|trouverai\s+(?:un|quelqu['’]un)\s+autre|jamais\s+vendu|hors\s+de\s+question|pas\s+question|certainement\s+pas|vous\s+r[êe]vez|no\s+way|not\s+a\s+chance|ni\s+de\s+coña|de\s+ninguna\s+manera)/i.test(
       rawDialogue,
     );
 
@@ -360,7 +360,7 @@ export function parseNPCJson(
     (/(?:march[ée] conclu|affaire conclue|c'est d'accord|topons l[àa]|it'?s a deal|deal done|you'?ve got a deal|trato hecho|hecho,? trato)/i.test(
       rawDialogue,
     ) ||
-      /(?:c'est parfait|c'est \u00e7a,? c'est parfait|laissez-moi (?:juste )?partir[.,\s]+(?:oui|c'est parfait)|vous avez raison[.,\s]+(?:oui|c'est (?:parfait|ça|bon))|all right,? take it|take the money)/i.test(
+      /(?:c'est parfait|c'est \u00e7a,? c'est parfait|laissez-moi (?:juste )?partir[.,\s]+(?:oui|c'est (?:parfait|bon))|vous avez raison[.,\s]+.*?(?:laissez-moi|prenez|d'accord|c'est (?:parfait|ça|bon))|all right,? take it|take the money|d'accord,? (?:prenez-le|je cède|va pour)|donnez-moi (?:le cash|l'argent|les billets) et (?:je pars|laissez-moi))/i.test(
         rawDialogue,
       ));
 

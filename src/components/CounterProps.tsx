@@ -26,7 +26,7 @@ export type ItemVisualKind =
 
 export function itemKindFor(name: string): ItemVisualKind {
   const n = name.toLowerCase();
-  if (/clé\s*usb|ledger|hardware\s*wallet|puce|microfilm/.test(n)) return 'usb';
+  if (/clé\s*usb|cle\s*usb|\busb\b|ledger|hardware\s*wallet|puce|microfilm|clé\s*chiffrée|cle\s*chiffree/.test(n)) return 'usb';
   if (/diamant|émeraude|emeraude|rivière/.test(n)) return 'diamond';
   if (/katana|dague|phurba/.test(n)) return 'katana';
   if (/fabergé|faberge|œuf|oeuf/.test(n)) return 'faberge';

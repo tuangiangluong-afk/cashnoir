@@ -2338,6 +2338,18 @@ export default function App() {
     const target = inventory.find((i) => i.id === itemId);
     if (!target || !lockAction(`sell-${itemId}`)) return;
 
+    if (target.arcItemKey) {
+      const warningText =
+        gameLocale === 'en'
+          ? `⚠️ "${localizeItemName(target.name, gameLocale)}" is a key INVESTIGATION LEAD for an upcoming story client!\n\nSelling it now will cancel this story arc and you will forfeit the $7,500 conclusion bounty.\n\nAre you sure you want to sell it?`
+          : gameLocale === 'es'
+            ? `⚠️ ¡"${localizeItemName(target.name, gameLocale)}" es una PISTA DE INVESTIGACIÓN clave para una misión futura!\n\nVenderlo ahora cancelará la trama y perderás la recompensa final de 7 500 $.\n\n¿Seguro que deseas venderlo?`
+            : `⚠️ « ${target.name} » est une PISTE D'ENQUÊTE clé pour un client de l'histoire !\n\nLe vendre maintenant annulera cette intrigue et tu passeras à côté des 7 500 $ de prime finale.\n\nEs-tu certain de vouloir le liquider ?`;
+      if (typeof window !== 'undefined' && !window.confirm(warningText)) {
+        return;
+      }
+    }
+
     const salePrice = mode === 'fast' ? getFastSellPayout(target) : getAuctionPayout(target);
     if (mode === 'auction') setAuctionsToday((n) => n + 1);
     if (target.category) {
@@ -3526,6 +3538,11 @@ export default function App() {
                                     {item.modifier === 'traceur' ? t.modGps : item.modifier === 'collection' ? t.modCollection : t.modCounterfeit}
                                   </span>
                                 )}
+                                {item.arcItemKey && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-purple-950/90 text-purple-200 border border-purple-500/50 flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
+                                    🔍 {tr("Piste d'Enquête · Garder au Coffre", 'Investigation Lead · Keep in Vault', 'Pista de Investigación · Guardar en Caja')}
+                                  </span>
+                                )}
                               </div>
                               <p className="text-xs text-zinc-400">
                                 <span className="text-zinc-500">{localizeFaction(item.faction, L)}</span> · {t.paidLabel(formatMoney(item.paid, L))} · <span className="text-emerald-400 font-semibold">{tr('rue', 'street', 'calle')} ~{money(item.streetValue)}</span>
@@ -4246,13 +4263,14 @@ export default function App() {
 
                 {/* Pistes actives (si présentes) */}
                 {arcNotes.filter((n) => !n.resolved).length > 0 && (
-                  <div className="hidden space-y-0.5 border-l border-amber-500/60 bg-black/40 pl-2 py-0.5 font-mono text-[11px] lg:block">
-                    <div className="text-amber-300/90 font-semibold uppercase tracking-wider">
-                      {gameLocale === 'en' ? 'Leads' : gameLocale === 'es' ? 'Pistas' : 'Pistes'} ({arcNotes.filter((n) => !n.resolved).length})
+                  <div className="space-y-0.5 border-l-2 border-purple-500/80 bg-purple-950/30 px-2 py-1 font-mono text-[11px] rounded-r">
+                    <div className="text-purple-300 font-semibold uppercase tracking-wider flex items-center gap-1">
+                      <span>🔍 {gameLocale === 'en' ? 'Story Leads' : gameLocale === 'es' ? 'Pistas de Trama' : 'Pistes en cours'}</span>
+                      <span className="text-purple-400/80 font-normal">({arcNotes.filter((n) => !n.resolved).length})</span>
                     </div>
-                    {arcNotes.filter((n) => !n.resolved).slice(0, 1).map((n) => (
-                      <div key={n.arcId} className="truncate text-zinc-400 text-[10px]">
-                        <span className="text-amber-200">{localizeArcTitle(n.arcId, n.title, gameLocale)}:</span> {localizeArcNote(n.arcId, n.note, gameLocale)}
+                    {arcNotes.filter((n) => !n.resolved).slice(0, 2).map((n) => (
+                      <div key={n.arcId} className="truncate text-zinc-300 text-[10px]">
+                        <span className="text-amber-200 font-medium">{localizeArcTitle(n.arcId, n.title, gameLocale)}:</span> {localizeArcNote(n.arcId, n.note, gameLocale)}
                       </div>
                     ))}
                   </div>
