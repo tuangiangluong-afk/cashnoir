@@ -6352,23 +6352,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Administration / Console Secrète */}
-            <div className="border-t border-white/5 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProfileModal(false);
-                  navigateTo('/admin');
-                }}
-                className="w-full py-1.5 px-3 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/30 text-[10px] font-mono text-zinc-400 hover:text-amber-400 flex items-center justify-between transition cursor-pointer"
-              >
-                <span className="flex items-center gap-1.5">
-                  <KeyRound className="w-3 h-3 text-amber-500/70" />
-                  Console Back-Office (Admin)
-                </span>
-                <span className="text-zinc-600">/admin →</span>
-              </button>
-            </div>
 
             <button
               type="button"

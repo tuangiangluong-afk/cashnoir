@@ -795,17 +795,6 @@ export function MarketingSite({
             <a href="/sitemap.xml" className="hover:text-zinc-200">
               sitemap.xml
             </a>
-            <a
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate('/admin');
-              }}
-              className="text-zinc-600 hover:text-amber-400 transition"
-              title="Console d'administration du Syndicat"
-            >
-              [admin]
-            </a>
           </div>
         </div>
       </footer>

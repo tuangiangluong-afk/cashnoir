@@ -164,6 +164,7 @@ const write = (urlPath, html) => {
 // Le client de jeu garde la coquille SPA (routes profondes servies sans rewrite côté hébergeur).
 write('/play', template);
 write('/play/daily', template);
+write('/admin', template);
 // '/' en dernier : il écrase dist/index.html, qui sert de gabarit lu plus haut.
 for (const locale of ['fr', 'es', 'en']) for (const sub of [...subs].reverse()) write(urlFor(locale, sub), page(locale, sub));
 

@@ -552,7 +552,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <h1 className="text-sm font-bold tracking-wider font-mono text-white">
               CASH NOIR <span className="text-amber-400">//</span> CONSOLE ADMIN
             </h1>
