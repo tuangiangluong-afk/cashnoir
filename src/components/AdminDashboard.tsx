@@ -198,11 +198,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: passwordInput }),
       });
-      const data = await res.json().catch(() => ({}));
+      const isJson = res.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await res.json().catch(() => ({})) : {};
       if (res.ok && data.success) {
         setIsAuthenticated(true);
         showToast('Accès Administrateur validé.');
         await fetchEcosystem();
+      } else if (!isJson) {
+        setLoginError('Serveur API injoignable (ouvre /admin via http://localhost:4173 ou démarre server/index.mjs).');
       } else {
         setLoginError(data.error || 'Clé d’accès incorrecte.');
       }

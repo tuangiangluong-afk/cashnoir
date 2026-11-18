@@ -53,6 +53,7 @@ import {
   localizeArcNote,
 } from './data/noirLocalization';
 import { track } from './services/telemetry';
+import { renderShareCard, shareCardImage } from './services/shareCard';
 import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type RunStats } from './data/debrief';
 import { activeCombos, comboCompletedBy, hasCombo } from './data/combos';
 import { heistLoss, heistRisk } from './data/risk';
@@ -2977,6 +2978,29 @@ export default function App() {
     ]
       .filter(Boolean)
       .join('\n');
+    // Carte image (portrait, résultat, décote, réplique) : partage natif avec fichier sur mobile, PNG téléchargé + texte copié sur ordinateur.
+    try {
+      const blob = await renderShareCard({
+        portraitUrl: `${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`,
+        verdict: `${verdict}${badge ? ` · ${badge}` : ''}`.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim(),
+        tone: won ? 'win' : outcome === 'quitte_la_boutique' ? 'neutral' : 'loss',
+        discountPct: won ? Math.max(0, discount) : 0,
+        name: currentCase.name,
+        item: localizeItemName(currentCase.item.name, L),
+        line: line.slice(0, 120),
+        lineLabel: T.line,
+        head: T.head,
+        url: `cashnoir.app/play${daily ? '/daily' : ''}`,
+      });
+      const mode = await shareCardImage(blob, text);
+      if (mode === 'downloaded') await navigator.clipboard.writeText(text).catch(() => {});
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
+      return;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return; // le joueur a fermé la feuille de partage
+      /* image ou partage indisponible : on retombe sur le partage texte ci-dessous */
+    }
     try {
       if (typeof navigator.share === 'function' && window.matchMedia('(pointer: coarse)').matches) {
         await navigator.share({ text });

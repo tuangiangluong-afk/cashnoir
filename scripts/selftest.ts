@@ -9,6 +9,7 @@ import { campaignSeasonOf, seasonHero, SEASON_EPISODES } from '../src/data/seaso
 import { heistRisk, heistLoss } from '../src/data/risk';
 import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type DebriefEntry } from '../src/data/debrief';
 import { ASCENSION_LEVELS, getAscensionModifier, MAX_ASCENSION, ROMAN, canAscend } from '../src/data/ascension';
+import { wrapByWidth } from '../src/services/shareCard';
 import { COMBOS, activeCombos, comboCompletedBy } from '../src/data/combos';
 import { JOKER_POOL } from '../src/data/jokers';
 import { applyEncounter, applyFavor, isDue, pickDue, trustTone, SAGA_EPISODES, type SagaState } from '../src/data/saga';
@@ -493,6 +494,15 @@ for (const msg of [
   setFeaturedCast(undefined);
   const d0 = generateDailyContract('2026-04-02', undefined, 'fr');
   check('héros : le contrat quotidien reste identique pour tous', d1.castId === d0.castId && d1.initialPrice === d0.initialPrice && d1.name === d0.name);
+}
+
+// Carte de partage : découpage du texte en lignes (la partie dessin est testée dans le navigateur).
+{
+  const m = (s: string) => s.length * 10;
+  const lines = wrapByWidth(m, 'un deux trois quatre cinq six sept huit', 100, 3);
+  check('carte de partage : les lignes tiennent dans la largeur', lines.every((l) => m(l) <= 100 || !l.includes(' ')), JSON.stringify(lines));
+  check('carte de partage : trop long = coupé avec « … »', lines.length === 3 && lines[2].endsWith('…'));
+  check('carte de partage : un mot plus long que la ligne ne boucle pas', wrapByWidth(m, 'extraordinairement', 50, 2).length === 1 && wrapByWidth(m, '', 50, 2).length === 0);
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

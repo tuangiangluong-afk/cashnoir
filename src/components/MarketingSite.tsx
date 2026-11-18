@@ -630,26 +630,28 @@ export function MarketingSite({
                 {/* Exemple de pièce clé d'enquête */}
                 <div className="lg:col-span-5 border border-purple-500/30 bg-[#0e0d14] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_40px_rgba(168,85,247,0.08)] flex flex-col justify-between">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-purple-300 uppercase tracking-wider">
-                        <ShieldAlert className="h-4 w-4 text-purple-400" />
-                        {copy.sagasDilemmaTitle}
+                    <div className="flex items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-purple-300 uppercase tracking-wider min-w-0">
+                        <ShieldAlert className="h-4 w-4 shrink-0 text-purple-400" />
+                        <span>{copy.sagasDilemmaTitle}</span>
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
-                        Docks du Nord
+                      <span className="shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
+                        {locale === 'en' ? 'North Docks' : locale === 'es' ? 'Muelles del Norte' : 'Docks du Nord'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3.5 bg-black/60 p-3 rounded-lg border border-white/10">
                       <div className="h-16 w-16 shrink-0 rounded bg-black/80 border border-white/10 flex items-center justify-center p-1 overflow-hidden">
                         <img
-                          src="/assets/items/montre.webp"
+                          src="/assets/items/watch.webp"
                           alt="Rolex Daytona"
                           className="h-full w-full object-contain mix-blend-lighten drop-shadow-md"
                         />
                       </div>
                       <div className="space-y-1 min-w-0">
-                        <p className="text-xs font-bold text-amber-200 truncate">Rolex Daytona en Or Rose</p>
+                        <p className="text-xs font-bold text-amber-200 truncate">
+                          {locale === 'en' ? 'Rose Gold Rolex Daytona' : locale === 'es' ? 'Rolex Daytona de Oro Rosa' : 'Rolex Daytona en Or Rose'}
+                        </p>
                         <p className="text-[10px] text-zinc-400">
                           {locale === 'en' ? 'Stolen from an oligarch. Serial number matches an active mob lead in your Notebook.' : locale === 'es' ? 'Robada a un oligarca. El número de serie coincide con una pista activa de tu Cuaderno.' : 'Volée à un oligarque. Numéro de série lié à une intrigue active dans ton Carnet.'}
                         </p>
@@ -757,7 +759,9 @@ export function MarketingSite({
                         <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
                         {copy.seasonHeroBadge}
                       </span>
-                      <span className="text-[10px] text-zinc-400">c013 · Docks du Nord</span>
+                      <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-400">
+                        {locale === 'en' ? 'c013 · North Docks' : locale === 'es' ? 'c013 · Muelles del Norte' : 'c013 · Docks du Nord'}
+                      </span>
                     </div>
 
                     <div className="flex gap-4 items-center">
@@ -858,8 +862,8 @@ export function MarketingSite({
                         <Share2 className="h-3.5 w-3.5 text-emerald-400" />
                         {copy.viralShareEyebrow}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
-                        -20% / Arme Dégainée
+                      <span className="shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+                        {locale === 'en' ? 'PNG Card · −20% / Weapon Drawn' : locale === 'es' ? 'Tarjeta PNG · −20% / Arma Sacada' : 'Carte PNG · −20% / Arme Dégainée'}
                       </span>
                     </div>
 
