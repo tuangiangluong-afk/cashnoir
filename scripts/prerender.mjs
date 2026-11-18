@@ -233,7 +233,7 @@ function page(locale, sub) {
   ].join('\n    ');
 
   // Remplacements par fonction : pas d'interprétation des "$" (prix) dans le contenu.
-  const preload = sub === '' ? '<link rel="preload" as="image" href="/assets/portraits/cast/c001.webp" />' : '';
+  const preload = sub === '' ? '<link rel="preload" as="image" href="/assets/portraits/cast/c001.webp" fetchpriority="high" />' : '';
   return template
     .replace(/<html lang="[^"]*"/, () => `<html lang="${copy.htmlLang}"`)
     .replace(/<title>[^<]*<\/title>/, () => head)

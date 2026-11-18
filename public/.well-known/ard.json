@@ -6,58 +6,14 @@
   "url": "https://cashnoir.app",
   "entries": [
     {
-      "identifier": "cashnoir-home",
-      "displayName": "CASH NOIR — AI Black-Market Game",
-      "type": "text/html",
-      "url": "https://cashnoir.app/",
-      "description": "Official landing page and live AI negotiation counter demo (EN/FR/ES).",
+      "identifier": "urn:air:welink-tech:cashnoir:llms-txt",
+      "displayName": "CASH NOIR — LLMs & Agent Reference",
+      "type": "text/markdown; profile=\"urn:air:agent-skills\"",
+      "url": "https://cashnoir.app/llms.txt",
+      "description": "Structured Markdown summary of CASH NOIR mechanics, 100 characters, 10 Ascension levels, and canonical URLs.",
       "representativeQueries": [
         "CASH NOIR real-time AI negotiation game",
-        "black market pawn shop AI interrogation game"
-      ]
-    },
-    {
-      "identifier": "cashnoir-llms-txt",
-      "displayName": "CASH NOIR LLMs Reference",
-      "type": "text/markdown",
-      "url": "https://cashnoir.app/llms.txt",
-      "description": "Structured Markdown summary of CASH NOIR mechanics, characters, and canonical URLs.",
-      "representativeQueries": [
-        "CASH NOIR game mechanics summary",
-        "CASH NOIR characters and ascension levels"
-      ]
-    },
-    {
-      "identifier": "cashnoir-sitemap",
-      "displayName": "CASH NOIR XML Sitemap",
-      "type": "application/xml",
-      "url": "https://cashnoir.app/sitemap.xml",
-      "description": "Complete multilingual XML sitemap with hreflang alternates for EN, FR, and ES.",
-      "representativeQueries": [
-        "CASH NOIR pages sitemap",
-        "CASH NOIR blog and guides URLs"
-      ]
-    },
-    {
-      "identifier": "cashnoir-guides",
-      "displayName": "CASH NOIR Tactical Guides",
-      "type": "text/html",
-      "url": "https://cashnoir.app/guides/negociation-ia-temps-reel",
-      "description": "Step-by-step HowTo guides on cracking AI sellers and unlocking Codex relics.",
-      "representativeQueries": [
-        "how to negotiate with AI sellers in CASH NOIR",
-        "CASH NOIR Codex relics guide"
-      ]
-    },
-    {
-      "identifier": "cashnoir-leaderboard-api",
-      "displayName": "CASH NOIR Daily Leaderboard API",
-      "type": "application/json",
-      "url": "https://cashnoir.app/api/leaderboard",
-      "description": "Public JSON endpoint returning verified 24h Daily Contract scores.",
-      "representativeQueries": [
-        "CASH NOIR daily contract leaderboard",
-        "CASH NOIR daily challenge high scores"
+        "CASH NOIR characters factions and ascension rules"
       ]
     }
   ]
