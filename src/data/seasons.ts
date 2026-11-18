@@ -176,6 +176,17 @@ export function daysUntilEpisode(index: number, daysSinceStart: number): number 
   return Math.max(0, (index - STARTING_EPISODES + 1) * 7 - Math.max(0, daysSinceStart));
 }
 
+/** Saison de campagne en cours : celle du dernier épisode débloqué. */
+export function campaignSeasonOf(daysSinceStart: number): number {
+  const n = episodesUnlocked(daysSinceStart);
+  return SEASON_EPISODES[Math.max(0, n - 1)]?.seasonNumber ?? 1;
+}
+
+/** Héros d'une saison : le personnage de son épisode final (le sommet de l'histoire). */
+export function seasonHero(seasonNumber: number): SeasonEpisode | undefined {
+  return SEASON_EPISODES.filter((e) => e.seasonNumber === seasonNumber).sort((a, b) => b.episodeNumber - a.episodeNumber)[0];
+}
+
 export function getCurrentSeason(dateStr: string): SeasonInfo {
   const d = new Date(dateStr);
   const year = d.getFullYear();

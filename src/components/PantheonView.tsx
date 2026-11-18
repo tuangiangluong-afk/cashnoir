@@ -13,8 +13,12 @@ import {
   SEASON_REWARDS,
   SEASON_EPISODES,
   daysUntilEpisode,
+  campaignSeasonOf,
+  seasonHero,
+  episodesUnlocked,
   type SeasonEpisode,
 } from '../data/seasons';
+import { resolveCastPortrait, PORTRAIT_DIR } from './Scene';
 import {
   getDailyQuests,
   LOGIN_STREAK_REWARDS,
@@ -463,6 +467,30 @@ export function PantheonView({
               </div>
             </section>
 
+            {/* Héros de la saison */}
+            {(() => {
+              const sn = campaignSeasonOf(daysSinceStart);
+              const hero = seasonHero(sn);
+              if (!hero) return null;
+              const tr3 = (fr: string, en: string, es: string) => (locale === 'en' ? en : locale === 'es' ? es : fr);
+              const loc = localizeSeasonEpisode(hero, locale);
+              const eps = SEASON_EPISODES.filter((e) => e.seasonNumber === sn);
+              const open = Math.min(eps.length, Math.max(0, episodesUnlocked(daysSinceStart) - SEASON_EPISODES.findIndex((e) => e.seasonNumber === sn)));
+              return (
+                <section className="flex items-center gap-4 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-[#0d0e12] p-4">
+                  <img src={`${PORTRAIT_DIR}${resolveCastPortrait(hero.castId, undefined, hero.castName, '')}.webp`} alt="" className="h-28 w-24 shrink-0 rounded-lg border border-amber-400/50 object-cover object-[50%_18%]" />
+                  <div className="min-w-0 space-y-1 font-mono">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400">★ {tr3('Héros de la saison', 'Hero of the season', 'Héroe de la temporada')} {sn}</p>
+                    <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wider text-zinc-100">{hero.castName}</h3>
+                    <p className="text-[11px] text-zinc-300">{loc.title}</p>
+                    <p className="text-[10px] text-zinc-500">
+                      {tr3(`${open}/${eps.length} épisodes débloqués · il passe plus souvent au comptoir cette saison.`, `${open}/${eps.length} episodes unlocked · they drop by the counter more often this season.`, `${open}/${eps.length} episodios desbloqueados · pasa más a menudo por el mostrador esta temporada.`)}
+                    </p>
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* Campagnes Épisodiques Scénarisées */}
             <section className="border border-white/10 bg-[#0d0e12] p-5 space-y-3">
               <div className="flex items-baseline justify-between border-b border-white/10 pb-2">
@@ -488,7 +516,7 @@ export function PantheonView({
                     >
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-amber-400">{t.seasonTag(ep.seasonNumber, ep.castName)}</span>
+                          <span className="text-amber-400">{ep.castId === seasonHero(ep.seasonNumber)?.castId ? '★ ' : ''}{t.seasonTag(ep.seasonNumber, ep.castName)}</span>
                           <span className={done ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
                             {done ? t.completedBadge : `+${ep.rewardXp} XP · +${formatMoney(ep.rewardCash, locale)} $`}
                           </span>

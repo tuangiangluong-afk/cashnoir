@@ -34,6 +34,7 @@ import {
   generateBossCase,
   generateWindfallCase,
   setAscensionHint,
+  setFeaturedCast,
   type ProceduralCase,
 } from './data/generator';
 import { DISTRICTS, CITY_ASSETS, type District, type CityAsset } from './data/empire';
@@ -57,7 +58,7 @@ import { activeCombos, comboCompletedBy, hasCombo } from './data/combos';
 import { heistLoss, heistRisk } from './data/risk';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from './data/checkpoints';
 import { applyEncounter, applyFavor, nextEpisode, pickDue, rebaseSagas, trustTone, SAGA_EPISODES, type SagaState } from './data/saga';
-import { sagaAllyGift, sagaChapter, sagaEnding, sagaFavor, sagaOpening, sagaTell } from './data/sagaText';
+import { sagaAllyGift, sagaChapter, sagaEnding, sagaFacts, sagaFavor, sagaKnows, sagaOpening, sagaTell } from './data/sagaText';
 import { evaluatePsychoTriggers, findProfileForArchetype, temperamentOf } from './data/psychology';
 import { getNightEvent, localizeNightEvent } from './data/events';
 import { drawRandomJokers, JOKER_POOL, type SyndicateJoker } from './data/jokers';
@@ -84,7 +85,7 @@ import {
   advanceRivals,
   type RivalFence,
 } from './data/rivals';
-import { getSeasonLevel, SEASON_EPISODES, daysUntilEpisode, type SeasonEpisode } from './data/seasons';
+import { getSeasonLevel, SEASON_EPISODES, daysUntilEpisode, type SeasonEpisode, campaignSeasonOf, seasonHero } from './data/seasons';
 import {
   getDailyQuests,
   LOGIN_STREAK_REWARDS,
@@ -98,7 +99,7 @@ import { GAME_UI, getLocalizedRank, formatMoney } from './data/gameI18n';
 import type { Locale } from './data/seoContent';
 import { ShopBackdrop, FilmOverlay, ClientBust, Typewriter, resolveCastPortrait, PORTRAIT_DIR } from './components/Scene';
 import { rollSecretId, secretContent, checkSecret, secretReward, SECRET_UI } from './data/secrets';
-import { localizeCastText } from './data/castI18n';
+import { localizeCastText, localizeSecret } from './data/castI18n';
 import { localizeItemText } from './data/itemsI18n';
 import { CounterItemProp, itemKindFor } from './components/CounterProps';
 import { ambience } from './services/ambience';
@@ -204,6 +205,7 @@ interface AuditEntry {
   mefianceDelta: number;
   price: number;
   priceDelta: number;
+  text?: string;
   offer?: number;
   floor?: number;
   weak?: boolean;
@@ -1222,6 +1224,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome, currentCase.id]);
 
+  const heroCastId = seasonHero(campaignSeasonOf(daysSinceStart))?.castId;
+  useEffect(() => {
+    setFeaturedCast(heroCastId);
+  }, [heroCastId]);
   useEffect(() => {
     setAscensionHint(ascMod?.trapBoost ?? 0, ascMod?.floorBoost ?? 0);
   }, [ascMod]);
@@ -1528,7 +1534,9 @@ export default function App() {
       floorPrice,
       initialGauges: { peur: g.peur, colere, mefiance },
       openingLine: opening,
-      openingTell: ally ? tt('Un allié de la maison : la confiance règne.', 'A friend of the house: trust runs deep.', 'Un aliado de la casa: reina la confianza.') : sagaTell(episode, gameLocale, castChar.gender),
+      openingTell: ally
+        ? tt('Un allié de la maison : la confiance règne.', 'A friend of the house: trust runs deep.', 'Un aliado de la casa: reina la confianza.')
+        : `${sagaTell(episode, gameLocale, castChar.gender)} ${sagaKnows(gameLocale, sagaFacts(sg.met, localizeSecret(castChar.secret, gameLocale), localizeCastText(castChar.weaknessHint, gameLocale), localizeCastText(castChar.redLineHint, gameLocale)))}`.trim(),
       systemPrompt: base.systemPrompt + memory,
       saga: { episode, ally, chapter },
     };
@@ -2119,6 +2127,7 @@ export default function App() {
         mefiance: Math.min(100, gauges.mefiance + psycho.mefianceDelta),
       };
       const config: LLMConfig = { provider };
+      const t0 = performance.now();
       const res = await queryNPC(
         config,
         currentCase.systemPrompt,
@@ -2135,6 +2144,7 @@ export default function App() {
         currentCase.arcStep !== 2, // un client de piste qui n'a plus sa pièce peut légitimement repartir
       );
 
+      if (!res.scripted) track('llm_latency', Math.round(performance.now() - t0));
       if (res.scripted && !scriptedNoticeRef.current) {
         scriptedNoticeRef.current = true;
         track('scripted_mode');
@@ -2169,6 +2179,7 @@ export default function App() {
           mefianceDelta: deltaM,
           price: res.prix_actuel_demande,
           priceDelta: deltaPr,
+          text: text.slice(0, 160),
           offer: inferredOffer,
           floor: computeDynamicFloor(currentCase.initialPrice, currentCase.floorPrice, nextGauges.peur),
           weak: psycho.hitWeak,
@@ -2953,7 +2964,9 @@ export default function App() {
     }[L];
     const verdict = won ? T.deal : outcome === 'deal_accepte' ? T.trap : outcome === 'sort_son_arme' ? T.gun : T.walk;
     const badge = discount >= 45 ? T.neg : turns <= 2 && discount >= 20 ? T.blitz : '';
-    const line = [...history].reverse().find((h) => h.role === 'player')?.content.replace(/\s+/g, ' ');
+    // Réplique clé : celle qui a fait le plus baisser le prix (ou monter la peur), sinon la dernière.
+    const crack = [...psychoAudit].filter((e) => e.text && (e.priceDelta < 0 || e.peurDelta >= 15)).sort((a, b) => a.priceDelta - b.priceDelta || b.peurDelta - a.peurDelta)[0];
+    const line = (crack?.text ?? [...history].reverse().find((h) => h.role === 'player')?.content ?? '').replace(/\s+/g, ' ');
     const text = [
       `CASH NOIR · ${T.head} 🕵️‍♂️`,
       `${verdict}${badge ? ` · ${badge}` : ''}`,
@@ -4421,6 +4434,11 @@ export default function App() {
                             : tt('PISTE PERDUE', 'LOST LEAD', 'PISTA PERDIDA')}
                         </span>
                       )}
+                      {heroCastId && currentCase.castId === heroCastId && (
+                        <span className="shrink-0 max-sm:order-last border border-amber-400/60 bg-amber-950/70 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-amber-200 sm:text-[11px]">
+                          ★ {tt('Héros de la saison', 'Hero of the season', 'Héroe de la temporada')}
+                        </span>
+                      )}
                       {currentCase.windfall && (
                         <span className="shrink-0 max-sm:order-last border border-emerald-400/60 bg-emerald-950/70 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-emerald-200 sm:text-[11px]">
                           ★ {tt('Trouvaille', 'Windfall', 'Hallazgo')}
@@ -5459,7 +5477,7 @@ export default function App() {
                         {(outcome === 'sort_son_arme' ||
                           (outcome === 'deal_accepte' &&
                             !currentCase.isTrap &&
-                            (100 * (currentCase.initialPrice - askedPrice)) / currentCase.initialPrice >= 30)) && (
+                            (100 * (currentCase.initialPrice - askedPrice)) / currentCase.initialPrice >= 20)) && (
                           <button
                             type="button"
                             onClick={() => void shareMoment(false)}
@@ -6074,7 +6092,12 @@ export default function App() {
                   <p className="text-zinc-500">{tt('Parle-lui encore un peu : son tempérament se devine à ses réactions (3 échanges).', 'Keep talking: his temperament shows in his reactions (3 exchanges).', 'Sigue hablando: su temperamento se ve en sus reacciones (3 intercambios).')}</p>
                 )}
                 {currentCase.castId && sagas[currentCase.castId] && (
-                  <p><span className="text-violet-300">{tt('Votre histoire', 'Your story', 'Vuestra historia')}</span> {sagaLabel(sagas[currentCase.castId])}</p>
+                  <>
+                    <p><span className="text-violet-300">{tt('Votre histoire', 'Your story', 'Vuestra historia')}</span> {sagaLabel(sagas[currentCase.castId])}</p>
+                    {castChar && sagaFacts(sagas[currentCase.castId].met, localizeSecret(castChar.secret, gameLocale), localizeCastText(castChar.weaknessHint, gameLocale), localizeCastText(castChar.redLineHint, gameLocale)).map((f, i) => (
+                      <p key={i} className="text-zinc-300"><span className="text-violet-300">{i === 0 ? tt('Son secret', 'Their secret', 'Su secreto') : i === 1 ? tt('Sa faille', 'Weak spot', 'Su punto débil') : tt('Sa ligne rouge', 'Red line', 'Su línea roja')}</span> {f}</p>
+                    ))}
+                  </>
                 )}
                 {castChar && history.length >= FLAW_REVEAL_TURNS ? (
                   <>

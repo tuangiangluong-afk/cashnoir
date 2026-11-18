@@ -5,20 +5,21 @@ import { join } from 'node:path';
 import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/services/llm';
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from '../src/data/checkpoints';
+import { campaignSeasonOf, seasonHero, SEASON_EPISODES } from '../src/data/seasons';
 import { heistRisk, heistLoss } from '../src/data/risk';
 import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type DebriefEntry } from '../src/data/debrief';
 import { ASCENSION_LEVELS, getAscensionModifier, MAX_ASCENSION, ROMAN, canAscend } from '../src/data/ascension';
 import { COMBOS, activeCombos, comboCompletedBy } from '../src/data/combos';
 import { JOKER_POOL } from '../src/data/jokers';
 import { applyEncounter, applyFavor, isDue, pickDue, trustTone, SAGA_EPISODES, type SagaState } from '../src/data/saga';
-import { sagaOpening, sagaTell, sagaChapter, sagaEnding } from '../src/data/sagaText';
+import { sagaOpening, sagaTell, sagaChapter, sagaEnding, sagaFacts, sagaKnows } from '../src/data/sagaText';
 import { isInjection, evaluatePsychoTriggers } from '../src/data/psychology';
-import { localizeCastText } from '../src/data/castI18n';
+import { localizeCastText, localizeSecret } from '../src/data/castI18n';
 import { localizeArchetype, localizeItemName, localizeFaction } from '../src/data/noirLocalization';
 import { localizeItemText } from '../src/data/itemsI18n';
 import { CAST_ROSTER, PORTRAIT_OF } from '../src/data/cast';
 import { checkSecret, secretContent, rollSecretId, secretAnswer, secretReward } from '../src/data/secrets';
-import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint, setAscensionHint } from '../src/data/generator';
+import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint, setAscensionHint, setFeaturedCast } from '../src/data/generator';
 import { SEASON_EPISODES, episodesUnlocked, daysUntilEpisode } from '../src/data/seasons';
 import { COLLECTIONS_DATA } from '../src/data/codex';
 import { localizeSeasonEpisode } from '../src/data/noirLocalization';
@@ -462,6 +463,36 @@ for (const msg of [
   check('bilan : conseil neutre sans statistiques', adv({}, 'fr').length === 1);
   check('bilan : armes, offres trop basses, pièges, départs, prix trop haut', adv({ guns: 1, lowballs: 3, trapsBought: 2, deals: 3, discountSum: 12, walkouts: 4 }, 'en').length === 3);
   check('bilan : jamais de variable oubliée dans les 3 langues', (['fr', 'en', 'es'] as const).every((l) => adv({ guns: 1, lowballs: 3, trapsBought: 2, deals: 3, discountSum: 12, walkouts: 4 }, l).every((x) => x && !/\{\w+\}/.test(x))));
+}
+
+// Histoire propre à chaque personnage : son secret (traduit), sa faille et sa ligne rouge se révèlent au fil des rencontres.
+{
+  let untranslated = 0;
+  for (const c of CAST_ROSTER) for (const L of ['en', 'es'] as const) if (localizeSecret(c.secret, L) === c.secret || !/^[A-Z¡¿]/.test(localizeSecret(c.secret, L))) untranslated += 1;
+  check('secrets : les 100 personnages ont un secret traduit en anglais et en espagnol', untranslated === 0, `non traduits=${untranslated}`);
+  check('secrets : le français reste intact', CAST_ROSTER.every((c) => localizeSecret(c.secret, 'fr') === c.secret));
+  check('histoire : rien n’est révélé à la première rencontre', sagaFacts(1, 'S', 'W', 'R').length === 0);
+  check('histoire : secret dès la 2e, faille dès la 3e, ligne rouge dès la 4e', sagaFacts(2, 'S', 'W', 'R').join() === 'S' && sagaFacts(3, 'S', 'W', 'R').join() === 'S,W' && sagaFacts(4, 'S', 'W', 'R').join() === 'S,W,R');
+  check('histoire : phrase « ce que tu sais » en 3 langues', (['fr', 'en', 'es'] as const).every((l) => sagaKnows(l, ['X']).includes('X') && sagaKnows(l, []) === ''));
+  const c0 = CAST_ROSTER[0];
+  check('histoire : deux personnages au même profil ont des dossiers différents', CAST_ROSTER.filter((c) => c.profileId === c0.profileId).some((c) => c.secret !== c0.secret));
+}
+
+// Héros de la saison : le personnage du final, mis en avant au comptoir sans toucher au contrat quotidien.
+{
+  const seasons = [...new Set(SEASON_EPISODES.map((e) => e.seasonNumber))];
+  check('héros : chaque saison a un héros qui existe dans le casting', seasons.length >= 6 && seasons.every((n) => { const h = seasonHero(n); return h && CAST_ROSTER.some((c) => c.id === h.castId); }));
+  check('héros : saison 1 au départ, dernière saison une fois tout débloqué', campaignSeasonOf(0) === 1 && campaignSeasonOf(9999) === Math.max(...seasons));
+  const hero = seasonHero(1)!.castId;
+  const share = (id: string | undefined) => { setFeaturedCast(id); let k = 0; for (let i = 0; i < 900; i++) if (generateProceduralCase(2, 20, undefined, 1, 'fr').castId === hero) k += 1; return k / 900; };
+  const without = share(undefined);
+  const withHero = share(hero);
+  check('héros : il revient nettement plus souvent quand il est mis en avant', withHero > without + 0.06, `${(without * 100).toFixed(1)} % -> ${(withHero * 100).toFixed(1)} %`);
+  setFeaturedCast(hero);
+  const d1 = generateDailyContract('2026-04-02', undefined, 'fr');
+  setFeaturedCast(undefined);
+  const d0 = generateDailyContract('2026-04-02', undefined, 'fr');
+  check('héros : le contrat quotidien reste identique pour tous', d1.castId === d0.castId && d1.initialPrice === d0.initialPrice && d1.name === d0.name);
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

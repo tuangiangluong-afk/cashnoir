@@ -161,6 +161,39 @@ const SECRET_I18N: Record<string, { en: string; es: string }> = {
 T['Explose si tu l’insultes ou le traites de menteur.'] = { en: 'Explodes if you insult him or call him a liar.', es: 'Explota si lo insultas o lo llamas mentiroso.' };
 T['Explose si tu l’insultes ou la traites de menteuse.'] = { en: 'Explodes if you insult her or call her a liar.', es: 'Explota si la insultas o la llamas mentirosa.' };
 
+// Secrets des 20 personnages écrits à la main (les 8 secrets des personnages générés sont dans SECRET_I18N).
+const SECRET_HAND: Record<string, { en: string; es: string }> = {
+  'A opéré un parrain blessé en cachette et doit payer son billet pour Beyrouth.': { en: 'Secretly operated on a wounded godfather and must pay for a ticket to Beirut.', es: 'Operó en secreto a un padrino herido y debe pagar su billete a Beirut.' },
+  'Il lui manque deux phalanges et transporte souvent du matériel militaire déclassé.': { en: 'Missing two finger joints, often moves declassified military gear.', es: 'Le faltan dos falanges y transporta a menudo material militar desclasificado.' },
+  'Siphonne la réserve d’un musée de province pour couvrir ses dettes aux courses.': { en: 'Siphons a provincial museum\'s reserve to cover racetrack debts.', es: 'Desvía la reserva de un museo de provincias para cubrir sus deudas de carreras.' },
+  'A perdu la recette d’un caïd au poker clandestin rue Saint-Denis.': { en: 'Lost a crime boss\'s takings at an underground poker game on Rue Saint-Denis.', es: 'Perdió la recaudación de un capo en una partida de póker clandestina en la calle Saint-Denis.' },
+  'Revend des pièces saisies lors de perquisitions fiscales avant mise sous scellés.': { en: 'Resells pieces seized in tax raids before they are sealed.', es: 'Revende piezas incautadas en registros fiscales antes de precintarlas.' },
+  'A coupé son bracelet GPS avec un leurre RF et n’a que 45 minutes d’autonomie.': { en: 'Cut off the GPS ankle bracelet with an RF decoy and has only 45 minutes of cover.', es: 'Cortó su pulsera GPS con un señuelo RF y solo tiene 45 minutos de margen.' },
+  'Fait passer des objets cachés par d’anciens détenus contre de l’argent pour une maison de retraite.': { en: 'Smuggles items hidden by former inmates, for cash that funds a retirement home.', es: 'Pasa objetos escondidos por antiguos presos a cambio de dinero para una residencia de ancianos.' },
+  'Travaille pour un clan Yakuza qui lui a coupé l’auriculaire gauche après une erreur.': { en: 'Works for a Yakuza clan that cut off the left little finger after a mistake.', es: 'Trabaja para un clan yakuza que le cortó el meñique izquierdo tras un error.' },
+  'A vidé le coffre de son propre patron après trois mois de salaire impayé.': { en: 'Emptied the boss\'s own safe after three months of unpaid wages.', es: 'Vació la caja fuerte de su propio jefe tras tres meses de sueldo impagado.' },
+  'Découvre que son mari défunt a laissé 4 millions de dettes cachées au port.': { en: 'Discovers a late husband left 4 million in hidden debts at the port.', es: 'Descubre que su difunto marido dejó 4 millones en deudas ocultas en el puerto.' },
+  'Rapatrie des biens pillés lors d’opérations extérieures via valise diplomatique.': { en: 'Repatriates goods looted during overseas operations through the diplomatic bag.', es: 'Repatría bienes saqueados en operaciones en el extranjero mediante valija diplomática.' },
+  'A subtilisé des pièces compromettantes dans le bureau d’un sénateur qui la harcelait.': { en: 'Lifted compromising pieces from the office of a senator who harassed her.', es: 'Sustrajo piezas comprometedoras del despacho de un senador que la acosaba.' },
+  'Trafique des pièces détachées et des reliques récupérées sur des épaves en mer Noire.': { en: 'Trades spare parts and relics salvaged from wrecks in the Black Sea.', es: 'Trafica con repuestos y reliquias recuperadas de pecios del mar Negro.' },
+  'Teste les receleurs du quartier sur ordre du commissaire divisionnaire.': { en: 'Tests the neighborhood\'s fences on the district commissioner\'s orders.', es: 'Pone a prueba a los perista del barrio por orden del comisario de división.' },
+  'A engagé la collection de son grand-père pour payer une table de baccara.': { en: 'Pawned his grandfather\'s collection to pay for a baccarat table.', es: 'Empeñó la colección de su abuelo para pagar una mesa de bacarrá.' },
+  'Détourne des stocks et des appareils de luxe pour éponger le crédit de son officine.': { en: 'Diverts stock and luxury devices to cover the loan on the shop.', es: 'Desvía existencias y aparatos de lujo para pagar el crédito de su negocio.' },
+  'Ouvre les coffres oubliés des hôtels particuliers en démolition avant le passage des pelleteuses.': { en: 'Opens forgotten safes in mansions being demolished before the diggers arrive.', es: 'Abre las cajas fuertes olvidadas de palacetes en demolición antes de que lleguen las excavadoras.' },
+  'Transporte des pierres et documents dans des doubles fonds entre Minsk et Paris.': { en: 'Carries stones and documents in false bottoms between Minsk and Paris.', es: 'Transporta piedras y documentos en dobles fondos entre Minsk y París.' },
+  'Connaît la valeur exacte de chaque pièce mais doit fermer boutique vendredi.': { en: 'Knows the exact value of every piece but must close the shop on Friday.', es: 'Conoce el valor exacto de cada pieza pero debe cerrar la tienda el viernes.' },
+  'A trouvé une planque murée lors d’un raccordement et panique devant la valeur.': { en: 'Found a walled-up stash during a utility hookup and panics at its value.', es: 'Encontró un escondite tapiado durante una conexión de servicios y entra en pánico ante su valor.' },
+};
+
+/** Secret d'un personnage dans la langue du joueur (première lettre en majuscule). */
+export function localizeSecret(fr: string, locale: Locale): string {
+  if (locale === 'fr') return fr;
+  const hand = SECRET_HAND[fr];
+  const gen = SECRET_I18N[fr.charAt(0).toLowerCase() + fr.slice(1)];
+  const raw = hand ? hand[locale] : gen ? gen[locale] : fr;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
 /** Texte de personnage : renvoie la traduction si elle existe, sinon le français d'origine. */
 export function localizeCastText(fr: string, locale: Locale): string {
   if (locale === 'fr') return fr;

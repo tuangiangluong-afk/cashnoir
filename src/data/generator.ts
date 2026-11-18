@@ -806,7 +806,9 @@ function pickCast(rand: () => number): CastCharacter {
   let pool = roster.filter((c) => !recentIds.has(c.id) && !recentFaces.has(PORTRAIT_OF[c.id]));
   if (!pool.length) pool = roster.filter((c) => !recentIds.has(c.id));
   if (!pool.length) pool = roster;
-  const chosen = pool[Math.floor(rand() * pool.length)];
+  const featured = featuredCast ? roster.find((c) => c.id === featuredCast) : undefined;
+  const wantFeatured = featured !== undefined && rand() < 0.12 && !seenCast.slice(-3).includes(featured.id);
+  const chosen = wantFeatured && featured ? featured : pool[Math.floor(rand() * pool.length)];
   seenCast = [...seenCast, chosen.id].slice(-100);
   try {
     localStorage.setItem(SEEN_KEY, JSON.stringify(seenCast));
@@ -814,6 +816,12 @@ function pickCast(rand: () => number): CastCharacter {
     // stockage indisponible : pas d'historique, le tirage reste valide
   }
   return chosen;
+}
+
+let featuredCast: string | undefined;
+/** Le héros de la saison apparaît plus souvent au comptoir (12 % des clients, hors contrat quotidien). */
+export function setFeaturedCast(castId: string | undefined): void {
+  featuredCast = castId;
 }
 
 let ascTrap = 0;

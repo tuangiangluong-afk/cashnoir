@@ -104,6 +104,15 @@ export function sagaOpening(profile: string, episode: number, loc: Loc, trust: n
   return `« ${pre}${body} »`;
 }
 
+const KNOWS: Record<Loc, string> = { fr: 'Ce que tu sais de lui :', en: 'What you know about them:', es: 'Lo que sabes de esta persona:' };
+
+/** Faits propres au personnage, révélés épisode après épisode : son secret (dès la 2e rencontre), sa faille, sa ligne rouge. */
+export function sagaFacts(met: number, secret: string, weakness: string, redLine: string): string[] {
+  return [met >= 2 ? secret : '', met >= 3 ? weakness : '', met >= 4 ? redLine : ''].filter(Boolean);
+}
+
+export const sagaKnows = (loc: Loc, facts: string[]): string => (facts.length ? `${KNOWS[loc]} ${facts.join(' ')}` : '');
+
 export const sagaTell = (episode: number, loc: Loc, g: 'm' | 'f'): string => fill(TELL[loc][Math.max(0, Math.min(3, episode - 2))], { P: pron(loc, g) });
 export const sagaChapter = (episode: number, loc: Loc): string => CHAPTER[loc][Math.max(0, Math.min(3, episode - 2))];
 export const sagaEnding = (end: SagaEnd, loc: Loc, name: string, g: 'm' | 'f'): string => fill(ENDING[loc][end], { name, P: pron(loc, g).toLowerCase() });
