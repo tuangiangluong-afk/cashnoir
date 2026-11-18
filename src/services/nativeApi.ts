@@ -21,6 +21,7 @@ export function clearNativeSession() {
 
 /** En natif uniquement : /api -> https://cashnoir.app/api, session en Bearer (cookies tiers bloqués par WKWebView). Sur le web/PWA : aucun effet. */
 if (isNative) {
+  document.documentElement.setAttribute('data-native', '');
   const orig = window.fetch.bind(window);
   window.fetch = (input, init) => {
     if (typeof input !== 'string' || !input.startsWith('/api')) return orig(input, init);

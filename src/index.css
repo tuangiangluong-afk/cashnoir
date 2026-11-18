@@ -236,3 +236,8 @@
     min-height: 44px;
   }
 }
+
+/* App native : l'achat du Pass passe par les stores (IAP), pas par Stripe : boutons masqués. */
+[data-native] [data-buy-pass] {
+  display: none !important;
+}

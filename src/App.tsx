@@ -3206,7 +3206,7 @@ export default function App() {
                 : tt(`Ton record : jour ${maxDaySurvived}. Tu peux faire mieux.`, `Your record: day ${maxDaySurvived}. You can beat it.`, `Tu récord: día ${maxDaySurvived}. Puedes superarlo.`)}
             </div>
             {!hasPass && (
-              <button type="button" onClick={() => void buyPass()} className="w-full border border-amber-500/50 bg-amber-500/10 px-3 py-2 font-mono text-[11px] uppercase text-amber-300 hover:bg-amber-500/20">
+              <button type="button" data-buy-pass onClick={() => void buyPass()} className="w-full border border-amber-500/50 bg-amber-500/10 px-3 py-2 font-mono text-[11px] uppercase text-amber-300 hover:bg-amber-500/20">
                 {tt('Pass Syndicat : IA sans limite & classement mondial →', 'Syndicate Pass: unlimited AI & world leaderboard →', 'Pase del Sindicato: IA sin límite y ranking mundial →')}
               </button>
             )}
@@ -5664,7 +5664,7 @@ export default function App() {
                           </span>
                         ) : (
                           <button
-                            onClick={() => void buyPass()}
+                            data-buy-pass onClick={() => void buyPass()}
                             disabled={passBusy}
                             className="border border-amber-500/50 bg-amber-500/15 px-3 py-1.5 font-mono text-xs uppercase text-amber-300"
                           >
@@ -6052,7 +6052,7 @@ export default function App() {
                             <span className="text-zinc-500">ⓘ</span>
                           </button>
                           {quota.tier === 'free' && quota.remaining <= 10 && (
-                            <button type="button" onClick={buyPass} disabled={passBusy} className="border border-amber-400/50 bg-amber-500/15 px-1.5 py-0.5 font-bold uppercase tracking-wider text-amber-300 active:scale-95">
+                            <button type="button" data-buy-pass onClick={buyPass} disabled={passBusy} className="border border-amber-400/50 bg-amber-500/15 px-1.5 py-0.5 font-bold uppercase tracking-wider text-amber-300 active:scale-95">
                               {tt('Passer au Pass', 'Get the Pass', 'Obtener el Pase')}
                             </button>
                           )}

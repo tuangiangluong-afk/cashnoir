@@ -199,5 +199,17 @@ try {
   const r2 = await callVertex({ systemPrompt: 's', turns: [], fetchImpl: async () => { throw new Error('x'); }, accounts, now: () => 6e12 });
   check('vertex : panne totale → null sans exception', r2 === null);
 }
+// Connexion native : ticket à usage unique, expiré refusé, mauvais type refusé.
+{
+  const { redeemNativeTicket } = await import('../server/auth-profiles.mjs');
+  const m = new Map();
+  const store = { get: async (k) => m.get(k) ?? null, set: async (k, v) => void m.set(k, v) };
+  const vt = (s) => { try { return JSON.parse(s); } catch { return null; } };
+  const tk = (o) => JSON.stringify({ kind: 'native_ticket', jti: 'a'.repeat(24), session: 'SESS', exp: 2000, ...o });
+  check('ticket natif : valide → jeton de session', (await redeemNativeTicket(tk({}), vt, 1000, store)) === 'SESS');
+  check('ticket natif : rejoué → refusé', (await redeemNativeTicket(tk({}), vt, 1001, store)) === null);
+  check('ticket natif : expiré refusé', (await redeemNativeTicket(tk({ jti: 'b'.repeat(24) }), vt, 3000, store)) === null);
+  check('ticket natif : mauvais type / jti invalide / illisible refusés', (await redeemNativeTicket(tk({ kind: 'oauth_session', jti: 'c'.repeat(24) }), vt, 1000, store)) === null && (await redeemNativeTicket(tk({ jti: 'x' }), vt, 1000, store)) === null && (await redeemNativeTicket('zzz', vt, 1000, store)) === null);
+}
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { kvGet, kvSet } from './store.mjs';
 import {
   getUserProfileFromSupabase,
   saveUserProfileToSupabase,
@@ -17,7 +18,16 @@ try {
 const SAFE_USER_ID_RE = /^google_[A-Za-z0-9_-]{4,64}$/;
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 const TX_TTL_MS = 10 * 60 * 1000;
-const usedTickets = new Set(); // shortcut: mémoire par instance, ticket déjà limité à 90 s ; passer à Supabase si besoin d'un vrai usage unique.
+
+/** Échange un ticket natif contre le jeton de session ; usage unique (marqué dans le KV durable, partagé entre instances). */
+export async function redeemNativeTicket(raw, verifyToken, now = Date.now(), store = { get: kvGet, set: kvSet }) {
+  const t = verifyToken(String(raw || ''));
+  if (!t || t.kind !== 'native_ticket' || !(t.exp > now) || !/^[a-f0-9]{24}$/.test(String(t.jti))) return null;
+  const key = `nt:${t.jti}`;
+  if (await store.get(key, { fresh: true })) return null;
+  await store.set(key, { at: now });
+  return t.session;
+}
 
 function b64url(buf) {
   return Buffer.from(buf).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -377,14 +387,12 @@ export async function handleAuthAndProfileRoutes({
   /* ---------------- POST /api/auth/native ---------------- */
   if (req.method === 'POST' && url.pathname === '/api/auth/native') {
     const body = await readJson(req);
-    const t = verifyToken(String(body?.ticket || ''));
-    if (!t || t.kind !== 'native_ticket' || !(t.exp > Date.now()) || usedTickets.has(t.jti)) {
+    const token = await redeemNativeTicket(body?.ticket, verifyToken);
+    if (!token) {
       sendJson(res, 403, { error: 'Ticket de connexion invalide ou expiré.' });
       return true;
     }
-    usedTickets.add(t.jti);
-    setTimeout(() => usedTickets.delete(t.jti), 120_000).unref?.();
-    sendJson(res, 200, { token: t.session });
+    sendJson(res, 200, { token });
     return true;
   }
 
