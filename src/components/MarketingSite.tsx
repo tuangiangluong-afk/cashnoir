@@ -104,6 +104,49 @@ export function MarketingSite({
     }
   };
 
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactStatus, setContactStatus] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  const [contactError, setContactError] = useState('');
+
+  const submitContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactStatus('busy');
+    setContactError('');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: contactEmail,
+          subject: contactSubject || 'Contact CASH NOIR',
+          message: contactMessage,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        if (data.fallbackMailto) {
+          window.location.href = `mailto:hello@cashnoir.app?subject=${encodeURIComponent(
+            contactSubject || 'Contact CASH NOIR',
+          )}&body=${encodeURIComponent(`De: ${contactEmail}\n\n${contactMessage}`)}`;
+        }
+        setContactStatus('sent');
+        setContactEmail('');
+        setContactSubject('');
+        setContactMessage('');
+      } else {
+        setContactStatus('error');
+        setContactError(data.error || 'Error');
+      }
+    } catch {
+      window.location.href = `mailto:hello@cashnoir.app?subject=${encodeURIComponent(
+        contactSubject || 'Contact CASH NOIR',
+      )}&body=${encodeURIComponent(`De: ${contactEmail}\n\n${contactMessage}`)}`;
+      setContactStatus('sent');
+    }
+  };
+
   const activeBlog = subPath.startsWith('/blog/')
     ? BLOGS.find((a) => a.slug === subPath.replace('/blog/', ''))
     : null;
@@ -1211,6 +1254,98 @@ export function MarketingSite({
               >
                 {copy.ctaDaily} →
               </button>
+            </div>
+          </section>
+
+          {/* CONTACT DIRECT -> hello@cashnoir.app */}
+          <section id="contact" className="border-t border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-14">
+            <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-12 items-start">
+              <div className="lg:col-span-5 space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
+                  {locale === 'en' ? 'Direct Line · Syndicate Desk' : locale === 'es' ? 'Línea Directa · Mesa del Sindicato' : 'Ligne Directe · Bureau du Syndicat'}
+                </p>
+                <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-4xl text-zinc-100">
+                  {locale === 'en' ? 'PRESS, BETA OR PARTNERSHIPS?' : locale === 'es' ? '¿PRENSA, BETA O ALIANZAS?' : 'PRESSE, BÊTA OU PARTENARIATS ?'}
+                </h2>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  {locale === 'en'
+                    ? 'Write directly to the team at hello@cashnoir.app. Creators, press access or bug reports — we reply fast.'
+                    : locale === 'es'
+                    ? 'Escribe directamente al equipo en hello@cashnoir.app. Creadores, acceso de prensa o reportes — respondemos rápido.'
+                    : 'Écris directement à l’équipe sur hello@cashnoir.app. Créateurs, accès presse ou retours de bêta — réponse rapide.'}
+                </p>
+                <a
+                  href="mailto:hello@cashnoir.app"
+                  className="inline-block font-mono text-xs text-amber-400 hover:text-amber-300 underline"
+                >
+                  hello@cashnoir.app
+                </a>
+              </div>
+
+              <form onSubmit={submitContact} className="lg:col-span-7 border border-white/10 bg-[#0b0c10] p-6 space-y-4 font-mono text-xs">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                      {locale === 'en' ? 'Your Email' : locale === 'es' ? 'Tu Email' : 'Ton Email'}
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="you@domain.com"
+                      className="w-full border border-white/15 bg-black/70 px-3 py-2.5 text-zinc-100 placeholder-zinc-600 focus:border-amber-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                      {locale === 'en' ? 'Subject' : locale === 'es' ? 'Asunto' : 'Objet'}
+                    </label>
+                    <input
+                      type="text"
+                      value={contactSubject}
+                      onChange={(e) => setContactSubject(e.target.value)}
+                      placeholder={locale === 'en' ? 'Beta / Press / Partnership' : locale === 'es' ? 'Beta / Prensa / Alianza' : 'Bêta / Presse / Partenariat'}
+                      className="w-full border border-white/15 bg-black/70 px-3 py-2.5 text-zinc-100 placeholder-zinc-600 focus:border-amber-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                    {locale === 'en' ? 'Message' : locale === 'es' ? 'Mensaje' : 'Message'}
+                  </label>
+                  <textarea
+                    required
+                    minLength={5}
+                    rows={3}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    placeholder={locale === 'en' ? 'Your message...' : locale === 'es' ? 'Tu mensaje...' : 'Ton message...'}
+                    className="w-full border border-white/15 bg-black/70 px-3 py-2.5 text-zinc-100 placeholder-zinc-600 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="submit"
+                    disabled={contactStatus === 'busy'}
+                    className="bg-amber-400 px-5 py-2.5 font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 disabled:opacity-50"
+                  >
+                    {contactStatus === 'busy'
+                      ? (locale === 'en' ? 'Sending...' : locale === 'es' ? 'Enviando...' : 'Envoi...')
+                      : (locale === 'en' ? 'Send to hello@cashnoir.app' : locale === 'es' ? 'Enviar a hello@cashnoir.app' : 'Envoyer à hello@cashnoir.app')}
+                  </button>
+                  {contactStatus === 'sent' && (
+                    <span className="text-emerald-400">
+                      {locale === 'en' ? '✓ Message sent.' : locale === 'es' ? '✓ Mensaje enviado.' : '✓ Message transmis.'}
+                    </span>
+                  )}
+                  {contactStatus === 'error' && (
+                    <span className="text-red-400">{contactError}</span>
+                  )}
+                </div>
+              </form>
             </div>
           </section>
         </>

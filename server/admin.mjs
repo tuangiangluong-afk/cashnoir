@@ -1,6 +1,11 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  getEcosystemOverridesFromSupabase,
+  saveEcosystemOverridesToSupabase,
+  isSupabaseConfigured,
+} from './supabase.mjs';
 
 /* ------------------------------------------------------------------ */
 /* Constantes, chemins et sécurité                                    */
@@ -91,19 +96,45 @@ function getEmptyOverrides() {
   };
 }
 
+let cachedOverrides = null;
+
+export async function syncOverridesWithSupabase() {
+  if (isSupabaseConfigured()) {
+    const remote = await getEcosystemOverridesFromSupabase();
+    if (remote && typeof remote === 'object') {
+      cachedOverrides = { ...getEmptyOverrides(), ...remote };
+      try {
+        fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(cachedOverrides, null, 2), 'utf8');
+      } catch {}
+      return cachedOverrides;
+    }
+  }
+  return null;
+}
+
 function loadOverrides() {
+  if (cachedOverrides) return cachedOverrides;
   try {
     if (!fs.existsSync(OVERRIDES_FILE)) return getEmptyOverrides();
     const raw = fs.readFileSync(OVERRIDES_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    return { ...getEmptyOverrides(), ...parsed };
+    cachedOverrides = { ...getEmptyOverrides(), ...parsed };
+    return cachedOverrides;
   } catch {
     return getEmptyOverrides();
   }
 }
 
 function saveOverrides(data) {
-  fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(data, null, 2), 'utf8');
+  cachedOverrides = data;
+  try {
+    fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch {}
+  if (isSupabaseConfigured()) {
+    saveEcosystemOverridesToSupabase(data).catch((e) =>
+      console.warn('[supabase] erreur sauvegarde écosystème:', e.message),
+    );
+  }
 }
 
 export function getSystemConfig() {
@@ -283,6 +314,10 @@ function validateImageMagicBytes(buffer) {
 export async function handleAdminRoutes(ctx) {
   const { req, res, url, sendJson, readJson, readBody, issueToken, verifyToken, clientIp } = ctx;
   const pathname = url.pathname;
+
+  if (isSupabaseConfigured() && !cachedOverrides) {
+    await syncOverridesWithSupabase();
+  }
 
   // 1. Route publique de synchronisation écosystème
   if (req.method === 'GET' && pathname === '/api/ecosystem') {

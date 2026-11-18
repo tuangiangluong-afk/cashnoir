@@ -1,6 +1,11 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  getUserProfileFromSupabase,
+  saveUserProfileToSupabase,
+  isSupabaseConfigured,
+} from './supabase.mjs';
 
 const PROFILES_DIR = process.env.VERCEL
   ? path.resolve('/tmp/profiles')
@@ -171,7 +176,11 @@ function profilePath(userId) {
   return path.join(PROFILES_DIR, `${userId}.json`);
 }
 
-function readUserProfile(userId) {
+async function readUserProfile(userId) {
+  if (isSupabaseConfigured()) {
+    const remote = await getUserProfileFromSupabase(userId);
+    if (remote) return remote;
+  }
   const file = profilePath(userId);
   try {
     if (!fs.existsSync(file)) return null;
@@ -181,11 +190,16 @@ function readUserProfile(userId) {
   }
 }
 
-function writeUserProfile(userId, profile) {
-  const file = profilePath(userId);
-  const tmp = `${file}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(profile, null, 2), 'utf8');
-  fs.renameSync(tmp, file);
+async function writeUserProfile(userId, profile) {
+  if (isSupabaseConfigured()) {
+    await saveUserProfileToSupabase(userId, profile).catch(() => {});
+  }
+  try {
+    const file = profilePath(userId);
+    const tmp = `${file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(profile, null, 2), 'utf8');
+    fs.renameSync(tmp, file);
+  } catch {}
 }
 
 export async function handleAuthAndProfileRoutes({
@@ -357,7 +371,7 @@ export async function handleAuthAndProfileRoutes({
       sendJson(res, 401, { error: 'Authentification requise.' });
       return true;
     }
-    const saved = readUserProfile(user.id);
+    const saved = await readUserProfile(user.id);
     sendJson(res, 200, { user, profile: saved });
     return true;
   }
@@ -371,7 +385,7 @@ export async function handleAuthAndProfileRoutes({
     }
     const body = await readJson(req);
     const clean = sanitizeProfilePayload(body?.profile ?? body);
-    writeUserProfile(user.id, clean);
+    await writeUserProfile(user.id, clean);
     sendJson(res, 200, { ok: true, updatedAt: clean.updatedAt });
     return true;
   }

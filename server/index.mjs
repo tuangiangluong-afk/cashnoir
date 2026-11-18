@@ -8,7 +8,8 @@ import path from 'node:path';
 import { buildDailyContract } from './daily.mjs';
 import { handleAuthAndProfileRoutes } from './auth-profiles.mjs';
 import { localizeServerError, requestLocale } from './i18n.mjs';
-import { handleAdminRoutes, getSystemConfig } from './admin.mjs';
+import { handleAdminRoutes, getSystemConfig, syncOverridesWithSupabase } from './admin.mjs';
+import { getLeaderboardFromSupabase, saveLeaderboardEntryToSupabase, isSupabaseConfigured } from './supabase.mjs';
 
 /* ------------------------------------------------------------------ */
 /* 1. Chargement de .env.local / .env (aucune dépendance externe)      */
@@ -296,12 +297,17 @@ function loadLeaderboard() {
   return leaderboardCache;
 }
 
-function persistLeaderboard(db) {
+function persistLeaderboard(db, dateKey) {
   writeQueue = writeQueue
     .then(async () => {
-      const tmp = `${LEADERBOARD_FILE}.${process.pid}.tmp`;
-      await fs.promises.writeFile(tmp, JSON.stringify(db, null, 2));
-      await fs.promises.rename(tmp, LEADERBOARD_FILE); // écriture atomique
+      try {
+        const tmp = `${LEADERBOARD_FILE}.${process.pid}.tmp`;
+        await fs.promises.writeFile(tmp, JSON.stringify(db, null, 2));
+        await fs.promises.rename(tmp, LEADERBOARD_FILE); // écriture atomique
+      } catch {}
+      if (isSupabaseConfigured() && dateKey) {
+        await saveLeaderboardEntryToSupabase(dateKey, db[dateKey] || []);
+      }
     })
     .catch((e) => console.warn('[leaderboard] écriture échouée:', e.message));
   return writeQueue;
@@ -326,6 +332,7 @@ const processedStripeEvents = new Set();
 
 // Anti-flood du classement : 2 publications max par IP et par jour.
 const submitsByIp = new Map();
+const contactByIp = new Map();
 const MAX_SUBMITS_PER_DAY = 2;
 
 // Anti-drain tokens LLM : 20 messages/jour en gratuit quand Stripe est actif.
@@ -422,6 +429,9 @@ export async function handleRequest(req, res) {
   try {
     /* ---------------- Santé ---------------- */
     if (req.method === 'GET' && url.pathname === '/api/health') {
+      if (isSupabaseConfigured()) {
+        await syncOverridesWithSupabase().catch(() => {});
+      }
       const sys = getSystemConfig();
       const providers = {
         ollama: true,
@@ -445,9 +455,57 @@ export async function handleRequest(req, res) {
         providers,
         activeProvider,
         configuredProvider,
+        supabaseConfigured: isSupabaseConfigured(),
         stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
         passEnabled: Boolean(SESSION_SECRET && process.env.STRIPE_WEBHOOK_SECRET),
       });
+      return;
+    }
+
+    /* ---------------- Contact Form (hello@cashnoir.app via Resend) ---------------- */
+    if (req.method === 'POST' && url.pathname === '/api/contact') {
+      const ip = clientIp(req);
+      const now = Date.now();
+      const last = contactByIp.get(ip) || 0;
+      if (now - last < 60_000) {
+        sendJson(res, 429, { error: 'Trop de messages envoyés. Réessaie dans une minute.' });
+        return;
+      }
+      const body = await readJson(req);
+      const email = String(body?.email || '').trim().slice(0, 120);
+      const subject = String(body?.subject || 'Contact CASH NOIR').trim().slice(0, 120);
+      const message = String(body?.message || '').trim().slice(0, 2000);
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 5) {
+        sendJson(res, 400, { error: 'Email valide et message (min 5 caractères) requis.' });
+        return;
+      }
+      contactByIp.set(ip, now);
+
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey) {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'CASH NOIR <hello@cashnoir.app>',
+            to: ['hello@cashnoir.app'],
+            reply_to: email,
+            subject: `[CASH NOIR] ${subject}`,
+            text: `De: ${email}\n\n${message}`,
+          }),
+        });
+        if (!r.ok) {
+          sendJson(res, 502, { error: 'Envoi impossible pour le moment. Écris à hello@cashnoir.app.' });
+          return;
+        }
+        sendJson(res, 200, { ok: true, sent: true });
+        return;
+      }
+      // Fallback sans RESEND_API_KEY : on accepte proprement ou on laisse le front ouvrir mailto.
+      sendJson(res, 200, { ok: true, fallbackMailto: true });
       return;
     }
 
@@ -741,7 +799,7 @@ export async function handleRequest(req, res) {
           .slice(0, 100);
         db[claims.date].push({ pseudo, margin, discount, turns, badge, line, at: new Date().toISOString() });
         db[claims.date] = db[claims.date].sort((a, b) => b.margin - a.margin).slice(0, 50);
-        await persistLeaderboard(db);
+        await persistLeaderboard(db, claims.date);
         sendJson(res, 200, { ok: true, entries: db[claims.date].slice(0, 10) });
         return;
       }
