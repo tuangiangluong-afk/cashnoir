@@ -1,6 +1,6 @@
 import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2, FileText } from 'lucide-react';
 import {
   SITE_COPY,
   BLOG_ARTICLES,
@@ -725,6 +725,152 @@ export function MarketingSite({
                         ? 'Dobles fondos, cerraduras forzables, números de serie raspados, microfilms ocultos. Inspeccionar la pieza física te da palancas de chantaje antes de decir una sola palabra.'
                         : 'Faux tiroirs, serrures crochetables, numéros de série limés, microfilms cachés. L’inspection matérielle de l’objet te donne le levier de chantage avant même d’ouvrir la bouche.'}
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* HÉROS DE LA SAISON & DOSSIER D'ENQUÊTE PROGRESSIF */}
+          <section className="border-b border-white/10 bg-[#08090d] px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mx-auto max-w-6xl space-y-10">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400 flex items-center gap-1.5">
+                    <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                    {copy.seasonHeroEyebrow}
+                  </p>
+                  <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
+                    {copy.seasonHeroTitle}
+                  </h2>
+                </div>
+                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.seasonHeroSub}</p>
+              </div>
+
+              {/* Grille : Portrait du Boss de Saison + Dossier Noir en 3 Paliers */}
+              <div className="grid gap-6 lg:grid-cols-12 items-stretch">
+                {/* Carte Personnage du Héros */}
+                <div className="lg:col-span-5 border border-amber-500/30 bg-gradient-to-b from-[#13110d] to-[#0a0b0e] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_30px_rgba(245,158,11,0.06)] flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                      <span className="text-[10px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
+                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                        {copy.seasonHeroBadge}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">c013 · Docks du Nord</span>
+                    </div>
+
+                    <div className="flex gap-4 items-center">
+                      <img
+                        src="/assets/portraits/cast/c013.webp"
+                        alt="Boris Kovalenko"
+                        className="h-28 w-24 shrink-0 rounded-lg border border-amber-400/50 object-cover object-[50%_18%] shadow-lg"
+                      />
+                      <div className="space-y-1 min-w-0">
+                        <h3 className="font-[family-name:var(--font-display)] text-xl uppercase tracking-wider text-zinc-100">
+                          Boris Kovalenko
+                        </h3>
+                        <p className="text-xs text-amber-400 font-bold">
+                          {locale === 'en'
+                            ? 'Ghost-cargo ship mechanic (46yo)'
+                            : locale === 'es'
+                            ? 'Mecánico de cargueros fantasma (46 años)'
+                            : 'Mécanicien de cargos fantômes (46 ans)'}
+                        </p>
+                        <p className="text-[11px] text-zinc-400 italic">
+                          {locale === 'en'
+                            ? '« Real steel, no junk. Lifted from the hold last night. $1,800 net for my crew. »'
+                            : locale === 'es'
+                            ? '«Acero de verdad, no chatarra. Salido de bodega anoche. 1.800 $ netos para los muchachos.»'
+                            : '« De l’acier vrai, pas du toc. Sorti de cale hier soir. 1 800 $ net pour les gars. »'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded border border-white/10 bg-black/40 p-3 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-300">
+                        <span className="text-amber-400 font-bold">
+                          {locale === 'en' ? 'Saga Arc: The Container 47 Ultimatum' : locale === 'es' ? 'Arco de Saga: El Ultimátum del Contenedor 47' : 'Arc Narratif : L’Ultimatum du Conteneur 47'}
+                        </span>
+                        <span className="text-[10px] text-zinc-500">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
+                      </div>
+                      <p className="text-[10px] text-zinc-400">
+                        {locale === 'en'
+                          ? 'Boris returns across multiple nights. Each conversation deepens the investigation or brings down the Bratva hammer.'
+                          : locale === 'es'
+                          ? 'Boris vuelve a lo largo de varias noches. Cada conversación profundiza la investigación o desata la furia de la Bratva.'
+                          : 'Boris revient au fil des nuits. Chaque négociation resserre l’étau de l’enquête ou déchaîne la Bratva.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-amber-500/10 pt-3 text-[11px] text-amber-300/80 flex items-center justify-between">
+                    <span>{locale === 'en' ? 'Counter boost: ~12% appearance' : locale === 'es' ? 'Aparición en mostrador: ~12%' : 'Boost comptoir : ~12% d’apparition'}</span>
+                    <span className="text-emerald-400 font-bold">+2 200 $ {locale === 'en' ? 'Bounty' : locale === 'es' ? 'Recompensa' : 'Prime'}</span>
+                  </div>
+                </div>
+
+                {/* Dossier Noir en 3 Paliers */}
+                <div className="lg:col-span-7 flex flex-col justify-between space-y-3 font-mono">
+                  <div className="border border-white/10 bg-[#0a0b0f] p-5 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-xs uppercase text-zinc-200 font-bold tracking-widest flex items-center gap-1.5">
+                        <FileText className="h-4 w-4 text-violet-400" />
+                        {copy.seasonHeroDossierTitle}
+                      </span>
+                      <span className="text-[10px] text-zinc-500">
+                        {locale === 'en' ? 'Deterministic Memory' : locale === 'es' ? 'Memoria Determinista' : 'Mémoire Déterministe'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5 pt-1">
+                      {copy.seasonHeroDossierSteps.map((st, i) => (
+                        <div
+                          key={st.step}
+                          className={`p-3 rounded-lg border text-xs space-y-1 ${
+                            i === 0
+                              ? 'border-violet-500/30 bg-violet-950/20'
+                              : i === 1
+                              ? 'border-amber-500/30 bg-amber-950/20'
+                              : 'border-red-500/30 bg-red-950/20'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                              {st.step}
+                            </span>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                              i === 0 ? 'text-violet-300' : i === 1 ? 'text-amber-300' : 'text-red-300'
+                            }`}>
+                              {st.title}
+                            </span>
+                          </div>
+                          <p className="text-zinc-300 font-sans text-xs leading-relaxed">{st.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Partage Viral de la Punchline Choc */}
+                  <div className="border border-emerald-500/30 bg-gradient-to-r from-[#0a120e] to-[#060b08] p-5 rounded-xl space-y-3 font-mono">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-widest flex items-center gap-1.5">
+                        <Share2 className="h-3.5 w-3.5 text-emerald-400" />
+                        {copy.viralShareEyebrow}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+                        -20% / Arme Dégainée
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-100">{copy.viralShareTitle}</h4>
+                      <p className="mt-1 text-zinc-400 font-sans text-xs leading-relaxed">{copy.viralShareSub}</p>
+                    </div>
+
+                    <div className="bg-black/70 p-3 rounded border border-emerald-500/20 text-xs text-emerald-300 italic">
+                      {copy.viralShareQuote}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -108,6 +108,16 @@ export const SITE_COPY: Record<
     arbitrageFastDesc: string;
     arbitrageAuctionTitle: string;
     arbitrageAuctionDesc: string;
+    seasonHeroEyebrow: string;
+    seasonHeroTitle: string;
+    seasonHeroSub: string;
+    seasonHeroBadge: string;
+    seasonHeroDossierTitle: string;
+    seasonHeroDossierSteps: { step: string; title: string; desc: string }[];
+    viralShareEyebrow: string;
+    viralShareTitle: string;
+    viralShareSub: string;
+    viralShareQuote: string;
   }
 > = {
   fr: {
@@ -244,6 +254,20 @@ export const SITE_COPY: Record<
     arbitrageFastDesc: 'Liquidation immédiate, illimitée, -5 % Heat police. Parfait pour payer le loyer d’urgence ou écouler les petites pièces sans attirer l’attention.',
     arbitrageAuctionTitle: '🏛 Enchères Clandestines (Salle des Ventes)',
     arbitrageAuctionDesc: 'Prix fort (+20 % cote max), mais 1 seule par nuit (marché saturé à -25 % dès la 2e) et EXIGE un nettoyage préalable (-250 $), sinon +18 % de Heat policier immédiat !',
+    seasonHeroEyebrow: 'Héros de la Saison · Traque au Comptoir',
+    seasonHeroTitle: 'SAISON 1 : BORIS KOVALENKO, LE FANTÔME DES DOCKS',
+    seasonHeroSub: 'Chaque saison de campagne a son boss narratif. Boris Kovalenko, mécanicien ukrainien des cargos fantômes, apparaît 12 % plus souvent au comptoir. Il détient la clé de l’ultimatum du Conteneur 47.',
+    seasonHeroBadge: '★ Boss Narratif de Saison 1 (+12 % au comptoir)',
+    seasonHeroDossierTitle: 'Dossier d’Enquête Noir : Révélations progressives',
+    seasonHeroDossierSteps: [
+      { step: '2ᵉ rencontre', title: 'Son Secret', desc: 'Ce qu’il cache à la police ou au milieu : reliques d’épaves en mer Noire, dettes de jeu ou fuite en cargo.' },
+      { step: '3ᵉ rencontre', title: 'Sa Faille', desc: 'Le mot ou l’indice précis (pavillon libérien, garde-côte) qui le fait blêmir et brise son prix plancher secret.' },
+      { step: '4ᵉ rencontre', title: 'Sa Ligne Rouge', desc: 'Le déclencheur d’agression fatale : l’insulte sur sa marchandise qui le pousse à sortir son arme ou claquer la porte à jamais.' },
+    ],
+    viralShareEyebrow: 'Preuve d’Autorité & Pression Psychologique',
+    viralShareTitle: 'PARTAGE LA RÉPLIQUE EXACTE QUI A FAIT PLIER LE VENDEUR',
+    viralShareSub: 'Zéro capture d’écran floue. Dès -20 % de rabais arraché ou une arme dégainée, CASH NOIR extrait automatiquement ta punchline chirurgicale. Copie ta réplique en un clic et affiche tes records sur Discord et TikTok.',
+    viralShareQuote: '« Ton cargo libérien n’a jamais déclaré cette cargaison au Havre. 1 800 $ ou j’appelle la capitainerie avant l’aube. »',
   },
   en: {
     htmlLang: 'en',
@@ -379,6 +403,20 @@ export const SITE_COPY: Record<
     arbitrageFastDesc: 'Instant cash, unlimited volume, cools police (-5% Heat). Ideal for urgent rent deadlines or cheap items without drawing heat.',
     arbitrageAuctionTitle: '🏛 Underground Auction House',
     arbitrageAuctionDesc: 'Top price (+20% max market rate), but strictly 1 per night (market saturates at -25% on subsequent items) and REQUIRES prior workshop cleaning (-$250), otherwise +18% instant Police Heat!',
+    seasonHeroEyebrow: 'Season Hero · Counter Hunt',
+    seasonHeroTitle: 'SEASON 1: BORIS KOVALENKO, THE GHOST OF THE DOCKS',
+    seasonHeroSub: 'Every campaign season features a narrative climax boss. Boris Kovalenko, Ukrainian ghost-cargo mechanic, visits your counter 12% more often. He holds the key to the Container 47 port ultimatum.',
+    seasonHeroBadge: '★ Season 1 Narrative Boss (+12% Counter Rate)',
+    seasonHeroDossierTitle: 'Progressive Noir Dossier: Step-by-Step Intel',
+    seasonHeroDossierSteps: [
+      { step: '2nd encounter', title: 'Their Secret', desc: 'What they hide from police or the syndicate: Black Sea shipwreck relics, racetrack debts, or midnight cargo flights.' },
+      { step: '3rd encounter', title: 'Their Weak Spot', desc: 'The exact trigger or physical tell (Liberian flag, coast guard) that turns them pale and collapses their secret floor price.' },
+      { step: '4th encounter', title: 'Their Red Line', desc: 'The lethal boundary: an insult about their goods that triggers an instant weapon draw or a permanent walkout.' },
+    ],
+    viralShareEyebrow: 'Proof of Authority & Psychological Pressure',
+    viralShareTitle: 'SHARE THE EXACT PUNCHLINE THAT CRACKED THE SELLER',
+    viralShareSub: 'No blurry screenshots. The moment you extract a 20%+ discount or trigger a weapon draw, CASH NOIR automatically captures your surgical punchline. Copy it in one tap to challenge your rivals on Discord and TikTok.',
+    viralShareQuote: '"Your Liberian cargo never cleared customs at Le Havre. $1,800 or harbor police get the manifest before sunrise."',
   },
   es: {
     htmlLang: 'es',
@@ -514,6 +552,20 @@ export const SITE_COPY: Record<
     arbitrageFastDesc: 'Liquidación inmediata, sin límite, enfría a la policía (-5 % Heat). Ideal para cubrir el alquiler urgente o vender piezas baratas sin llamar la atención.',
     arbitrageAuctionTitle: '🏛 Subasta Clandestina (Sala de Ventas)',
     arbitrageAuctionDesc: 'Tope de precio (+20 % valor de mercado), pero solo 1 por noche (saturación al -25 % en la 2ª) y EXIGE limpieza previa en taller (-250 $), ¡si no, +18 % de Heat policial inmediato!',
+    seasonHeroEyebrow: 'Héroe de la Temporada · Caza en el Mostrador',
+    seasonHeroTitle: 'TEMPORADA 1: BORIS KOVALENKO, EL FANTASMA DE LOS MUELLES',
+    seasonHeroSub: 'Cada temporada de campaña tiene su jefe narrativo. Boris Kovalenko, mecánico ucraniano de cargueros fantasma, visita tu mostrador un 12 % más a menudo. Tiene la clave del ultimátum del Contenedor 47.',
+    seasonHeroBadge: '★ Jefe Narrativo Temporada 1 (+12 % en mostrador)',
+    seasonHeroDossierTitle: 'Expediente Negro Progresivo: Información paso a paso',
+    seasonHeroDossierSteps: [
+      { step: '2º encuentro', title: 'Su Secreto', desc: 'Lo que oculta a la policía o al hampa: reliquias de pecios del mar Negro, deudas de juego o fuga en carguero.' },
+      { step: '3º encuentro', title: 'Su Punto Débil', desc: 'La palabra o pista física exacta (pabellón liberiano, guardacostas) que lo hace palidecer y desploma su precio mínimo.' },
+      { step: '4º encuentro', title: 'Su Línea Roja', desc: 'El límite mortal: un insulto sobre su mercancía que provoca que saque su arma o se marche dando un portazo para siempre.' },
+    ],
+    viralShareEyebrow: 'Prueba de Autoridad y Presión Psicológica',
+    viralShareTitle: 'COMPARTE LA FRASE EXACTA QUE HIZO CEDER AL VENDEDOR',
+    viralShareSub: 'Sin capturas borrosas. En cuanto arrancas un 20 % de descuento o provocas que saquen un arma, CASH NOIR captura automáticamente tu frase quirúrgica. Cópiala en un clic para desafiar a tus rivales en Discord y TikTok.',
+    viralShareQuote: '«Tu carguero liberiano nunca declaró esta mercancía en Le Havre. 1.800 $ o aviso a la capitanía antes del amanecer.»',
   },
 };
 
