@@ -122,9 +122,9 @@ export const SITE_COPY: Record<
 > = {
   fr: {
     htmlLang: 'fr',
-    metaTitle: 'CASH NOIR — Interrogatoire psychologique face à des agents IA en temps réel · Rogue-like Hardcore',
+    metaTitle: 'CASH NOIR — Interrogatoire IA temps réel · Rogue-like',
     metaDesc:
-      'Zéro QCM, zéro dialogue figé. Négocie en temps réel face à 100 personnages psychologiques autonomes, affronte les 10 niveaux d’Ascension, résous des sagas criminelles ramifiées et autopsie chaque deal.',
+      'Zéro QCM. Négocie en temps réel face à 100 agents IA psychologiques, affronte 10 niveaux d’Ascension, résous des sagas et autopsie chaque deal.',
     navBlog: 'Dossiers',
     navVs: 'Comparatifs',
     navGuides: 'Guides',
@@ -271,9 +271,9 @@ export const SITE_COPY: Record<
   },
   en: {
     htmlLang: 'en',
-    metaTitle: 'CASH NOIR — Real-Time AI Black-Market Interrogation · Hardcore Rogue-Like',
+    metaTitle: 'CASH NOIR — Real-Time AI Black-Market Rogue-Like',
     metaDesc:
-      'Zero dialogue trees, zero scripted paths. Negotiate in real time against 100 psychological AI agents, conquer 10 brutal Ascension levels, navigate branching sagas, and autopsy every deal.',
+      'Zero dialogue trees. Negotiate in real time with 100 psychological AI sellers, survive 10 Ascension tiers, crack story sagas and autopsy every deal.',
     navBlog: 'Journal',
     navVs: 'Compare',
     navGuides: 'Guides',
@@ -420,9 +420,9 @@ export const SITE_COPY: Record<
   },
   es: {
     htmlLang: 'es',
-    metaTitle: 'CASH NOIR — Interrogatorio noir con agentes IA en tiempo real · Rogue-like Hardcore',
+    metaTitle: 'CASH NOIR — Interrogatorio IA en tiempo real · Rogue-like',
     metaDesc:
-      'Sin árboles de diálogo ni guiones prefijados. Negocia en tiempo real frente a 100 agentes IA psicológicos, supera 10 niveles de Ascensión, resuelve sagas ramificadas y autopsia cada trato.',
+      'Sin guiones. Negocia en tiempo real con 100 agentes IA psicológicos, supera 10 niveles de Ascensión, resuelve sagas criminales y autopsia cada trato.',
     navBlog: 'Artículos',
     navVs: 'Comparativas',
     navGuides: 'Guías',

@@ -1,6 +1,6 @@
 import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
 import { localizeSeasonName, localizeSeasonEpisode, localizeFaction } from '../data/noirLocalization';
-import { trackEvent } from '../services/analytics';
+import { trackEvent, updateAnalyticsConsent } from '../services/analytics';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2, FileText } from 'lucide-react';
 import {
@@ -111,6 +111,13 @@ export function MarketingSite({
   const [contactMessage, setContactMessage] = useState('');
   const [contactStatus, setContactStatus] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
   const [contactError, setContactError] = useState('');
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && !localStorage.getItem('cashnoir_consent');
+    } catch {
+      return false;
+    }
+  });
 
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,7 +341,7 @@ export function MarketingSite({
                   type="button"
                   onClick={() => switchLocale(loc)}
                   className={`px-2 py-1 uppercase transition-colors ${
-                    locale === loc ? 'bg-white/10 text-amber-300 font-bold' : 'text-zinc-500 hover:text-zinc-200'
+                    locale === loc ? 'bg-white/10 text-amber-300 font-bold' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   {loc}
@@ -426,7 +433,7 @@ export function MarketingSite({
                 }}
                 className="block py-6 group"
               >
-                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
                   {art.updatedLabel} · {art.readTime}
                 </p>
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-wide text-zinc-100 group-hover:text-amber-300 transition-colors">
@@ -524,7 +531,7 @@ export function MarketingSite({
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
               TERMS OF SERVICE
             </h1>
-            <p className="font-mono text-xs text-zinc-500">Last updated: November 2026 · cashnoir.app</p>
+            <p className="font-mono text-xs text-zinc-400">Last updated: November 2026 · cashnoir.app</p>
           </div>
 
           <section className="space-y-2">
@@ -574,7 +581,7 @@ export function MarketingSite({
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
               PRIVACY POLICY
             </h1>
-            <p className="font-mono text-xs text-zinc-500">Last updated: November 2026 · cashnoir.app</p>
+            <p className="font-mono text-xs text-zinc-400">Last updated: November 2026 · cashnoir.app</p>
           </div>
 
           <section className="space-y-2">
@@ -609,7 +616,7 @@ export function MarketingSite({
 
       {/* HOME MARKETING (/) */}
       {!activeBlog && !isBlogIndex && !activeVs && !activeGuide && !isTerms && !isPrivacy && (
-        <>
+        <main>
           <section className="relative overflow-hidden border-b border-white/10">
             <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-12 lg:py-20">
               <div className="space-y-5 lg:col-span-6">
@@ -668,6 +675,9 @@ export function MarketingSite({
                     <div className="relative h-56 sm:h-auto sm:min-h-[240px] bg-black sm:col-span-2 overflow-hidden">
                       <img
                         src="/assets/portraits/cast/c001.webp"
+                        width={320}
+                        height={400}
+                        fetchPriority="high"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = '/assets/portraits/courtier.webp';
                         }}
@@ -684,7 +694,7 @@ export function MarketingSite({
                     <div className="flex flex-col justify-between p-4 font-mono text-xs sm:col-span-3 space-y-4">
                       <div className="space-y-2.5">
                         <div className="flex items-baseline justify-between border-b border-white/10 pb-2">
-                          <span className="text-[10px] uppercase text-zinc-500">{copy.simAskLabel}</span>
+                          <span className="text-[10px] uppercase text-zinc-400">{copy.simAskLabel}</span>
                           <span className="font-bold text-amber-300">
                             {teaserStep === 'bluff' ? copy.simBroken : copy.simAsked}
                           </span>
@@ -791,7 +801,10 @@ export function MarketingSite({
                     <div className="flex items-center gap-3.5 bg-black/60 p-3 rounded-lg border border-white/10">
                       <div className="h-16 w-16 shrink-0 rounded bg-black/80 border border-white/10 flex items-center justify-center p-1 overflow-hidden">
                         <img
-                          src="/assets/items/watch.webp"
+                          src="/assets/items/watch-sm.webp"
+                          width={64}
+                          height={64}
+                          loading="lazy"
                           alt="Rolex Daytona"
                           className="h-full w-full object-contain mix-blend-lighten drop-shadow-md"
                         />
@@ -864,7 +877,7 @@ export function MarketingSite({
                       <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-widest">
                         {locale === 'en' ? '30+ Physical Relics' : locale === 'es' ? '30+ Reliquias Físicas' : '30+ Reliques Physiques'}
                       </span>
-                      <span className="text-zinc-500 text-[10px]">
+                      <span className="text-zinc-400 text-[10px]">
                         {locale === 'en' ? 'Magnifier & UV Lamp' : locale === 'es' ? 'Lupa y Luz UV' : 'Loupe Horlogère & Lampe UV'}
                       </span>
                     </div>
@@ -914,7 +927,10 @@ export function MarketingSite({
 
                     <div className="flex gap-4 items-center">
                       <img
-                        src="/assets/portraits/cast/c013.webp"
+                        src="/assets/portraits/cast/c013-sm.webp"
+                        width={96}
+                        height={112}
+                        loading="lazy"
                         alt="Boris Kovalenko"
                         className="h-28 w-24 shrink-0 rounded-lg border border-amber-400/50 object-cover object-[50%_18%] shadow-lg"
                       />
@@ -944,7 +960,7 @@ export function MarketingSite({
                         <span className="text-amber-400 font-bold">
                           {locale === 'en' ? 'Saga Arc: The Container 47 Ultimatum' : locale === 'es' ? 'Arco de Saga: El Ultimátum del Contenedor 47' : 'Arc Narratif : L’Ultimatum du Conteneur 47'}
                         </span>
-                        <span className="text-[10px] text-zinc-500">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
+                        <span className="text-[10px] text-zinc-400">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
                       </div>
                       <p className="text-[10px] text-zinc-400">
                         {locale === 'en'
@@ -970,7 +986,7 @@ export function MarketingSite({
                         <FileText className="h-4 w-4 text-violet-400" />
                         {copy.seasonHeroDossierTitle}
                       </span>
-                      <span className="text-[10px] text-zinc-500">
+                      <span className="text-[10px] text-zinc-400">
                         {locale === 'en' ? 'Deterministic Memory' : locale === 'es' ? 'Memoria Determinista' : 'Mémoire Déterministe'}
                       </span>
                     </div>
@@ -1063,7 +1079,7 @@ export function MarketingSite({
                       <h3 className="text-sm font-bold text-zinc-100">{tier.name}</h3>
                       <p className="text-zinc-400 font-sans text-xs leading-relaxed">{tier.rule}</p>
                     </div>
-                    <div className="pt-2 border-t border-white/5 text-[10px] text-zinc-500 uppercase flex items-center gap-1.5">
+                    <div className="pt-2 border-t border-white/5 text-[10px] text-zinc-400 uppercase flex items-center gap-1.5">
                       {tier.level === 'X' ? (
                         <span className="text-red-400 font-bold flex items-center gap-1">
                           <Skull className="h-3 w-3 text-red-400" />
@@ -1213,7 +1229,7 @@ export function MarketingSite({
                     {copy.castTitle}
                   </h2>
                 </div>
-                <span className="font-mono text-xs text-zinc-500">{copy.castSub}</span>
+                <span className="font-mono text-xs text-zinc-400">{copy.castSub}</span>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -1243,7 +1259,7 @@ export function MarketingSite({
                   const locEp = localizeSeasonEpisode(ep, locale);
                   return (
                     <div key={ep.id} className="border-l border-amber-500/40 pl-3 space-y-1">
-                      <span className="text-[9px] uppercase text-zinc-500">{localizeFaction(ep.faction, locale)}</span>
+                      <span className="text-[9px] uppercase text-zinc-400">{localizeFaction(ep.faction, locale)}</span>
                       <p className="text-xs font-bold text-zinc-200">{locEp.title}</p>
                       <p className="text-[11px] text-zinc-400">{locEp.stakes}</p>
                     </div>
@@ -1261,7 +1277,7 @@ export function MarketingSite({
                   <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
                     {copy.topTitle}
                   </span>
-                  <span className="text-[10px] text-zinc-500">
+                  <span className="text-[10px] text-zinc-400">
                     {copy.topExpires} {countdownText}
                   </span>
                 </div>
@@ -1272,7 +1288,7 @@ export function MarketingSite({
                     {dailyTop.map((row, idx) => (
                       <div key={`${row.pseudo}-${idx}`} className="flex justify-between py-2.5 text-xs">
                         <span className="text-zinc-200">
-                          <span className="text-zinc-500 mr-2">#{idx + 1}</span>
+                          <span className="text-zinc-400 mr-2">#{idx + 1}</span>
                           {row.pseudo}
                         </span>
                         <span className="font-bold text-emerald-400">
@@ -1294,7 +1310,7 @@ export function MarketingSite({
               <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono">
                 <div className="border border-white/10 bg-[#0b0c10] p-6 flex flex-col justify-between space-y-5">
                   <div className="space-y-3">
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-500">
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-400">
                       {copy.freeLabel}
                     </span>
                     <div className="text-3xl font-bold text-zinc-100">{copy.freePrice}</div>
@@ -1452,11 +1468,11 @@ export function MarketingSite({
               </form>
             </div>
           </section>
-        </>
+        </main>
       )}
 
       {/* Footer sobre avec maillage propre (blog / vs / guides / llms / sitemap) */}
-      <footer className="border-t border-white/10 px-4 py-8 font-mono text-[11px] text-zinc-500 sm:px-6">
+      <footer className="border-t border-white/10 px-4 py-8 font-mono text-[11px] text-zinc-400 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <span>{copy.footerTag}</span>
           <div className="flex flex-wrap gap-4">
@@ -1490,6 +1506,53 @@ export function MarketingSite({
           </div>
         </div>
       </footer>
+
+      {cookieBannerOpen && (
+        <aside
+          aria-label="Cookie consent"
+          className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-2xl border border-white/15 bg-[#0b0c10]/95 p-4 backdrop-blur-md shadow-2xl font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+        >
+          <p className="text-zinc-300 leading-relaxed text-[11px]">
+            {locale === 'en'
+              ? 'We use essential session cookies and anonymous analytics (GA4) to improve CASH NOIR. '
+              : locale === 'es'
+              ? 'Usamos cookies esenciales de sesión y analítica anónima (GA4) para mejorar CASH NOIR. '
+              : 'Nous utilisons des cookies de session essentiels et une mesure d’audience anonyme (GA4). '}
+            <a
+              href="/privacy"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('/privacy');
+              }}
+              className="text-amber-400 underline hover:text-amber-300"
+            >
+              {locale === 'en' ? 'Privacy Policy' : locale === 'es' ? 'Política de Privacidad' : 'Confidentialité'}
+            </a>
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                updateAnalyticsConsent(false);
+                setCookieBannerOpen(false);
+              }}
+              className="border border-white/15 px-3 py-1.5 text-[11px] uppercase tracking-wider text-zinc-300 hover:text-white cursor-pointer"
+            >
+              {locale === 'en' ? 'Decline' : locale === 'es' ? 'Rechazar' : 'Refuser'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                updateAnalyticsConsent(true);
+                setCookieBannerOpen(false);
+              }}
+              className="bg-amber-400 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 cursor-pointer"
+            >
+              {locale === 'en' ? 'Accept' : locale === 'es' ? 'Aceptar' : 'Accepter'}
+            </button>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

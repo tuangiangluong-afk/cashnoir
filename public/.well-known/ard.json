@@ -1,0 +1,41 @@
+{
+  "$schema": "https://agenticresourcediscovery.org/spec/v1/schema.json",
+  "version": "1.0.0",
+  "name": "CASH NOIR",
+  "description": "Real-time AI black-market interrogation and pawn-shop negotiation rogue-like by WeLink Tech SAS.",
+  "url": "https://cashnoir.app",
+  "publisher": {
+    "name": "WeLink Tech SAS",
+    "address": "6 Rue des Bateliers, 92110 Clichy, France",
+    "contact": "mailto:hello@cashnoir.app"
+  },
+  "documentation": [
+    {
+      "type": "llms_txt",
+      "url": "https://cashnoir.app/llms.txt",
+      "format": "text/markdown"
+    },
+    {
+      "type": "sitemap",
+      "url": "https://cashnoir.app/sitemap.xml",
+      "format": "application/xml"
+    }
+  ],
+  "resources": [
+    {
+      "name": "Marketing Home (EN/FR/ES)",
+      "url": "https://cashnoir.app/",
+      "alternates": ["https://cashnoir.app/fr", "https://cashnoir.app/es"]
+    },
+    {
+      "name": "Tactical Guides (HowTo)",
+      "url": "https://cashnoir.app/guides/negociation-ia-temps-reel"
+    },
+    {
+      "name": "Daily Leaderboard API",
+      "url": "https://cashnoir.app/api/leaderboard",
+      "method": "GET",
+      "format": "application/json"
+    }
+  ]
+}

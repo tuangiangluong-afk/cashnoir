@@ -91,47 +91,93 @@ function page(locale, sub) {
     .map(([p, label]) => `<a href="${p === '/play' ? p : urlFor(locale, p === '/' ? '' : p)}">${esc(label)}</a>`)
     .join(' · ');
 
+  const pub = { '@type': 'Organization', name: 'WeLink Tech SAS', url: BASE };
+  const todayIso = new Date().toISOString().slice(0, 10);
   const ld = blog
     ? {
         '@context': 'https://schema.org',
         '@type': 'Article',
         headline: blog.title,
         datePublished: blog.publishedAt,
+        dateModified: blog.publishedAt,
         inLanguage: copy.htmlLang,
         description: blog.excerpt,
         image: OG_IMAGE,
-        publisher: { '@type': 'Organization', name: 'CASH NOIR' },
+        author: pub,
+        publisher: pub,
+        speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', 'article p'] },
       }
-    : {
-        '@context': 'https://schema.org',
-        '@graph': [
-          {
-            '@type': 'VideoGame',
-            name: 'CASH NOIR',
-            url: `${BASE}/`,
-            image: OG_IMAGE,
-            genre: 'Noir Simulation / Real-Time AI Interrogation',
-            gamePlatform: 'Web Browser / PWA',
-            inLanguage: ['en', 'fr', 'es'],
-            description: copy.metaDesc,
-            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-          },
-          {
-            '@type': 'FAQPage',
-            mainEntity: faq.map((f) => ({
-              '@type': 'Question',
-              name: f.q,
-              acceptedAnswer: { '@type': 'Answer', text: f.a },
-            })),
-          },
-        ],
-      };
+    : guide
+      ? {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Article',
+              headline: guide.title,
+              datePublished: '2026-11-15',
+              dateModified: todayIso,
+              inLanguage: copy.htmlLang,
+              description: guide.metaDesc,
+              image: OG_IMAGE,
+              author: pub,
+              publisher: pub,
+              speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', 'h2', 'p'] },
+            },
+            {
+              '@type': 'HowTo',
+              name: guide.title,
+              description: guide.metaDesc,
+              inLanguage: copy.htmlLang,
+              step: guide.steps.map((s, i) => ({
+                '@type': 'HowToStep',
+                position: i + 1,
+                name: s.title,
+                text: s.detail,
+              })),
+            },
+          ],
+        }
+      : {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebPage',
+              name: title,
+              url: `${BASE}${urlFor(locale, sub)}`,
+              datePublished: '2026-11-01',
+              dateModified: todayIso,
+              inLanguage: copy.htmlLang,
+              speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', 'h2'] },
+            },
+            {
+              '@type': 'VideoGame',
+              name: 'CASH NOIR',
+              url: `${BASE}/`,
+              image: OG_IMAGE,
+              genre: 'Noir Simulation / Real-Time AI Interrogation',
+              gamePlatform: 'Web Browser / PWA',
+              inLanguage: ['en', 'fr', 'es'],
+              description: copy.metaDesc,
+              publisher: pub,
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+            },
+            {
+              '@type': 'FAQPage',
+              mainEntity: faq.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            },
+          ],
+        };
 
   const canonical = `${BASE}${urlFor(locale, sub)}`;
   const head = [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(desc)}" />`,
     `<link rel="canonical" href="${canonical}" />`,
+    `<link rel="ard" href="/.well-known/ard.json" />`,
     ...['en', 'fr', 'es'].map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE}${urlFor(l, sub)}" />`),
     `<link rel="alternate" hreflang="x-default" href="${BASE}${urlFor('en', sub)}" />`,
     `<meta property="og:type" content="${blog ? 'article' : 'website'}" />`,
