@@ -925,18 +925,16 @@ export default function App() {
   // Settings / Debug
   const [debugMode, setDebugMode] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
-  const [provider, setProvider] = useState<LLMProvider>(
-    () => (sessionStorage.getItem('fence_provider') as LLMProvider) || 'gemini',
-  );
+  const [provider, setProvider] = useState<LLMProvider>('gemini');
 
-  // Sans clé hébergée côté serveur (Gemini/Groq), le jeu retombe sur Ollama au lieu de planter.
+  // Le moteur IA actif est piloté côté serveur / BO Admin (/api/health).
   useEffect(() => {
-    if (sessionStorage.getItem('fence_provider')) return;
     fetch('/api/health')
       .then((r) => r.json())
       .then((h) => {
         const p = h?.providers;
-        setProvider(p?.gemini ? 'gemini' : p?.groq ? 'groq' : p?.deepseek ? 'deepseek' : 'ollama');
+        const ap = h?.activeProvider as LLMProvider | undefined;
+        setProvider(ap || (p?.gemini ? 'gemini' : p?.groq ? 'groq' : p?.deepseek ? 'deepseek' : 'ollama'));
       })
       .catch(() => setProvider('ollama'));
   }, []);
@@ -2002,13 +2000,6 @@ export default function App() {
     setGameOverReason(null);
     setTab('counter');
     startNewCase(generateProceduralCase(cp, 15, undefined, currentDistrict.multiplier, gameLocale));
-  };
-
-  const saveConfig = () => {
-    sessionStorage.setItem('fence_provider', provider);
-    sessionStorage.removeItem('fence_api_key');
-    setShowConfig(false);
-    setError(null);
   };
 
   const sendMessage = async (textOverride?: string, explicitOffer?: number, isClueMacro = false) => {
@@ -3497,32 +3488,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* API Config Drawer */}
+      {/* Options de partie (Debug & Réinitialisation — Moteur IA déplacé dans /admin) */}
       {showConfig && (
-        <div className="border-b border-white/10 bg-[#121216] px-6 py-4">
-          <div className="max-w-4xl mx-auto flex flex-wrap items-end gap-4">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">{t.engineLabel}</label>
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as LLMProvider)}
-                className="bg-zinc-900 border border-white/15 rounded-md px-3 py-2 text-sm text-zinc-100"
-              >
-                <option value="ollama">Ollama Local (gemma4:latest · 0 €)</option>
-                <option value="gemini">Google Gemini (Gemini 3.8 Flash)</option>
-                <option value="groq">Groq (LPU Ultra-rapide ~250ms)</option>
-                <option value="deepseek">DeepSeek (DeepSeek-V3 · Low-cost)</option>
-              </select>
-            </div>
-            <p className="flex-1 min-w-[240px] text-xs text-zinc-400 pb-2">
-              {t.serverKeyNote}
-            </p>
-            <button
-              onClick={saveConfig}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold px-4 py-2 rounded-md text-sm"
-            >
-              {t.saveBtn}
-            </button>
+        <div className="border-b border-white/10 bg-[#121216] px-6 py-3">
+          <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-4">
             <button
               onClick={() => setDebugMode((d) => !d)}
               className="text-xs text-zinc-400 hover:text-zinc-200 underline"

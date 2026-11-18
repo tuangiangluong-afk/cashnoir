@@ -98,6 +98,7 @@ interface EcosystemData {
   seasons: SeasonDef[];
   factions: Array<{ id: string; name: string; leader: string }>;
   categories: string[];
+  systemConfig?: { llmProvider?: string };
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -219,6 +220,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     setIsAuthenticated(false);
     setPasswordInput('');
     showToast('Session fermée.');
+  };
+
+  const handleLlmProviderChange = async (llmProvider: string) => {
+    try {
+      const res = await fetch('/api/admin/system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ llmProvider }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEcosystem((prev) => (prev ? { ...prev, systemConfig: data.systemConfig } : prev));
+        showToast(`Moteur IA actif : ${llmProvider.toUpperCase()}`);
+      } else {
+        showToast(data.error || 'Erreur de mise à jour du moteur IA.');
+      }
+    } catch {
+      showToast('Erreur réseau lors du changement de moteur IA.');
+    }
   };
 
   /* ---------------- Objets CRUD ---------------- */
@@ -706,9 +726,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-zinc-500 text-[11px]">
-            <Shield className="w-3 h-3 text-emerald-400" />
-            <span>Sécurité Gate 01/04/20 Active · Session Chiffrée</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">Moteur IA :</span>
+              <select
+                value={ecosystem?.systemConfig?.llmProvider || 'auto'}
+                onChange={(e) => handleLlmProviderChange(e.target.value)}
+                className="bg-zinc-900 border border-amber-500/40 rounded px-2.5 py-1 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400"
+              >
+                <option value="auto">Auto (Gemini → Groq → DeepSeek → Ollama)</option>
+                <option value="ollama">Ollama Local (gemma4:latest · 0 €)</option>
+                <option value="gemini">Google Gemini (Gemini 3.8 Flash)</option>
+                <option value="groq">Groq (LPU Ultra-rapide)</option>
+                <option value="deepseek">DeepSeek (DeepSeek-V3)</option>
+              </select>
+            </div>
+            <div className="hidden lg:flex items-center gap-2 text-zinc-500 text-[11px]">
+              <Shield className="w-3 h-3 text-emerald-400" />
+              <span>Sécurité Gate 01/04/20 Active · Session Chiffrée</span>
+            </div>
           </div>
         </div>
       </div>

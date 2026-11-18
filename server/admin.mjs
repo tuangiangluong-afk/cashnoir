@@ -106,6 +106,10 @@ function saveOverrides(data) {
   fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
+export function getSystemConfig() {
+  return loadOverrides().systemConfig || {};
+}
+
 function loadDefaults() {
   try {
     if (fs.existsSync(DEFAULTS_FILE)) {
@@ -749,6 +753,18 @@ export async function handleAdminRoutes(ctx) {
 
     saveOverrides(overrides);
     sendJson(res, 200, { success: true, message: 'Écosystème restauré avec succès.' });
+    return true;
+  }
+
+  // Configuration Système (Moteur IA actif)
+  if (req.method === 'POST' && pathname === '/api/admin/system') {
+    const body = await readJson(req);
+    const allowed = ['auto', 'ollama', 'gemini', 'groq', 'deepseek'];
+    const llmProvider = allowed.includes(body?.llmProvider) ? body.llmProvider : 'auto';
+    const overrides = loadOverrides();
+    overrides.systemConfig = { ...(overrides.systemConfig || {}), llmProvider };
+    saveOverrides(overrides);
+    sendJson(res, 200, { success: true, systemConfig: overrides.systemConfig });
     return true;
   }
 

@@ -8,7 +8,7 @@ import path from 'node:path';
 import { buildDailyContract } from './daily.mjs';
 import { handleAuthAndProfileRoutes } from './auth-profiles.mjs';
 import { localizeServerError, requestLocale } from './i18n.mjs';
-import { handleAdminRoutes } from './admin.mjs';
+import { handleAdminRoutes, getSystemConfig } from './admin.mjs';
 
 /* ------------------------------------------------------------------ */
 /* 1. Chargement de .env.local / .env (aucune dépendance externe)      */
@@ -422,14 +422,29 @@ export async function handleRequest(req, res) {
   try {
     /* ---------------- Santé ---------------- */
     if (req.method === 'GET' && url.pathname === '/api/health') {
+      const sys = getSystemConfig();
+      const providers = {
+        ollama: true,
+        gemini: Boolean(process.env.GEMINI_API_KEY),
+        groq: Boolean(process.env.GROQ_API_KEY),
+        deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
+      };
+      const configuredProvider = sys.llmProvider || 'auto';
+      const activeProvider =
+        configuredProvider !== 'auto' && (configuredProvider === 'ollama' || providers[configuredProvider])
+          ? configuredProvider
+          : providers.gemini
+            ? 'gemini'
+            : providers.groq
+              ? 'groq'
+              : providers.deepseek
+                ? 'deepseek'
+                : 'ollama';
       sendJson(res, 200, {
         ok: true,
-        providers: {
-          ollama: true,
-          gemini: Boolean(process.env.GEMINI_API_KEY),
-          groq: Boolean(process.env.GROQ_API_KEY),
-          deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
-        },
+        providers,
+        activeProvider,
+        configuredProvider,
         stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
         passEnabled: Boolean(SESSION_SECRET && process.env.STRIPE_WEBHOOK_SECRET),
       });
