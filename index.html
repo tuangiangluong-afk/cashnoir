@@ -27,12 +27,19 @@
       gtag('js', new Date());
       window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
       window.addEventListener('load', function () {
-        setTimeout(function () {
+        var loaded = false;
+        function loadGtm() {
+          if (loaded) return;
+          loaded = true;
           var s = document.createElement('script');
           s.async = true;
           s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-PD89CCNJ';
           document.head.appendChild(s);
-        }, 1200);
+        }
+        ['pointerdown', 'keydown', 'scroll'].forEach(function (ev) {
+          window.addEventListener(ev, loadGtm, { once: true, passive: true });
+        });
+        setTimeout(loadGtm, 3800);
       });
     </script>
     <!-- End Google Tag Manager -->

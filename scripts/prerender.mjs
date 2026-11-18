@@ -233,10 +233,11 @@ function page(locale, sub) {
   ].join('\n    ');
 
   // Remplacements par fonction : pas d'interprétation des "$" (prix) dans le contenu.
+  const preload = sub === '' ? '<link rel="preload" as="image" href="/assets/portraits/cast/c001.webp" />' : '';
   return template
     .replace(/<html lang="[^"]*"/, () => `<html lang="${copy.htmlLang}"`)
     .replace(/<title>[^<]*<\/title>/, () => head)
-    .replace('</head>', () => '<style>#root>main[data-ssr]{opacity:0;animation:ssr-in 0s 2.5s forwards}@keyframes ssr-in{to{opacity:1}}</style></head>')
+    .replace('</head>', () => `${preload}<style>#root>main[data-ssr]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style></head>`)
     .replace('<div id="root"></div>', () => `<div id="root"><main data-ssr>${body}<nav>${nav}</nav></main></div>`);
 }
 
