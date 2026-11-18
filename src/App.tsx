@@ -584,6 +584,8 @@ export default function App() {
     picture: string;
   } | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [devBypass, setDevBypass] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>('idle');
   const cloudReadyRef = useRef(false);
 
@@ -725,6 +727,8 @@ export default function App() {
         setCloudStatus('saved');
       } catch {
         // Offline / backend absent : localStorage reste actif
+      } finally {
+        if (!cancelled) setAuthChecked(true);
       }
     })();
     return () => {
@@ -3262,6 +3266,101 @@ export default function App() {
           >
             {t.gameOverReset}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Porte d'entrée obligatoire : compte Google OAuth requis avant d'accéder au comptoir (pas de connexion directe anonyme en prod).
+  if (!authChecked) {
+    return (
+      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-6 font-mono text-xs text-zinc-500">
+        CASH NOIR · {tt('Vérification de session…', 'Checking session…', 'Verificando sesión…')}
+      </div>
+    );
+  }
+
+  if (!authUser && !devBypass) {
+    const isLocal = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    return (
+      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md border border-white/15 bg-[#0b0c10] p-6 sm:p-8 space-y-6 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2.5">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5 shrink-0">
+                <path d="M10.5 3.5L3 12L10.5 20.5" stroke="#f4f4f5" strokeWidth="2" strokeLinecap="square" />
+                <path d="M13.5 3.5L21 12L13.5 20.5V3.5Z" fill="#fbbf24" />
+              </svg>
+              <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.22em] text-zinc-100">
+                CASH <span className="text-amber-400">NOIR</span>
+              </span>
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400/90">
+              03:14 AM
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              {tt('Accès Arrière-Boutique', 'Backroom Access', 'Acceso a la Trastienda')}
+            </p>
+            <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-wider text-zinc-100 leading-none">
+              {tt('IDENTIFIE-TOI POUR ENTRER', 'SIGN IN TO OPEN THE COUNTER', 'IDENTIFÍCATE PARA ENTRAR')}
+            </h2>
+            <p className="text-xs leading-relaxed text-zinc-400">
+              {tt(
+                'Crée un compte ou connecte-toi avec Google pour sauvegarder ta caisse dans le cloud, débloquer les dossiers secrets et jouer le Contrat 24h.',
+                'Create an account or sign in with Google to save your bankroll in the cloud, unlock character dossiers, and compete in the Daily Contract.',
+                'Crea una cuenta o inicia sesión con Google para guardar tu progreso en la nube, desbloquear expedientes y competir en el Contrato Diario.',
+              )}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (oauthConfigured) {
+                window.location.href = '/api/auth/google';
+              } else {
+                setError(tt('Google OAuth non configuré sur ce serveur.', 'Google OAuth is not configured on this server.', 'Google OAuth no está configurado en este servidor.'));
+              }
+            }}
+            className="flex w-full items-center justify-center gap-3 bg-white px-4 py-3.5 font-mono text-xs font-bold uppercase tracking-wider text-zinc-950 transition-colors hover:bg-amber-300 cursor-pointer"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden>
+              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z" />
+              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z" />
+              <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z" />
+            </svg>
+            <span>{tt('Continuer avec Google', 'Continue with Google', 'Continuar con Google')}</span>
+          </button>
+
+          {error && (
+            <p className="font-mono text-[11px] text-red-400 border border-red-500/30 bg-red-950/30 p-2.5">
+              {error}
+            </p>
+          )}
+
+          {isLocal && !oauthConfigured && (
+            <button
+              type="button"
+              onClick={() => setDevBypass(true)}
+              className="w-full border border-white/10 py-2 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:text-zinc-200"
+            >
+              {tt('Mode Dev Local (OAuth absent)', 'Local Dev Mode (OAuth off)', 'Modo Dev Local (sin OAuth)')}
+            </button>
+          )}
+
+          <div className="flex items-center justify-between border-t border-white/10 pt-4 font-mono text-[10px] text-zinc-500">
+            <button type="button" onClick={() => navigateTo('/')} className="hover:text-zinc-300">
+              ← {tt('Retour accueil', 'Back to home', 'Volver al inicio')}
+            </button>
+            <div className="flex gap-3">
+              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigateTo('/privacy'); }} className="hover:text-zinc-300">Privacy</a>
+              <a href="/terms" onClick={(e) => { e.preventDefault(); navigateTo('/terms'); }} className="hover:text-zinc-300">Terms</a>
+            </div>
+          </div>
         </div>
       </div>
     );

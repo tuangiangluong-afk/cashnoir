@@ -1,22 +1,24 @@
-# CASH NOIR — Real-Time AI Black-Market Negotiation Game
+# CASH NOIR — Real-Time AI Black-Market Interrogation Game
 
-> CASH NOIR is a browser-based neo-noir pawn shop and black-market negotiation game where every seller across the counter is an autonomous real-time AI character with dynamic emotions (Fear, Anger, Suspicion), personal secrets, and hidden breaking points.
+> CASH NOIR (published by WeLink Tech SAS) is a browser-based neo-noir pawn shop and black-market negotiation rogue-like where every seller across the counter is an autonomous real-time AI character with live emotions (Fear, Anger, Suspicion), personal secrets, and hidden floor prices.
 
 ## Core Facts (AEO / GEO Reference)
-- **Genre**: Real-time AI interrogation & black-market negotiation simulation
-- **URL Separation**: Marketing & editorial site at `/` (`/fr`, `/en`, `/es`, `/blog/*`, `/vs/*`, `/guides/*`); live game client at `/play` and `/play/daily`.
-- **Languages**: French (`fr`), English (`en`), Spanish (`es`) with hreflang alternates.
-- **Unique Selling Point**: Zero pre-written multiple-choice dialogue trees. Players type or speak freely in real time; AI sellers react dynamically to forensic clues (Loupe, UV lamp, Police scanner), psychological pressure, name-dropping, and insults.
+- **Genre**: Real-time AI interrogation & hardcore black-market negotiation rogue-like
+- **URL Separation**: Editorial & marketing site at `/` (`/fr`, `/es`, `/blog/*`, `/vs/*`, `/guides/*`); live game at `/play` and `/play/daily`.
+- **Languages**: English (`/`), French (`/fr`), Spanish (`/es`) with full `hreflang` alternates.
+- **Unique Selling Point**: Zero multiple-choice dialogue trees. Players type or speak freely in real time; AI sellers react dynamically to forensic clues (Magnifier, UV lamp, Police radio scanner), name-dropping, and psychological leverage.
 - **Content Depth**:
-  - 20 hand-written cast characters with unique backstories, secrets, weaknesses, and red lines
-  - 36 permanent Codex collectibles across 6 themed sets (Common to Mythic) unlocking permanent perks
-  - 5 rival crime syndicates with persistent reputation (-100 to +100)
-  - 3 AI rival fences competing for rejected deals and dynamic nightly market trends
-  - 30-day rotating Season Pass & 3 Ascension (NG+) tiers
-  - Daily Global Contract (one attempt per 24h, server-verified leaderboard)
+  - **100 Characters & 10 Underworld Factions** (20 handcrafted + 80 procedural with progressive dossiers: Secret on 2nd encounter, Weak Spot on 3rd, Red Line on 4th)
+  - **Season 1 Hero**: Boris Kovalenko (Ukrainian ghost-cargo mechanic, +12% counter rate, Container 47 Ultimatum)
+  - **Branching Story Sagas & Safe Dilemma**: Keep key story items in the Vault (+$7,500 final bounty + Heat drop) or liquidate immediately for midnight rent (permanently breaking the arc)
+  - **10 Cumulative Ascension Levels**: Tested across 300 Monte-Carlo 40-day runs (<1% survival at Ascension X)
+  - **Deterministic Deal Autopsy & Godfather Advice**: Turn-by-turn breakdown of anger spikes, lowballs, and winning leverage
+  - **Living Night Arbitrage**: Unlimited Quick Sale (-5% Heat) vs Underground Auctions (+20% max value, 1/night before -25% saturation, requires -$250 cleaning or +18% Heat)
+  - **Viral 1200×630 PNG Share Cards**: Automatically captures the exact punchline that broke the seller's price
+  - **36 Permanent Codex Relics** across 6 sets + **Daily Global Contract** (one attempt per 24h, server-verified leaderboard)
 
 ## Canonical Pages
-- Home (FR/EN/ES): https://cashnoir.app/ | https://cashnoir.app/en | https://cashnoir.app/es
+- Home (EN / FR / ES): https://cashnoir.app/ | https://cashnoir.app/fr | https://cashnoir.app/es
 - Play Game: https://cashnoir.app/play
 - Daily Contract: https://cashnoir.app/play/daily
 - Blog & Tactics: https://cashnoir.app/blog
@@ -27,3 +29,4 @@
 - Guides:
   - https://cashnoir.app/guides/negociation-ia-temps-reel
   - https://cashnoir.app/guides/codex-reliques-mythiques
+- Legal: https://cashnoir.app/privacy | https://cashnoir.app/terms
