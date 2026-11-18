@@ -1,4 +1,5 @@
 import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
+import { localizeSeasonName, localizeSeasonEpisode, localizeFaction } from '../data/noirLocalization';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2, FileText } from 'lucide-react';
 import {
@@ -304,7 +305,7 @@ export function MarketingSite({
               }}
               className="bg-amber-400 px-3.5 py-1.5 font-bold uppercase tracking-wider text-zinc-950 transition-colors hover:bg-amber-300"
             >
-              {hasExistingSave ? `${copy.ctaResume} (J${savedDay})` : copy.navPlay}
+              {hasExistingSave ? `${copy.ctaResume} (${locale === 'fr' ? 'J' : 'D'}${savedDay})` : copy.navPlay}
             </a>
           </div>
         </div>
@@ -1059,7 +1060,7 @@ export function MarketingSite({
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
-                    {copy.castEyebrow} {season.seasonNumber} · {season.name}
+                    {copy.castEyebrow} {season.seasonNumber} · {localizeSeasonName(season.name, locale)}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl">
                     {copy.castTitle}
@@ -1091,13 +1092,16 @@ export function MarketingSite({
               </div>
 
               <div className="grid gap-4 border-t border-white/10 pt-6 sm:grid-cols-2 lg:grid-cols-4 font-mono">
-                {SEASON_EPISODES.slice(0, 4).map((ep) => (
-                  <div key={ep.id} className="border-l border-amber-500/40 pl-3 space-y-1">
-                    <span className="text-[9px] uppercase text-zinc-500">{ep.faction}</span>
-                    <p className="text-xs font-bold text-zinc-200">{ep.title}</p>
-                    <p className="text-[11px] text-zinc-400">{ep.stakes}</p>
-                  </div>
-                ))}
+                {SEASON_EPISODES.slice(0, 4).map((ep) => {
+                  const locEp = localizeSeasonEpisode(ep, locale);
+                  return (
+                    <div key={ep.id} className="border-l border-amber-500/40 pl-3 space-y-1">
+                      <span className="text-[9px] uppercase text-zinc-500">{localizeFaction(ep.faction, locale)}</span>
+                      <p className="text-xs font-bold text-zinc-200">{locEp.title}</p>
+                      <p className="text-[11px] text-zinc-400">{locEp.stakes}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>

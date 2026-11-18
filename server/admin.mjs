@@ -5,11 +5,19 @@ import path from 'node:path';
 /* ------------------------------------------------------------------ */
 /* Constantes, chemins et sécurité                                    */
 /* ------------------------------------------------------------------ */
-const DATA_DIR = path.resolve('server/data/ecosystem');
-fs.mkdirSync(DATA_DIR, { recursive: true });
+const DATA_DIR = process.env.VERCEL
+  ? path.resolve('/tmp/ecosystem')
+  : path.resolve('server/data/ecosystem');
+try {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+} catch {}
 
-const UPLOADS_DIR = path.resolve('public/assets/uploads');
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const UPLOADS_DIR = process.env.VERCEL
+  ? path.resolve('/tmp/uploads')
+  : path.resolve('public/assets/uploads');
+try {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+} catch {}
 
 const DEFAULTS_FILE = path.join(DATA_DIR, 'defaults.json');
 const FALLBACK_DEFAULTS_FILE = path.resolve('server/ecosystem-defaults.json');

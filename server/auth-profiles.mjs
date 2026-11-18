@@ -2,8 +2,12 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const PROFILES_DIR = path.resolve('server/data/profiles');
-fs.mkdirSync(PROFILES_DIR, { recursive: true });
+const PROFILES_DIR = process.env.VERCEL
+  ? path.resolve('/tmp/profiles')
+  : path.resolve('server/data/profiles');
+try {
+  fs.mkdirSync(PROFILES_DIR, { recursive: true });
+} catch {}
 
 const SAFE_USER_ID_RE = /^google_[A-Za-z0-9_-]{4,64}$/;
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
