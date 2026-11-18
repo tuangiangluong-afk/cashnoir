@@ -271,7 +271,7 @@ export function CounterItemProp({
       </div>
 
       {/* Légende sobre sans encart avec libellé explicite de revente rue */}
-      <div className="mt-0.5 font-mono text-[9px] sm:text-[10px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+      <div className="mt-0.5 font-mono text-[11px] sm:text-[11px] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
         <span className="hidden text-zinc-200 sm:inline">{name}</span>
         {streetValue ? (
           <>

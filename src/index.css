@@ -230,9 +230,9 @@
   animation: sfRage 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
-/* Mobile : cibles tactiles >= 36 px (Apple/Google recommandent 44/48 ; 36 garde la barre d'action compacte). */
+/* Mobile : cibles tactiles >= 44 px (guideline Apple/Google). */
 @media (max-width: 1023px) {
   button {
-    min-height: 36px;
+    min-height: 44px;
   }
 }

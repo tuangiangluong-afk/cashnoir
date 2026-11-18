@@ -377,7 +377,7 @@ export function MarketingSite({
     if (!faq || !faq.length) return null;
     return (
       <section className="border-t border-white/10 pt-8 space-y-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">FAQ</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">FAQ</p>
         <div className="space-y-3">
           {faq.map((f) => (
             <div key={f.q} className="border border-white/10 bg-zinc-900/40 p-4 space-y-1.5">
@@ -405,7 +405,7 @@ export function MarketingSite({
     if (!items.length) return null;
     return (
       <aside className="border-t border-white/10 pt-8 space-y-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+        <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
           {locale === 'fr' ? 'Dossiers & Guides Liés' : locale === 'es' ? 'Dossiers y Guías Relacionados' : 'Related Intelligence & Guides'}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -421,7 +421,7 @@ export function MarketingSite({
                 }}
                 className="border border-white/10 bg-zinc-900/50 p-3.5 transition-colors hover:border-amber-400/50 group"
               >
-                <span className="block font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                <span className="block font-mono text-[11px] uppercase tracking-widest text-zinc-500">
                   {item.kind}
                 </span>
                 <span className="mt-1 block text-sm font-medium text-zinc-200 group-hover:text-amber-300">
@@ -505,7 +505,7 @@ export function MarketingSite({
 
           <div className="flex items-center gap-2 sm:gap-3 font-mono text-[11px]">
             {/* Switcher EN | FR | ES visible sur mobile & desktop */}
-            <div className="flex items-center border border-white/10 text-[10px]">
+            <div className="flex items-center border border-white/10 text-[11px]">
               {(['en', 'fr', 'es'] as Locale[]).map((loc) => (
                 <button
                   key={loc}
@@ -594,7 +594,7 @@ export function MarketingSite({
       {isBlogIndex && (
         <main className="mx-auto max-w-5xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
           <div className="space-y-2 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               {copy.blogIndexEyebrow}
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wider sm:text-5xl">
@@ -612,7 +612,7 @@ export function MarketingSite({
                 }}
                 className="block py-6 group"
               >
-                <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
                   {art.updatedLabel} · {art.readTime}
                 </p>
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-wide text-zinc-100 group-hover:text-amber-300 transition-colors">
@@ -629,7 +629,7 @@ export function MarketingSite({
       {activeVs && (
         <main className="mx-auto max-w-4xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
           <div className="space-y-3 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               CASH NOIR vs {activeVs.competitor}
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-3xl leading-tight tracking-wide sm:text-5xl">
@@ -676,7 +676,7 @@ export function MarketingSite({
       {isVsIndex && (
         <main className="mx-auto max-w-5xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
           <div className="space-y-2 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               {copy.navVs} · CASH NOIR
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wider sm:text-5xl">
@@ -694,7 +694,7 @@ export function MarketingSite({
                 }}
                 className="border border-white/10 bg-zinc-900/40 p-5 transition-colors hover:border-amber-400/50 group"
               >
-                <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-amber-400">
                   CASH NOIR vs {v.competitor}
                 </p>
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl tracking-wide text-zinc-100 group-hover:text-amber-300">
@@ -711,7 +711,7 @@ export function MarketingSite({
       {activeGuide && (
         <main className="mx-auto max-w-3xl px-4 py-12 space-y-8 sm:px-6 sm:py-16">
           <div className="space-y-3 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               {copy.navGuides} · CASH NOIR
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-3xl leading-tight tracking-wide sm:text-5xl">
@@ -749,7 +749,7 @@ export function MarketingSite({
       {isGuidesIndex && (
         <main className="mx-auto max-w-5xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
           <div className="space-y-2 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               {copy.navGuides} · CASH NOIR
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wider sm:text-5xl">
@@ -767,7 +767,7 @@ export function MarketingSite({
                 }}
                 className="block py-6 group"
               >
-                <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-amber-400">
                   {g.steps.length} {locale === 'fr' ? 'étapes' : locale === 'es' ? 'pasos' : 'steps'}
                 </p>
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-wide text-zinc-100 group-hover:text-amber-300 transition-colors">
@@ -784,7 +784,7 @@ export function MarketingSite({
       {isTerms && (
         <main className="mx-auto max-w-3xl px-4 py-12 space-y-8 sm:px-6 sm:py-16 text-sm leading-relaxed text-zinc-300">
           <div className="space-y-2 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               LEGAL · WELINK TECH SAS
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
@@ -834,7 +834,7 @@ export function MarketingSite({
       {isPrivacy && (
         <main className="mx-auto max-w-3xl px-4 py-12 space-y-8 sm:px-6 sm:py-16 text-sm leading-relaxed text-zinc-300">
           <div className="space-y-2 border-b border-white/10 pb-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.26em] text-amber-400">
               GDPR · WELINK TECH SAS
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
@@ -879,7 +879,7 @@ export function MarketingSite({
           <section className="relative overflow-hidden border-b border-white/10">
             <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-12 lg:py-20">
               <div className="space-y-5 lg:col-span-6">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400/90">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400/90">
                   {copy.heroEyebrow}
                 </p>
 
@@ -925,7 +925,7 @@ export function MarketingSite({
               {/* Comptoir interactif en direct */}
               <div className="lg:col-span-6">
                 <div className="border border-white/15 bg-[#0a0b0f]">
-                  <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-widest">
+                  <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-4 py-2 font-mono text-[11px] uppercase tracking-widest">
                     <span className="text-zinc-400">{copy.simHeader}</span>
                     <span className="text-amber-400">{copy.simBadge}</span>
                   </div>
@@ -953,7 +953,7 @@ export function MarketingSite({
                     <div className="flex flex-col justify-between p-4 font-mono text-xs sm:col-span-3 space-y-4">
                       <div className="space-y-2.5">
                         <div className="flex items-baseline justify-between border-b border-white/10 pb-2">
-                          <span className="text-[10px] uppercase text-zinc-400">{copy.simAskLabel}</span>
+                          <span className="text-[11px] uppercase text-zinc-400">{copy.simAskLabel}</span>
                           <span className="font-bold text-amber-300">
                             {teaserStep === 'bluff' ? copy.simBroken : copy.simAsked}
                           </span>
@@ -970,7 +970,7 @@ export function MarketingSite({
                           <button
                             type="button"
                             onClick={() => setTeaserStep('uv')}
-                            className={`flex items-center justify-center gap-1.5 border py-2 text-[10px] uppercase ${
+                            className={`flex items-center justify-center gap-1.5 border py-2 text-[11px] uppercase ${
                               teaserStep === 'uv'
                                 ? 'border-sky-400 bg-sky-500/20 text-sky-200'
                                 : 'border-white/15 bg-black/60 text-zinc-300'
@@ -981,7 +981,7 @@ export function MarketingSite({
                           <button
                             type="button"
                             onClick={() => setTeaserStep('bluff')}
-                            className={`flex items-center justify-center gap-1.5 border py-2 text-[10px] uppercase ${
+                            className={`flex items-center justify-center gap-1.5 border py-2 text-[11px] uppercase ${
                               teaserStep === 'bluff'
                                 ? 'border-amber-400 bg-amber-500/20 text-amber-200'
                                 : 'border-white/15 bg-black/60 text-zinc-300'
@@ -993,7 +993,7 @@ export function MarketingSite({
                         <button
                           type="button"
                           onClick={onPlay}
-                          className="w-full bg-amber-400 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-950 hover:bg-amber-300"
+                          className="w-full bg-amber-400 py-2.5 text-[11px] font-bold uppercase tracking-widest text-zinc-950 hover:bg-amber-300"
                         >
                           {copy.simBtnPlay}
                         </button>
@@ -1032,7 +1032,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-purple-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-purple-400">
                     {copy.sagasEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1052,7 +1052,7 @@ export function MarketingSite({
                         <ShieldAlert className="h-4 w-4 shrink-0 text-purple-400" />
                         <span>{copy.sagasDilemmaTitle}</span>
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
+                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
                         {locale === 'en' ? 'North Docks' : locale === 'es' ? 'Muelles del Norte' : 'Docks du Nord'}
                       </span>
                     </div>
@@ -1072,7 +1072,7 @@ export function MarketingSite({
                         <p className="text-xs font-bold text-amber-200 truncate">
                           {locale === 'en' ? 'Rose Gold Rolex Daytona' : locale === 'es' ? 'Rolex Daytona de Oro Rosa' : 'Rolex Daytona en Or Rose'}
                         </p>
-                        <p className="text-[10px] text-zinc-400">
+                        <p className="text-[11px] text-zinc-400">
                           {locale === 'en' ? 'Stolen from an oligarch. Serial number matches an active mob lead in your Notebook.' : locale === 'es' ? 'Robada a un oligarca. El número de serie coincide con una pista activa de tu Cuaderno.' : 'Volée à un oligarque. Numéro de série lié à une intrigue active dans ton Carnet.'}
                         </p>
                       </div>
@@ -1097,7 +1097,7 @@ export function MarketingSite({
                 <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono text-xs">
                   <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
                     <div className="space-y-2">
-                      <span className="text-[10px] uppercase text-purple-400 font-bold tracking-widest">
+                      <span className="text-[11px] uppercase text-purple-400 font-bold tracking-widest">
                         {locale === 'en' ? '100 Characters' : locale === 'es' ? '100 Personajes' : '100 Personnages'}
                       </span>
                       <h3 className="text-sm font-bold text-zinc-100">
@@ -1115,7 +1115,7 @@ export function MarketingSite({
 
                   <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
                     <div className="space-y-2">
-                      <span className="text-[10px] uppercase text-amber-400 font-bold tracking-widest">
+                      <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest">
                         {locale === 'en' ? '10 Underworld Factions' : locale === 'es' ? '10 Facciones Clandestinas' : '10 Factions Criminelles'}
                       </span>
                       <h3 className="text-sm font-bold text-zinc-100">
@@ -1133,10 +1133,10 @@ export function MarketingSite({
 
                   <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 sm:col-span-2">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                      <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-widest">
+                      <span className="text-[11px] uppercase text-emerald-400 font-bold tracking-widest">
                         {locale === 'en' ? '30+ Physical Relics' : locale === 'es' ? '30+ Reliquias Físicas' : '30+ Reliques Physiques'}
                       </span>
-                      <span className="text-zinc-400 text-[10px]">
+                      <span className="text-zinc-400 text-[11px]">
                         {locale === 'en' ? 'Magnifier & UV Lamp' : locale === 'es' ? 'Lupa y Luz UV' : 'Loupe Horlogère & Lampe UV'}
                       </span>
                     </div>
@@ -1158,7 +1158,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-10">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400 flex items-center gap-1.5">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400 flex items-center gap-1.5">
                     <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
                     {copy.seasonHeroEyebrow}
                   </p>
@@ -1175,11 +1175,11 @@ export function MarketingSite({
                 <div className="lg:col-span-5 border border-amber-500/30 bg-gradient-to-b from-[#13110d] to-[#0a0b0e] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_30px_rgba(245,158,11,0.06)] flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
-                      <span className="text-[10px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
+                      <span className="text-[11px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
                         <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
                         {copy.seasonHeroBadge}
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-400">
+                      <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-400">
                         {locale === 'en' ? 'c013 · North Docks' : locale === 'es' ? 'c013 · Muelles del Norte' : 'c013 · Docks du Nord'}
                       </span>
                     </div>
@@ -1219,9 +1219,9 @@ export function MarketingSite({
                         <span className="text-amber-400 font-bold">
                           {locale === 'en' ? 'Saga Arc: The Container 47 Ultimatum' : locale === 'es' ? 'Arco de Saga: El Ultimátum del Contenedor 47' : 'Arc Narratif : L’Ultimatum du Conteneur 47'}
                         </span>
-                        <span className="text-[10px] text-zinc-400">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
+                        <span className="text-[11px] text-zinc-400">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
                       </div>
-                      <p className="text-[10px] text-zinc-400">
+                      <p className="text-[11px] text-zinc-400">
                         {locale === 'en'
                           ? 'Boris returns across multiple nights. Each conversation deepens the investigation or brings down the Bratva hammer.'
                           : locale === 'es'
@@ -1245,7 +1245,7 @@ export function MarketingSite({
                         <FileText className="h-4 w-4 text-violet-400" />
                         {copy.seasonHeroDossierTitle}
                       </span>
-                      <span className="text-[10px] text-zinc-400">
+                      <span className="text-[11px] text-zinc-400">
                         {locale === 'en' ? 'Deterministic Memory' : locale === 'es' ? 'Memoria Determinista' : 'Mémoire Déterministe'}
                       </span>
                     </div>
@@ -1263,7 +1263,7 @@ export function MarketingSite({
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                               {st.step}
                             </span>
                             <span className={`text-[11px] font-bold uppercase tracking-wider ${
@@ -1281,11 +1281,11 @@ export function MarketingSite({
                   {/* Partage Viral de la Punchline Choc */}
                   <div className="border border-emerald-500/30 bg-gradient-to-r from-[#0a120e] to-[#060b08] p-5 rounded-xl space-y-3 font-mono">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-widest flex items-center gap-1.5">
+                      <span className="text-[11px] uppercase text-emerald-400 font-bold tracking-widest flex items-center gap-1.5">
                         <Share2 className="h-3.5 w-3.5 text-emerald-400" />
                         {copy.viralShareEyebrow}
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
                         {locale === 'en' ? 'PNG Card · −20% / Weapon Drawn' : locale === 'es' ? 'Tarjeta PNG · −20% / Arma Sacada' : 'Carte PNG · −20% / Arme Dégainée'}
                       </span>
                     </div>
@@ -1309,7 +1309,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-red-400">
                     {copy.ascensionEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1331,14 +1331,14 @@ export function MarketingSite({
                         <span className="text-xl font-bold font-[family-name:var(--font-display)] text-amber-400">
                           ASCENSION {tier.level}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-zinc-400 font-bold">
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-zinc-400 font-bold">
                           {tier.survival}
                         </span>
                       </div>
                       <h3 className="text-sm font-bold text-zinc-100">{tier.name}</h3>
                       <p className="text-zinc-400 font-sans text-xs leading-relaxed">{tier.rule}</p>
                     </div>
-                    <div className="pt-2 border-t border-white/5 text-[10px] text-zinc-400 uppercase flex items-center gap-1.5">
+                    <div className="pt-2 border-t border-white/5 text-[11px] text-zinc-400 uppercase flex items-center gap-1.5">
                       {tier.level === 'X' ? (
                         <span className="text-red-400 font-bold flex items-center gap-1">
                           <Skull className="h-3 w-3 text-red-400" />
@@ -1367,7 +1367,7 @@ export function MarketingSite({
                 <button
                   type="button"
                   onClick={onPlay}
-                  className="bg-amber-400 px-4 py-2 font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 transition-colors cursor-pointer text-[10px]"
+                  className="bg-amber-400 px-4 py-2 font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 transition-colors cursor-pointer text-[11px]"
                 >
                   {locale === 'en' ? 'Test Your Survival (/play) →' : locale === 'es' ? 'Pruébate en /play →' : 'Tester ta survie sur /play →'}
                 </button>
@@ -1380,7 +1380,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-400">
                     {copy.autopsyEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1398,7 +1398,7 @@ export function MarketingSite({
                     className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2.5 flex flex-col justify-between"
                   >
                     <div className="space-y-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider inline-block ${
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider inline-block ${
                         pt.tag.includes('ERREURS') || pt.tag.includes('MISTAKES') || pt.tag.includes('ERRORES')
                           ? 'bg-red-950/80 text-red-300 border border-red-500/30'
                           : pt.tag.includes('SUCCÈS') || pt.tag.includes('WINS') || pt.tag.includes('ACIERTOS')
@@ -1421,7 +1421,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                     {copy.arbitrageEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1440,7 +1440,7 @@ export function MarketingSite({
                       <span className="font-bold text-sm text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                         {copy.arbitrageFastTitle}
                       </span>
-                      <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
+                      <span className="text-[11px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
                         {locale === 'en' ? '-5% Heat · Unlimited' : locale === 'es' ? '-5% Heat · Ilimitada' : '-5% Heat · Illimitée'}
                       </span>
                     </div>
@@ -1460,7 +1460,7 @@ export function MarketingSite({
                       <span className="font-bold text-sm text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                         {copy.arbitrageAuctionTitle}
                       </span>
-                      <span className="text-[10px] text-amber-400 font-bold px-2 py-0.5 rounded bg-amber-950 border border-amber-500/40">
+                      <span className="text-[11px] text-amber-400 font-bold px-2 py-0.5 rounded bg-amber-950 border border-amber-500/40">
                         {locale === 'en' ? '+20% Price · 1/Night' : locale === 'es' ? '+20% Precio · 1/Noche' : '+20% Cote · 1/Nuit'}
                       </span>
                     </div>
@@ -1481,7 +1481,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                     {copy.castEyebrow} {season.seasonNumber} · {localizeSeasonName(season.name, locale)}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl">
@@ -1505,7 +1505,7 @@ export function MarketingSite({
                       />
                     </div>
                     <div className="p-4 font-mono space-y-1.5">
-                      <p className="text-[10px] uppercase text-amber-400">{c.role}</p>
+                      <p className="text-[11px] uppercase text-amber-400">{c.role}</p>
                       <h3 className="text-sm font-bold text-zinc-100">{c.name}</h3>
                       <p className="text-xs text-zinc-400 leading-relaxed">{c.line}</p>
                     </div>
@@ -1518,7 +1518,7 @@ export function MarketingSite({
                   const locEp = localizeSeasonEpisode(ep, locale);
                   return (
                     <div key={ep.id} className="border-l border-amber-500/40 pl-3 space-y-1">
-                      <span className="text-[9px] uppercase text-zinc-400">{localizeFaction(ep.faction, locale)}</span>
+                      <span className="text-[11px] uppercase text-zinc-400">{localizeFaction(ep.faction, locale)}</span>
                       <p className="text-xs font-bold text-zinc-200">{locEp.title}</p>
                       <p className="text-[11px] text-zinc-400">{locEp.stakes}</p>
                     </div>
@@ -1536,7 +1536,7 @@ export function MarketingSite({
                   <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
                     {copy.topTitle}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[11px] text-zinc-400">
                     {copy.topExpires} {countdownText}
                   </span>
                 </div>
@@ -1569,7 +1569,7 @@ export function MarketingSite({
               <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono">
                 <div className="border border-white/10 bg-[#0b0c10] p-6 flex flex-col justify-between space-y-5">
                   <div className="space-y-3">
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-400">
+                    <span className="text-[11px] uppercase tracking-widest text-zinc-400">
                       {copy.freeLabel}
                     </span>
                     <div className="text-3xl font-bold text-zinc-100">{copy.freePrice}</div>
@@ -1590,7 +1590,7 @@ export function MarketingSite({
 
                 <div className="border border-amber-500/50 bg-[#100e09] p-6 flex flex-col justify-between space-y-5">
                   <div className="space-y-3">
-                    <span className="text-[10px] uppercase tracking-widest text-amber-400">
+                    <span className="text-[11px] uppercase tracking-widest text-amber-400">
                       {copy.vipLabel}
                     </span>
                     <div className="text-3xl font-bold text-amber-300">{copy.vipPrice}</div>
@@ -1617,7 +1617,7 @@ export function MarketingSite({
           <section className="px-4 py-12 sm:px-6 sm:py-14">
             <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 border border-amber-500/40 bg-[#0b0c10] p-6 sm:p-8 md:flex-row md:items-center">
               <div className="space-y-2 max-w-2xl">
-                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">
+                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-red-400">
                   <ShieldAlert className="h-3.5 w-3.5" />
                   <span>{countdownText}</span>
                 </div>
@@ -1640,7 +1640,7 @@ export function MarketingSite({
           <section id="contact" className="border-t border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-14">
             <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-12 items-start">
               <div className="lg:col-span-5 space-y-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                   {locale === 'en' ? 'Direct Line · Syndicate Desk' : locale === 'es' ? 'Línea Directa · Mesa del Sindicato' : 'Ligne Directe · Bureau du Syndicat'}
                 </p>
                 <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-4xl text-zinc-100">
@@ -1664,7 +1664,7 @@ export function MarketingSite({
               <form onSubmit={submitContact} className="lg:col-span-7 border border-white/10 bg-[#0b0c10] p-6 space-y-4 font-mono text-xs">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                    <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">
                       {locale === 'en' ? 'Your Email' : locale === 'es' ? 'Tu Email' : 'Ton Email'}
                     </label>
                     <input
@@ -1677,7 +1677,7 @@ export function MarketingSite({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                    <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">
                       {locale === 'en' ? 'Subject' : locale === 'es' ? 'Asunto' : 'Objet'}
                     </label>
                     <input
@@ -1691,7 +1691,7 @@ export function MarketingSite({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase tracking-wider text-zinc-400 mb-1.5">
+                  <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">
                     {locale === 'en' ? 'Message' : locale === 'es' ? 'Mensaje' : 'Message'}
                   </label>
                   <textarea

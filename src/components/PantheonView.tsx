@@ -201,11 +201,11 @@ export function PantheonView({
                             </div>
                             <span className="text-xs font-semibold text-zinc-100 sm:truncate">{localizeFaction(fac.name, locale)}</span>
                           </div>
-                          <span className={`text-[10px] font-bold uppercase shrink-0 px-2 py-0.5 rounded border border-current/30 ${rank.colorCls} bg-black/60`}>
+                          <span className={`text-[11px] font-bold uppercase shrink-0 px-2 py-0.5 rounded border border-current/30 ${rank.colorCls} bg-black/60`}>
                             {rankLabel} ({rep > 0 ? `+${rep}` : rep})
                           </span>
                         </div>
-                        <p className="mt-2 text-[10px] text-zinc-400">
+                        <p className="mt-2 text-[11px] text-zinc-400">
                           <span className="text-zinc-500">{t.factionLeader} :</span> <span className="text-zinc-200 font-semibold">{fac.leader}</span> · {localizeFactionSpecialty(fac.id, fac.specialty, locale)}
                         </p>
                         <div className="mt-2 h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
@@ -230,7 +230,7 @@ export function PantheonView({
                 <p className="text-[11px] text-amber-400/90 mt-0.5">{marketHeadline}</p>
               </div>
 
-              <div className="flex flex-wrap gap-2 font-mono text-[10px]">
+              <div className="flex flex-wrap gap-2 font-mono text-[11px]">
                 {Object.entries(marketTrends).map(([cat, mult]) => (
                   <span
                     key={cat}
@@ -260,19 +260,19 @@ export function PantheonView({
                     <div className="min-w-0 flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">
                         {idx === 0 ? (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/25 border border-amber-400/60 text-[10px] font-bold text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/25 border border-amber-400/60 text-[11px] font-bold text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
                             1
                           </span>
                         ) : idx === 1 ? (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-400/20 border border-zinc-300/50 text-[10px] font-bold text-zinc-200">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-400/20 border border-zinc-300/50 text-[11px] font-bold text-zinc-200">
                             2
                           </span>
                         ) : idx === 2 ? (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-800/25 border border-amber-700/50 text-[10px] font-bold text-amber-500">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-800/25 border border-amber-700/50 text-[11px] font-bold text-amber-500">
                             3
                           </span>
                         ) : (
-                          <span className="flex h-5 w-5 items-center justify-center font-mono text-[10px] text-zinc-600">
+                          <span className="flex h-5 w-5 items-center justify-center font-mono text-[11px] text-zinc-600">
                             #{idx + 1}
                           </span>
                         )}
@@ -282,10 +282,10 @@ export function PantheonView({
                           <span className={entry.isPlayer ? 'font-bold text-amber-300' : 'text-zinc-200'}>
                             {entry.name}
                           </span>
-                          <span className="text-[10px] text-zinc-500">· {localizeFaction(entry.district, locale)}</span>
+                          <span className="text-[11px] text-zinc-500">· {localizeFaction(entry.district, locale)}</span>
                         </div>
                         {'lastHeadline' in entry && (
-                          <p className="mt-1 text-[10px] text-zinc-400">{localizeRivalHeadline(entry.lastHeadline, locale)}</p>
+                          <p className="mt-1 text-[11px] text-zinc-400">{localizeRivalHeadline(entry.lastHeadline, locale)}</p>
                         )}
                       </div>
                     </div>
@@ -341,21 +341,21 @@ export function PantheonView({
                         <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-100 drop-shadow">
                           {localizeCodexText(col.title, locale)}
                         </h4>
-                        <span className="font-mono text-[10px] text-amber-400 font-bold bg-black/60 px-1.5 py-0.5 rounded border border-amber-500/30 backdrop-blur-sm">
+                        <span className="font-mono text-[11px] text-amber-400 font-bold bg-black/60 px-1.5 py-0.5 rounded border border-amber-500/30 backdrop-blur-sm">
                           {foundCount}/{col.items.length}
                         </span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-zinc-500">{localizeCodexText(col.description, locale)}</p>
+                    <p className="text-[11px] text-zinc-500">{localizeCodexText(col.description, locale)}</p>
 
-                    <div className="border-l-2 border-amber-500/60 pl-2 font-mono text-[10px]">
+                    <div className="border-l-2 border-amber-500/60 pl-2 font-mono text-[11px]">
                       <span className={complete ? 'font-bold text-amber-300' : 'text-zinc-400'}>
                         {t.codexPerk} ({localizeCodexText(col.perkName, locale)}) :
                       </span>{' '}
                       <span className="text-zinc-400">{localizeCodexText(col.perkDescription, locale)}</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
+                    <div className="grid grid-cols-2 gap-1.5 font-mono text-[11px]">
                       {col.items.map((it) => {
                         const found = codexDiscovered.includes(it.id);
                         const locItem = localizeCodexItem(it, locale);
@@ -372,7 +372,7 @@ export function PantheonView({
                             <div className="truncate font-medium">
                               {found ? locItem.name : t.codexUndiscovered}
                             </div>
-                            <div className="text-[8px] uppercase opacity-75">{locItem.rarity}</div>
+                            <div className="text-[11px] uppercase opacity-75">{locItem.rarity}</div>
                           </div>
                         );
                       })}
@@ -400,7 +400,7 @@ export function PantheonView({
               <div className="absolute inset-0 bg-gradient-to-t from-[#0d0e12] via-black/40 to-transparent pointer-events-none" />
               <div className="absolute bottom-3 left-4 sm:left-6 flex items-baseline justify-between right-4 sm:right-6">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-400 font-bold">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-amber-400 font-bold">
                     {t.seasonDays(season.seasonNumber, season.daysLeft)}
                   </p>
                   <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-xl sm:text-2xl tracking-wider text-zinc-100">
@@ -418,7 +418,7 @@ export function PantheonView({
             <section className="border border-white/10 bg-[#0d0e12] p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-white/10 pb-3">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber-500/80">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-amber-500/80">
                     {t.seasonDays(season.seasonNumber, season.daysLeft)}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-wider text-zinc-100">
@@ -429,7 +429,7 @@ export function PantheonView({
                   <span className="text-xs text-zinc-500">{t.seasonLevel} </span>
                   <span className="text-2xl font-bold text-amber-300">{level}</span>
                   <span className="text-xs text-zinc-500"> / 30</span>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[11px] text-zinc-400">
                     {xpInLevel} / {xpForNext} XP
                   </p>
                 </div>
@@ -449,7 +449,7 @@ export function PantheonView({
                   return (
                     <div
                       key={rw.level}
-                      className={`border p-2.5 font-mono text-[10px] ${
+                      className={`border p-2.5 font-mono text-[11px] ${
                         unlocked
                           ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
                           : 'border-white/5 bg-black/40 text-zinc-500'
@@ -460,7 +460,7 @@ export function PantheonView({
                         <span>{unlocked ? t.tierActive : t.tierLocked}</span>
                       </div>
                       <p className="mt-1 text-zinc-200">{locRw.title}</p>
-                      <p className="mt-0.5 text-[9px] text-zinc-400">{locRw.perkDesc}</p>
+                      <p className="mt-0.5 text-[11px] text-zinc-400">{locRw.perkDesc}</p>
                     </div>
                   );
                 })}
@@ -480,10 +480,10 @@ export function PantheonView({
                 <section className="flex items-center gap-4 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-[#0d0e12] p-4">
                   <img src={`${PORTRAIT_DIR}${resolveCastPortrait(hero.castId, undefined, hero.castName, '')}.webp`} alt="" className="h-28 w-24 shrink-0 rounded-lg border border-amber-400/50 object-cover object-[50%_18%]" />
                   <div className="min-w-0 space-y-1 font-mono">
-                    <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400">★ {tr3('Héros de la saison', 'Hero of the season', 'Héroe de la temporada')} {sn}</p>
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-amber-400">★ {tr3('Héros de la saison', 'Hero of the season', 'Héroe de la temporada')} {sn}</p>
                     <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wider text-zinc-100">{hero.castName}</h3>
                     <p className="text-[11px] text-zinc-300">{loc.title}</p>
-                    <p className="text-[10px] text-zinc-500">
+                    <p className="text-[11px] text-zinc-500">
                       {tr3(`${open}/${eps.length} épisodes débloqués · il passe plus souvent au comptoir cette saison.`, `${open}/${eps.length} episodes unlocked · they drop by the counter more often this season.`, `${open}/${eps.length} episodios desbloqueados · pasa más a menudo por el mostrador esta temporada.`)}
                     </p>
                   </div>
@@ -497,7 +497,7 @@ export function PantheonView({
                 <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-200">
                   {t.campaignTitle(completedEpisodes.length, SEASON_EPISODES.length)}
                 </h3>
-                <span className="font-mono text-[10px] text-zinc-500">
+                <span className="font-mono text-[11px] text-zinc-500">
                   {t.campaignSub}
                 </span>
               </div>
@@ -515,7 +515,7 @@ export function PantheonView({
                       }`}
                     >
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px]">
+                        <div className="flex items-center justify-between text-[11px]">
                           <span className="text-amber-400">{ep.castId === seasonHero(ep.seasonNumber)?.castId ? '★ ' : ''}{t.seasonTag(ep.seasonNumber, ep.castName)}</span>
                           <span className={done ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
                             {done ? t.completedBadge : `+${ep.rewardXp} XP · +${formatMoney(ep.rewardCash, locale)} $`}
@@ -523,10 +523,10 @@ export function PantheonView({
                         </div>
                         <h4 className="text-xs font-bold text-zinc-100">{locEp.title}</h4>
                         <p className="text-[11px] text-zinc-400 leading-relaxed">{locEp.synopsis}</p>
-                        <p className="text-[10px] text-amber-200/80">{locEp.stakes}</p>
+                        <p className="text-[11px] text-amber-200/80">{locEp.stakes}</p>
                       </div>
                       {locked && (
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-[11px] text-zinc-500">
                           {locale === 'en' ? `Unlocks in ${wait} day${wait > 1 ? 's' : ''}` : locale === 'es' ? `Se desbloquea en ${wait} día${wait > 1 ? 's' : ''}` : `Disponible dans ${wait} jour${wait > 1 ? 's' : ''}`}
                         </p>
                       )}
@@ -534,7 +534,7 @@ export function PantheonView({
                         <button
                           type="button"
                           onClick={() => onStartEpisode(ep)}
-                          className="self-start border border-amber-400/60 bg-amber-400/10 px-3 py-1 text-[10px] font-bold uppercase text-amber-300 hover:bg-amber-400 hover:text-zinc-950 transition-colors"
+                          className="self-start border border-amber-400/60 bg-amber-400/10 px-3 py-1 text-[11px] font-bold uppercase text-amber-300 hover:bg-amber-400 hover:text-zinc-950 transition-colors"
                         >
                           {t.launchEpisodeBtn}
                         </button>
@@ -565,7 +565,7 @@ export function PantheonView({
                   return (
                     <div
                       key={q.id}
-                      className={`border p-3 font-mono text-[10px] space-y-1.5 ${
+                      className={`border p-3 font-mono text-[11px] space-y-1.5 ${
                         done ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/10 bg-black/40'
                       }`}
                     >
@@ -576,7 +576,7 @@ export function PantheonView({
                         </span>
                       </div>
                       <p className="text-zinc-400">{desc}</p>
-                      <p className="text-[9px] text-amber-300/80">
+                      <p className="text-[11px] text-amber-300/80">
                         +{formatMoney(q.rewardCash, locale)} $ · +{q.rewardXp} XP {done ? `· ${t.questValidated}` : ''}
                       </p>
                     </div>
@@ -584,7 +584,7 @@ export function PantheonView({
                 })}
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-7 font-mono text-[9px]">
+              <div className="grid gap-2 sm:grid-cols-7 font-mono text-[11px]">
                 {LOGIN_STREAK_REWARDS.map((r) => {
                   const active = loginStreak >= r.day;
                   return (
@@ -597,13 +597,13 @@ export function PantheonView({
                       }`}
                     >
                       <div className="font-bold">{t.loginStreakDay(r.day)}</div>
-                      <div className="mt-0.5 text-[8px]">{loginRewardLabel(r.day, locale) ?? r.label}</div>
+                      <div className="mt-0.5 text-[11px]">{loginRewardLabel(r.day, locale) ?? r.label}</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6 font-mono text-[9px]">
+              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6 font-mono text-[11px]">
                 {CAREER_ACHIEVEMENTS.map((ach) => {
                   const ok = unlockedAchievements.includes(ach.id);
                   const achDef = ACHIEVEMENT_I18N[locale]?.[ach.id];
@@ -617,7 +617,7 @@ export function PantheonView({
                       }`}
                     >
                       <div className="font-bold">{title}</div>
-                      <div className="mt-0.5 text-[8px] text-zinc-400">{desc}</div>
+                      <div className="mt-0.5 text-[11px] text-zinc-400">{desc}</div>
                     </div>
                   );
                 })}
@@ -630,7 +630,7 @@ export function PantheonView({
                 <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-200">
                   {t.historyTitle}
                 </h3>
-                <span className="font-mono text-[10px] text-zinc-500">
+                <span className="font-mono text-[11px] text-zinc-500">
                   {t.historyEntries(historyLog.length)}
                 </span>
               </div>
@@ -644,7 +644,7 @@ export function PantheonView({
                     <div key={`${entry.ts}-${idx}`} className="flex items-center justify-between gap-3 py-2">
                       <div className="min-w-0">
                         <span className="text-zinc-500 mr-2">{t.dayShort}{entry.day}</span>
-                        <span className="uppercase text-[9px] text-amber-400/80 mr-2">{entry.type}</span>
+                        <span className="uppercase text-[11px] text-amber-400/80 mr-2">{entry.type}</span>
                         <span className="text-zinc-300">{entry.summary}</span>
                       </div>
                       {entry.cashDelta !== 0 && (

@@ -3329,7 +3329,7 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center border border-white/10 font-mono text-[10px]">
+              <div className="flex items-center border border-white/10 font-mono text-[11px]">
                 {(['en', 'fr', 'es'] as Locale[]).map((loc) => (
                   <button
                     key={loc}
@@ -3343,14 +3343,14 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400/90">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-amber-400/90">
                 03:14 AM
               </span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
               {tt('Accès Arrière-Boutique', 'Backroom Access', 'Acceso a la Trastienda')}
             </p>
             <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-wider text-zinc-100 leading-none">
@@ -3392,7 +3392,7 @@ export default function App() {
             </p>
           )}
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-4 font-mono text-[10px] text-zinc-500">
+          <div className="flex items-center justify-between border-t border-white/10 pt-4 font-mono text-[11px] text-zinc-500">
             <button type="button" onClick={() => navigateTo('/')} className="hover:text-zinc-300">
               ← {tt('Retour accueil', 'Back to home', 'Volver al inicio')}
             </button>
@@ -3440,12 +3440,12 @@ export default function App() {
             </h1>
           </button>
           <div className="h-4 w-px bg-white/10 hidden sm:block" />
-          <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] text-zinc-500 uppercase tracking-widest">
+          <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-zinc-500 uppercase tracking-widest">
             <span>{t.day} {day}</span>
             <span>·</span>
             <span className="text-zinc-400">{getLocalizedRank(totalProfit, gameLocale)}</span>
             {ascensionLevel > 0 && (
-              <span className="border border-amber-500/40 bg-amber-500/10 px-1 py-0.2 text-[8px] text-amber-300">
+              <span className="border border-amber-500/40 bg-amber-500/10 px-1 py-0.2 text-[11px] text-amber-300">
                 ASC.{ROMAN[ascensionLevel - 1] ?? ascensionLevel}
               </span>
             )}
@@ -3455,7 +3455,7 @@ export default function App() {
         {/* Centre / HÉROS : Caisse & Danger (Mise en avant percutante du cash) */}
         <div className="flex items-center gap-2.5 sm:gap-6 bg-black/60 border border-white/5 rounded-full px-3 sm:px-4 py-1">
           <div className="flex items-baseline gap-1.5 font-mono">
-            <span className="hidden sm:inline text-[9px] uppercase tracking-widest text-zinc-500">{t.cash}</span>
+            <span className="hidden sm:inline text-[11px] uppercase tracking-widest text-zinc-500">{t.cash}</span>
             <span className="text-base sm:text-xl font-bold tracking-tight text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.2)]">
               {gameLocale === 'en' ? `$${formatMoney(cash, gameLocale)}` : `${formatMoney(cash, gameLocale)} $`}
             </span>
@@ -3467,7 +3467,7 @@ export default function App() {
             type="button"
             onClick={() => setTab('night')}
             title={gameLocale === 'en' ? 'Tonight’s rent (tap for the ledger)' : gameLocale === 'es' ? 'Alquiler de esta noche (ver el libro)' : 'Loyer de ce soir (voir le registre)'}
-            className={`flex items-baseline gap-1 font-mono text-[10px] uppercase tracking-wider ${cash < dailyRent ? 'text-red-400' : 'text-zinc-400'} hover:text-amber-300`}
+            className={`flex items-baseline gap-1 font-mono text-[11px] uppercase tracking-wider ${cash < dailyRent ? 'text-red-400' : 'text-zinc-400'} hover:text-amber-300`}
           >
             <span className="hidden sm:inline">{gameLocale === 'en' ? 'Rent' : gameLocale === 'es' ? 'Alquiler' : 'Loyer'}</span>
             <span className="font-semibold">{gameLocale === 'en' ? `$${formatMoney(dailyRent, gameLocale)}` : `${formatMoney(dailyRent, gameLocale)} $`}</span>
@@ -3476,7 +3476,7 @@ export default function App() {
           <div className="h-3.5 w-px bg-white/10 max-[359px]:hidden" />
 
           <div
-            className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider max-[359px]:hidden ${
+            className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider max-[359px]:hidden ${
               cityHeat >= 70 ? 'text-red-400 animate-pulse font-bold' : cityHeat >= 50 ? 'text-amber-400' : 'text-zinc-500'
             }`}
             title={tt(`Pression policière : ${cityHeat} %`, `Police pressure: ${cityHeat}%`, `Presión policial: ${cityHeat} %`)}
@@ -3488,7 +3488,7 @@ export default function App() {
           {jokerIds.length > 0 && (
             <>
               <div className="h-3.5 w-px bg-white/10 hidden lg:block" />
-              <button type="button" onClick={() => setShowHelp(true)} className="lg:hidden flex items-center gap-1 font-mono text-[10px] text-amber-300" aria-label={tt('Atouts actifs', 'Active jokers', 'Comodines activos')}>
+              <button type="button" onClick={() => setShowHelp(true)} className="lg:hidden flex items-center gap-1 font-mono text-[11px] text-amber-300" aria-label={tt('Atouts actifs', 'Active jokers', 'Comodines activos')}>
                 ★{jokerIds.length}
               </button>
               <div role="button" tabIndex={0} onClick={() => setShowHelp(true)} className="hidden lg:flex cursor-pointer items-center gap-1.5" title={tt('Atouts actifs : clique pour le détail', 'Active jokers: click for details', 'Comodines activos: clic para ver el detalle')}>
@@ -3513,7 +3513,7 @@ export default function App() {
             <>
               <div className="h-3.5 w-px bg-white/10 hidden md:block" />
               <span
-                className="hidden md:inline font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-amber-300 cursor-help"
+                className="hidden md:inline font-mono text-[11px] uppercase tracking-widest text-zinc-500 hover:text-amber-300 cursor-help"
                 title={localizeChallenge(weeklyChallenge, gameLocale).desc}
               >
                 {localizeChallenge(weeklyChallenge, gameLocale).title}
@@ -3524,7 +3524,7 @@ export default function App() {
 
         {/* Droite : Navigation sobre & Contrôles épurés */}
         <div className="contents sm:flex sm:w-auto sm:flex-nowrap sm:items-center sm:justify-end sm:gap-2">
-          <nav className="order-2 max-sm:hidden max-lg:[@media(max-height:520px)]:hidden flex w-full min-w-0 max-w-full items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto sm:justify-start no-scrollbar sm:order-none sm:w-auto font-mono text-[9px] sm:text-[10px] uppercase tracking-wider whitespace-nowrap">
+          <nav className="order-2 max-sm:hidden max-lg:[@media(max-height:520px)]:hidden flex w-full min-w-0 max-w-full items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto sm:justify-start no-scrollbar sm:order-none sm:w-auto font-mono text-[11px] sm:text-[11px] uppercase tracking-wider whitespace-nowrap">
             <button
               onClick={goCounter}
               className={`px-1 sm:px-2.5 py-1 transition-colors ${
@@ -3595,7 +3595,7 @@ export default function App() {
                 setShowProfileModal(true);
               }}
               title={gameLocale === 'en' ? 'Profile & Preferences' : 'Profil & Préférences'}
-              className="flex items-center gap-1 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/60 hover:text-amber-300 transition-colors"
+              className="flex items-center gap-1 rounded-full border border-white/15 bg-black/60 px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:border-amber-400/60 hover:text-amber-300 transition-colors"
             >
               {authUser && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
               <User className="h-3 w-3 text-amber-400" />
@@ -3712,7 +3712,7 @@ export default function App() {
                     </span>
                     <span className="text-amber-400 font-mono text-xs">({jokerIds.length})</span>
                   </div>
-                  <span className="text-[10px] text-zinc-500">{tr('Bonus permanents accumulés sur cette carrière', 'Permanent bonuses stacked over this career', 'Bonificaciones permanentes')}</span>
+                  <span className="text-[11px] text-zinc-500">{tr('Bonus permanents accumulés sur cette carrière', 'Permanent bonuses stacked over this career', 'Bonificaciones permanentes')}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {jokerIds.map((jid) => {
@@ -3739,11 +3739,11 @@ export default function App() {
                             <span className="font-semibold text-xs text-zinc-100 truncate group-hover:text-amber-300 transition-colors">
                               {locJk?.name ?? jid}
                             </span>
-                            <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-1 rounded uppercase shrink-0">
+                            <span className="text-[11px] font-mono text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-1 rounded uppercase shrink-0">
                               {locJk?.tag ?? '✦'}
                             </span>
                           </div>
-                          <p className="text-[10px] text-zinc-400 leading-snug line-clamp-2">
+                          <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">
                             {locJk?.desc ?? ''}
                           </p>
                         </div>
@@ -3759,10 +3759,10 @@ export default function App() {
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-[0.25em] text-amber-500/80">
+                    <span className="text-[11px] uppercase tracking-[0.25em] text-amber-500/80">
                       {tr(`Nuit ${day} · Registre du Syndicat`, `Night ${day} · Syndicate Ledger`, `Noche ${day} · Libro del Sindicato`)}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
                       short > 0 ? 'bg-red-950/80 text-red-300 border border-red-500/40' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
                     }`}>
                       {short > 0 ? tr(`Déficit : ${money(short)}`, `Deficit: ${money(short)}`, `Déficit: ${money(short)}`) : tr('Loyer Garanti', 'Rent Covered', 'Alquiler Cubierto')}
@@ -3833,7 +3833,7 @@ export default function App() {
 
               {/* Barre de progression loyer */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-[10px] text-zinc-500">
+                <div className="flex justify-between text-[11px] text-zinc-500">
                   <span>{tr('Solde Caisse', 'Vault Cash', 'Caja')} : {money(cash)}</span>
                   <span>{rentProgressPct}%</span>
                 </div>
@@ -3861,7 +3861,7 @@ export default function App() {
 
               {todo.length > 0 && (
                 <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3 space-y-1 text-xs text-amber-200">
-                  <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                  <div className="text-[11px] uppercase font-bold text-amber-400 tracking-wider">
                     {tr('À faire ce soir', 'To do tonight', 'Por hacer esta noche')}
                   </div>
                   {todo.map((x) => (
@@ -3890,7 +3890,7 @@ export default function App() {
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">{tr('Compte Suisse', 'Swiss Account', 'Cuenta Suiza')}</h3>
-                      <p className="text-[10px] text-zinc-500">{tr('À l’abri de la ruine (10% frais)', 'Safe from bust (10% fee)', 'A salvo de la ruina (10% comisión)')}</p>
+                      <p className="text-[11px] text-zinc-500">{tr('À l’abri de la ruine (10% frais)', 'Safe from bust (10% fee)', 'A salvo de la ruina (10% comisión)')}</p>
                     </div>
                   </div>
                   <span className="text-lg font-bold tabular-nums text-amber-300">{money(swissBank)}</span>
@@ -3914,7 +3914,7 @@ export default function App() {
               <section className="rounded-xl border border-white/10 bg-[#0d0e14] p-4 space-y-3">
                 <div className="border-b border-white/10 pb-2">
                   <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">{t.tacticalUsage}</h3>
-                  <p className="text-[10px] text-zinc-500">{tr('Pièces spéciales gardées en réserve', 'Special pieces kept in reserve', 'Piezas especiales guardadas')}</p>
+                  <p className="text-[11px] text-zinc-500">{tr('Pièces spéciales gardées en réserve', 'Special pieces kept in reserve', 'Piezas especiales guardadas')}</p>
                 </div>
                 {inventory.some((i) => /passeport/i.test(i.name) || /téléphone.*député/i.test(i.name)) ? (
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -3964,7 +3964,7 @@ export default function App() {
                 <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
                   {tr('Pièces en réserve', 'Pieces in reserve', 'Piezas en reserva')} <span className="text-amber-400">({inventory.length})</span>
                 </h2>
-                <span className="text-[10px] text-zinc-500">{tr('Nettoie pour revendre aux enchères ou liquide en direct', 'Clean for auctions or fast sell for instant cash', 'Limpia para subastas o vende rápido')}</span>
+                <span className="text-[11px] text-zinc-500">{tr('Nettoie pour revendre aux enchères ou liquide en direct', 'Clean for auctions or fast sell for instant cash', 'Limpia para subastas o vende rápido')}</span>
               </div>
 
               {/* Arbitrage Marché : Vente Rapide vs Enchères Nocturnes */}
@@ -3976,7 +3976,7 @@ export default function App() {
                       {tr('Salle des Ventes Nocturnes', 'Night Auction House', 'Sala de Subastas Nocturnas')}
                     </span>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                  <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
                     auctionsToday === 0
                       ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
                       : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
@@ -3993,7 +3993,7 @@ export default function App() {
                       <span className="font-bold text-emerald-300 flex items-center gap-1 font-mono">
                         ⚡ {tr('Vente Rapide', 'Quick Sale', 'Venta Rápida')}
                       </span>
-                      <span className="text-[10px] text-emerald-400/90 font-mono font-bold">{tr('Illimitée · Immédiat', 'Unlimited · Instant', 'Ilimitada · Inmediata')}</span>
+                      <span className="text-[11px] text-emerald-400/90 font-mono font-bold">{tr('Illimitée · Immédiat', 'Unlimited · Instant', 'Ilimitada · Inmediata')}</span>
                     </div>
                     <p className="text-zinc-400 leading-snug">
                       {tr(
@@ -4009,7 +4009,7 @@ export default function App() {
                       <span className="font-bold text-amber-300 flex items-center gap-1 font-mono">
                         🏛 {tr('Enchères Clandestines', 'Night Auctions', 'Subastas Clandestinas')}
                       </span>
-                      <span className="text-[10px] text-amber-400/90 font-mono font-bold">{tr('1 seule/nuit · Cote +20%', '1/night only · Top +20%', '1 sola/noche · Tope +20%')}</span>
+                      <span className="text-[11px] text-amber-400/90 font-mono font-bold">{tr('1 seule/nuit · Cote +20%', '1/night only · Top +20%', '1 sola/noche · Tope +20%')}</span>
                     </div>
                     <p className="text-zinc-400 leading-snug">
                       {tr(
@@ -4072,18 +4072,18 @@ export default function App() {
                             <div className="min-w-0 space-y-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="text-sm font-bold text-zinc-100 truncate">{localizeItemName(item.name, L)}</h3>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
                                   item.cleaned ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-red-950/80 text-red-300 border border-red-500/30'
                                 }`}>
                                   {item.cleaned ? t.cleanedBadge : item.hotLevel === 'BRÛLANT' ? tr('Brûlant', 'Hot', 'Caliente') : tr('Tiède', 'Warm', 'Tibia')}
                                 </span>
                                 {item.modifier && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/30">
+                                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/30">
                                     {item.modifier === 'traceur' ? t.modGps : item.modifier === 'collection' ? t.modCollection : t.modCounterfeit}
                                   </span>
                                 )}
                                 {item.arcItemKey && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-purple-950/90 text-purple-200 border border-purple-500/50 flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
+                                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-purple-950/90 text-purple-200 border border-purple-500/50 flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
                                     🔍 {tr("Piste d'Enquête · Garder au Coffre", 'Investigation Lead · Keep in Vault', 'Pista de Investigación · Guardar en Caja')}
                                   </span>
                                 )}
@@ -4127,7 +4127,7 @@ export default function App() {
                                 {t.auctionBtn(formatMoney(auctionPayout, L))}
                               </button>
                             </div>
-                            <div className="flex items-center gap-3 text-[9px] font-mono text-zinc-500">
+                            <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-500">
                               <span className="text-emerald-400/80">⚡ {tr('-5% Heat · Discret', '-5% Heat · Discreet', '-5% Heat · Discreto')}</span>
                               {auctionsToday >= 1 ? (
                                 <span className="text-amber-400 font-bold">
@@ -4182,7 +4182,7 @@ export default function App() {
                                       {ui.hint}
                                     </button>
                                   </div>
-                                  <p className="text-[10px] text-zinc-500">{ui.lostOnSale}</p>
+                                  <p className="text-[11px] text-zinc-500">{ui.lostOnSale}</p>
                                 </div>
                               );
                             })()}
@@ -4273,7 +4273,7 @@ export default function App() {
       {tab === 'shop' && (
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 space-y-6">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-amber-400">
               {t.arsenalTag}
             </p>
             <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wider text-zinc-100">
@@ -4326,11 +4326,11 @@ export default function App() {
                     </div>
                     <div className="absolute top-2.5 right-2.5">
                       {owned ? (
-                        <span className="flex items-center gap-1 rounded bg-emerald-950/80 border border-emerald-500/50 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300 backdrop-blur-md">
+                        <span className="flex items-center gap-1 rounded bg-emerald-950/80 border border-emerald-500/50 px-2 py-0.5 text-[11px] font-mono font-bold text-emerald-300 backdrop-blur-md">
                           <Unlock className="w-3 h-3" /> {t.equipped}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 rounded bg-black/70 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-zinc-400 backdrop-blur-md">
+                        <span className="flex items-center gap-1 rounded bg-black/70 border border-white/10 px-2 py-0.5 text-[11px] font-mono text-zinc-400 backdrop-blur-md">
                           <Lock className="w-3 h-3" /> {formatMoney(up.cost, gameLocale)} $
                         </span>
                       )}
@@ -4364,7 +4364,7 @@ export default function App() {
           <div className="pt-4 border-t border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-400">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-400">
                   {t.empireTag}
                 </p>
                 <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wider text-zinc-100">
@@ -4402,7 +4402,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="absolute top-2.5 right-2.5">
-                        <span className="inline-block text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 uppercase tracking-wider rounded font-bold backdrop-blur-md">
+                        <span className="inline-block text-[11px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 uppercase tracking-wider rounded font-bold backdrop-blur-md">
                           {locAsset.tag}
                         </span>
                       </div>
@@ -4473,7 +4473,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="absolute top-2.5 right-2.5">
-                        <span className="inline-block text-[9px] font-mono text-zinc-300 bg-black/70 border border-white/10 px-2 py-0.5 rounded backdrop-blur-md">
+                        <span className="inline-block text-[11px] font-mono text-zinc-300 bg-black/70 border border-white/10 px-2 py-0.5 rounded backdrop-blur-md">
                           {dist.unlockSwiss === 0
                             ? t.districtOpen
                             : t.districtRequired(formatMoney(dist.unlockSwiss, gameLocale))}
@@ -4487,7 +4487,7 @@ export default function App() {
                         </h3>
                         <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">{locDist.desc}</p>
                       </div>
-                      <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-[10px] uppercase">
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-[11px] uppercase">
                         <span className={active ? 'font-bold text-amber-400' : unlocked ? 'text-zinc-400' : 'text-zinc-600'}>
                           {active ? t.districtActive : unlocked ? t.districtOpen : t.districtRequired(formatMoney(dist.unlockSwiss, gameLocale))}
                         </span>
@@ -4555,12 +4555,12 @@ export default function App() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 sm:gap-x-2 sm:gap-y-0">
                       {currentCase.isBoss && (
-                        <span className="bg-red-600/90 px-1 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-white sm:text-[11px] shrink-0">
+                        <span className="bg-red-600/90 px-1 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest text-white sm:text-[11px] shrink-0">
                           BOSS · {currentCase.bossTitle}
                         </span>
                       )}
                       {currentCase.arcStep === 2 && (
-                        <span className={`px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest sm:text-[11px] shrink-0 ${
+                        <span className={`px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest sm:text-[11px] shrink-0 ${
                           inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                             ? 'bg-amber-600/90 text-white'
                             : 'bg-zinc-800 text-zinc-300 border border-zinc-600'
@@ -4571,28 +4571,28 @@ export default function App() {
                         </span>
                       )}
                       {heroCastId && currentCase.castId === heroCastId && (
-                        <span className="shrink-0 max-sm:order-last border border-amber-400/60 bg-amber-950/70 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-amber-200 sm:text-[11px]">
+                        <span className="shrink-0 max-sm:order-last border border-amber-400/60 bg-amber-950/70 px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest text-amber-200 sm:text-[11px]">
                           ★ {tt('Héros de la saison', 'Hero of the season', 'Héroe de la temporada')}
                         </span>
                       )}
                       {currentCase.windfall && (
-                        <span className="shrink-0 max-sm:order-last border border-emerald-400/60 bg-emerald-950/70 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-emerald-200 sm:text-[11px]">
+                        <span className="shrink-0 max-sm:order-last border border-emerald-400/60 bg-emerald-950/70 px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest text-emerald-200 sm:text-[11px]">
                           ★ {tt('Trouvaille', 'Windfall', 'Hallazgo')}
                         </span>
                       )}
                       {currentCase.saga && (
-                        <span className="shrink-0 max-sm:order-last max-sm:max-w-full max-sm:truncate border border-violet-400/50 bg-violet-950/60 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-violet-200 sm:text-[11px]">
+                        <span className="shrink-0 max-sm:order-last max-sm:max-w-full max-sm:truncate border border-violet-400/50 bg-violet-950/60 px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-widest text-violet-200 sm:text-[11px]">
                           {currentCase.saga.ally ? '★' : `${tt('Ép.', 'Ep.', 'Ep.')} ${currentCase.saga.episode}/${SAGA_EPISODES}`} · {currentCase.saga.chapter}
                         </span>
                       )}
                       <span className="truncate font-[family-name:var(--font-display)] text-base tracking-wider text-zinc-100 uppercase sm:shrink-0 sm:overflow-visible sm:whitespace-nowrap sm:text-3xl">
                         {currentCase.name}
                       </span>
-                      <span className="hidden sm:inline font-mono text-[10px] text-zinc-400 uppercase sm:text-[11px]">
+                      <span className="hidden sm:inline font-mono text-[11px] text-zinc-400 uppercase sm:text-[11px]">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5 sm:hidden font-mono text-[9.5px] uppercase tracking-wider">
+                    <div className="flex flex-col gap-0.5 sm:hidden font-mono text-[11px] uppercase tracking-wider">
                       <span className="max-w-full text-zinc-400 truncate">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
@@ -4610,15 +4610,15 @@ export default function App() {
                           className="h-5 w-7 object-contain mix-blend-lighten shrink-0"
                           onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                         />
-                        <span className="truncate text-[10px] font-semibold text-amber-300">
+                        <span className="truncate text-[11px] font-semibold text-amber-300">
                           {currentCase.arcStep === 2 && !inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                             ? tt(`Recherche : ${localizeItemName(currentCase.item.name, gameLocale)}`, `Searching: ${localizeItemName(currentCase.item.name, gameLocale)}`, `Buscando: ${localizeItemName(currentCase.item.name, gameLocale)}`)
                             : localizeItemName(currentCase.item.name, gameLocale)}
                         </span>
-                        <span className="shrink-0 text-[9px] font-mono text-zinc-400">
+                        <span className="shrink-0 text-[11px] font-mono text-zinc-400">
                           ~{mny(currentCase.streetValue)}
                         </span>
-                        <span className="shrink-0 text-[9px] font-mono font-bold text-amber-400 underline flex items-center gap-0.5 ml-auto">
+                        <span className="shrink-0 text-[11px] font-mono font-bold text-amber-400 underline flex items-center gap-0.5 ml-auto">
                           <Search className="h-2.5 w-2.5 inline" /> {inspected || uvScanned ? '✓' : tt('Examiner', 'Inspect', 'Examinar')}
                         </span>
                       </button>
@@ -4636,7 +4636,7 @@ export default function App() {
                   <div className="shrink-0 text-right">
                     <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                       <div className="text-right">
-                        <span className="hidden sm:block font-mono text-[10px] uppercase tracking-widest text-zinc-400 sm:text-[11px]">
+                        <span className="hidden sm:block font-mono text-[11px] uppercase tracking-widest text-zinc-400 sm:text-[11px]">
                           {currentCase.arcStep === 2
                             ? (inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                                 ? tt(currentCase.gender === 'f' ? 'Elle paie pour reprendre' : 'Il paie pour reprendre', currentCase.gender === 'f' ? 'She pays to retrieve' : 'He pays to retrieve', currentCase.gender === 'f' ? 'Ella paga para recuperar' : 'Él paga para recuperar')
@@ -4656,7 +4656,7 @@ export default function App() {
                           <button
                             onClick={rerollClient}
                             title={gameLocale === 'en' ? `Next client (${rerollsLeft} left)` : `Suivant (${rerollsLeft} restants)`}
-                            className="flex items-center gap-0.5 border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[9px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
+                            className="flex items-center gap-0.5 border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[11px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
                           >
                             <RotateCcw className="h-2.5 w-2.5" /> {rerollsLeft}
                           </button>
@@ -4665,7 +4665,7 @@ export default function App() {
                           type="button"
                           onClick={() => setShowHelp(true)}
                           title={gameLocale === 'en' ? 'How to play' : 'Comment jouer'}
-                          className="border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[9px] text-zinc-400 hover:text-amber-300"
+                          className="border border-white/15 bg-black/80 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400 hover:text-amber-300"
                         >
                           ?
                         </button>
@@ -4674,12 +4674,12 @@ export default function App() {
                     {priceTrail.length > 1 && (
                       <span
                         title={priceTrail.map((p) => (gameLocale === 'en' ? `$${formatMoney(p, gameLocale)}` : `${formatMoney(p, gameLocale)} $`)).join(' → ')}
-                        className="mt-0.5 block whitespace-nowrap font-mono text-[9px] sm:text-[11px] text-emerald-400"
+                        className="mt-0.5 block whitespace-nowrap font-mono text-[11px] sm:text-[11px] text-emerald-400"
                       >
                         <s className="text-zinc-500">{gameLocale === 'en' ? `$${formatMoney(priceTrail[0], gameLocale)}` : `${formatMoney(priceTrail[0], gameLocale)} $`}</s>{' '}
                         −{((priceTrail[0] - askedPrice) / Math.max(1, priceTrail[0]) * 100).toFixed(0)} %
                         {jokerIds.includes('negociateur') && (
-                          <span className="ml-1 text-[9px] text-amber-300 font-bold tracking-tight">★ -10% NÉGO</span>
+                          <span className="ml-1 text-[11px] text-amber-300 font-bold tracking-tight">★ -10% NÉGO</span>
                         )}
                       </span>
                     )}
@@ -4688,7 +4688,7 @@ export default function App() {
 
                 {/* Jauges segmentées façon moniteur analogique */}
                 {currentCase.special?.kind === 'buyer' && (
-                  <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-1 font-mono text-[10px] sm:pt-1.5 sm:text-[11px]">
+                  <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-1 font-mono text-[11px] sm:pt-1.5 sm:text-[11px]">
                     <span className="font-semibold uppercase text-amber-300/90">{tt('Patience', 'Patience', 'Paciencia')}</span>
                     <span className="flex gap-1">
                       {[0, 1, 2].map((i) => (
@@ -4698,7 +4698,7 @@ export default function App() {
                     <span className="text-zinc-400">{tt('Rue', 'Street', 'Calle')} ~{mny(currentCase.streetValue)}</span>
                   </div>
                 )}
-                <div onClick={() => window.matchMedia('(max-width: 639px)').matches && setShowClientSheet(true)} className={`${currentCase.special ? 'hidden ' : ''}max-sm:cursor-pointer grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[10px] sm:text-[11px]`}>
+                <div onClick={() => window.matchMedia('(max-width: 639px)').matches && setShowClientSheet(true)} className={`${currentCase.special ? 'hidden ' : ''}max-sm:cursor-pointer grid grid-cols-3 gap-2 border-t border-white/10 pt-1 sm:gap-3 sm:pt-1.5 font-mono text-[11px] sm:text-[11px]`}>
                   {[
                     {
                       label: t.fear,
@@ -4750,7 +4750,7 @@ export default function App() {
                         <div className={`mb-1 flex items-baseline justify-between gap-1 ${g.labelCls}`}>
                           <span className="min-w-0 truncate font-semibold">{g.label}</span>
                           <span className="shrink-0 whitespace-nowrap font-mono font-bold">
-                            {hasShift && <span className="mr-0.5 text-[9px] font-normal text-zinc-400">{prevVal}→</span>}
+                            {hasShift && <span className="mr-0.5 text-[11px] font-normal text-zinc-400">{prevVal}→</span>}
                             {g.val}%
                           </span>
                         </div>
@@ -4773,7 +4773,7 @@ export default function App() {
                         {hasShift && (
                           <span
                             key={g.key}
-                            className={`animate-float-delta pointer-events-none absolute -top-3.5 right-0 font-mono text-[10px] font-bold ${g.deltaCls}`}
+                            className={`animate-float-delta pointer-events-none absolute -top-3.5 right-0 font-mono text-[11px] font-bold ${g.deltaCls}`}
                           >
                             {(g.delta ?? 0) > 0 ? `+${g.delta}` : g.delta}%
                           </span>
@@ -4785,7 +4785,7 @@ export default function App() {
 
                 {/* Journal Psychologique interactif (historique des paliers) */}
                 {psychoAudit.length > 1 && (
-                  <div className="border-t border-white/10 pt-1 font-mono text-[9px] max-sm:hidden sm:text-[10px]">
+                  <div className="border-t border-white/10 pt-1 font-mono text-[11px] max-sm:hidden sm:text-[11px]">
                     <button
                       type="button"
                       onClick={() => setShowPsychoAudit((prev) => !prev)}
@@ -4800,7 +4800,7 @@ export default function App() {
                     </button>
 
                     {showPsychoAudit && (
-                      <div className="mt-1 max-h-28 sm:max-h-36 overflow-y-auto space-y-1 rounded bg-black/90 p-2 border border-white/10 text-[9px] no-scrollbar">
+                      <div className="mt-1 max-h-28 sm:max-h-36 overflow-y-auto space-y-1 rounded bg-black/90 p-2 border border-white/10 text-[11px] no-scrollbar">
                         {psychoAudit.slice(1).reverse().map((entry) => (
                           <div
                             key={entry.id}
@@ -4862,7 +4862,7 @@ export default function App() {
                         </span>
                       ))}
                       {inventory.length > 3 && (
-                        <span className="text-zinc-500 text-[10px]">+{inventory.length - 3}</span>
+                        <span className="text-zinc-500 text-[11px]">+{inventory.length - 3}</span>
                       )}
                     </div>
                   ) : (
@@ -4879,18 +4879,18 @@ export default function App() {
                         <span>{gameLocale === 'en' ? 'Story Leads' : gameLocale === 'es' ? 'Pistas de Trama' : 'Pistes en cours'}</span>
                         <span className="text-purple-400 font-normal">({arcNotes.filter((n) => !n.resolved).length})</span>
                       </span>
-                      <span className="text-[9px] text-zinc-400 font-sans normal-case tracking-normal">
+                      <span className="text-[11px] text-zinc-400 font-sans normal-case tracking-normal">
                         {tt("Carnet", 'Notebook', 'Cuaderno')}
                       </span>
                     </div>
                     {arcNotes.filter((n) => !n.resolved).slice(0, 2).map((n) => {
                       const inVault = inventory.some((i) => i.arcItemKey === n.itemKey);
                       return (
-                        <div key={n.arcId} className="flex items-center justify-between gap-2 text-zinc-300 text-[10px]">
+                        <div key={n.arcId} className="flex items-center justify-between gap-2 text-zinc-300 text-[11px]">
                           <span className="truncate">
                             <span className="text-amber-200 font-medium">{localizeArcTitle(n.arcId, n.title, gameLocale)}:</span> {localizeArcNote(n.arcId, n.note, gameLocale)}
                           </span>
-                          <span className={`shrink-0 px-1.5 py-0.2 rounded text-[9px] font-mono border ${
+                          <span className={`shrink-0 px-1.5 py-0.2 rounded text-[11px] font-mono border ${
                             inVault
                               ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
                               : 'bg-amber-950/80 text-amber-300 border-amber-500/40'
@@ -4913,7 +4913,7 @@ export default function App() {
                     <button
                       onClick={rerollClient}
                       title={gameLocale === 'en' ? `Next client (${rerollsLeft} left)` : `Suivant (${rerollsLeft} restants)`}
-                      className="flex items-center gap-1 border border-white/15 bg-black/80 px-2.5 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
+                      className="flex items-center gap-1 border border-white/15 bg-black/80 px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
                     >
                       <RotateCcw className="h-3 w-3" /> {rerollsLeft}
                     </button>
@@ -4922,7 +4922,7 @@ export default function App() {
                     type="button"
                     onClick={() => setShowClientSheet(true)}
                     title={tt('Fiche du client : tempérament, faille, historique des jauges', 'Client profile: temperament, weak spot, gauge history', 'Ficha del cliente: temperamento, punto débil, historial de medidores')}
-                    className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
+                    className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[11px] text-zinc-300 hover:border-amber-400/50 hover:text-white"
                   >
                     {tt('Fiche', 'Profile', 'Ficha')}
                   </button>
@@ -4930,7 +4930,7 @@ export default function App() {
                     type="button"
                     onClick={() => setShowHelp(true)}
                     title={gameLocale === 'en' ? 'How to play' : 'Comment jouer'}
-                    className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[10px] text-zinc-400 hover:text-amber-300"
+                    className="border border-white/15 bg-black/80 px-2 py-1 font-mono text-[11px] text-zinc-400 hover:text-amber-300"
                   >
                     ?
                   </button>
@@ -4945,13 +4945,13 @@ export default function App() {
                   history.length >= 3 ||
                   currentCase.arcId ||
                   (cityAssets.includes('lookout') && currentCase.isTrap)) && (
-                  <div className={`border border-amber-500/30 bg-[#12100b]/95 p-2 font-mono text-[10px] sm:text-[11px] sm:p-2.5 shadow-2xl backdrop-blur-md lg:w-full lg:max-h-none max-lg:absolute max-lg:right-2 max-lg:top-full max-lg:z-40 max-lg:mt-1 ${
+                  <div className={`border border-amber-500/30 bg-[#12100b]/95 p-2 font-mono text-[11px] sm:text-[11px] sm:p-2.5 shadow-2xl backdrop-blur-md lg:w-full lg:max-h-none max-lg:absolute max-lg:right-2 max-lg:top-full max-lg:z-40 max-lg:mt-1 ${
                     mobileNotebookOpen ? 'max-lg:left-2 max-h-[40vh] overflow-y-auto thin-scroll' : 'max-lg:w-auto max-lg:py-1 max-sm:hidden'
                   }`}>
                     <button
                       type="button"
                       onClick={() => setMobileNotebookOpen((v) => !v)}
-                      className="flex items-center justify-between w-full border-b border-amber-500/20 pb-1 text-[9px] uppercase tracking-widest text-amber-400/80 cursor-pointer lg:cursor-default"
+                      className="flex items-center justify-between w-full border-b border-amber-500/20 pb-1 text-[11px] uppercase tracking-widest text-amber-400/80 cursor-pointer lg:cursor-default"
                     >
                       <span className="flex items-center gap-1.5 font-bold">
                         <span className="max-lg:hidden">{t.counterNotebook}</span>
@@ -4984,7 +4984,7 @@ export default function App() {
 
                     {currentCase.arcId && (
                       <div className="space-y-1 border-l-2 border-amber-400 bg-amber-500/10 py-1 pl-2">
-                        <p className="text-[10px] font-bold uppercase text-amber-300">
+                        <p className="text-[11px] font-bold uppercase text-amber-300">
                           {t.arcTrack(currentCase.arcStep || 1, currentCase.arcTitle || '')}
                         </p>
                         {currentCase.arcStep === 2 && outcome === 'active' && (
@@ -4992,7 +4992,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={resolveArcStep2}
-                              className="w-full border border-emerald-400/60 bg-emerald-500/25 px-2 py-1 text-[10px] font-bold text-emerald-200 hover:bg-emerald-500/40"
+                              className="w-full border border-emerald-400/60 bg-emerald-500/25 px-2 py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-500/40"
                             >
                               {t.arcDeliver(formatMoney(currentCase.arcRewardCash || 0, gameLocale))}
                             </button>
@@ -5000,7 +5000,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={abandonArcStep2}
-                              className="text-[10px] text-red-300 underline"
+                              className="text-[11px] text-red-300 underline"
                             >
                               {t.arcClose}
                             </button>
@@ -5028,7 +5028,7 @@ export default function App() {
                         gameLocale,
                       );
                       return (
-                        <div className="space-y-0.5 text-[10px] text-zinc-300">
+                        <div className="space-y-0.5 text-[11px] text-zinc-300">
                           <p>
                             <span className="text-amber-400">{t.flawLabel}</span> {weakness}
                           </p>
@@ -5046,7 +5046,7 @@ export default function App() {
                           <button
                             onClick={() => confrontWithClue(false)}
                             disabled={loading || grilled.loupe}
-                            className="shrink-0 border border-amber-400/50 bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300 hover:bg-amber-500/35"
+                            className="shrink-0 border border-amber-400/50 bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-bold uppercase text-amber-300 hover:bg-amber-500/35"
                           >
                             {t.clueGrill}
                           </button>
@@ -5061,7 +5061,7 @@ export default function App() {
                           <button
                             onClick={() => confrontWithClue(true)}
                             disabled={loading || grilled.uv}
-                            className="shrink-0 border border-sky-400/50 bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-sky-200 hover:bg-sky-500/35"
+                            className="shrink-0 border border-sky-400/50 bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-bold uppercase text-sky-200 hover:bg-sky-500/35"
                           >
                             {t.clueGrill}
                           </button>
@@ -5070,7 +5070,7 @@ export default function App() {
                     )}
 
                     {radioOpen && (
-                      <div className="flex items-start justify-between gap-2 border-t border-white/10 pt-1 text-[10px] text-red-300">
+                      <div className="flex items-start justify-between gap-2 border-t border-white/10 pt-1 text-[11px] text-red-300">
                         <span>{t.radio} : {currentCase.policeRadioBrief}</span>
                         {outcome === 'active' && (
                           <button
@@ -5087,7 +5087,7 @@ export default function App() {
                               );
                             }}
                             disabled={loading || grilled.radio}
-                            className="shrink-0 border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-200 hover:bg-red-500/35"
+                            className="shrink-0 border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-[11px] font-bold uppercase text-red-200 hover:bg-red-500/35"
                           >
                             {t.clueGrill}
                           </button>
@@ -5100,7 +5100,7 @@ export default function App() {
 
                 {/* Contrat 24h en mode Daily */}
                 {tab === 'daily' && (
-                  <div className="w-full space-y-1 border border-amber-500/40 bg-black/85 p-2 font-mono text-[10px]">
+                  <div className="w-full space-y-1 border border-amber-500/40 bg-black/85 p-2 font-mono text-[11px]">
                     <div className="flex items-center justify-between text-amber-300">
                       <span className="font-bold">{t.dailyContractHeader}</span>
                       <div className="flex items-center gap-2">
@@ -5108,7 +5108,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setShowDailyScores((v) => !v)}
-                          className="lg:hidden border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-200 hover:bg-amber-500/20 active:scale-95 transition-transform"
+                          className="lg:hidden border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[11px] uppercase tracking-wider text-amber-200 hover:bg-amber-500/20 active:scale-95 transition-transform"
                         >
                           {showDailyScores ? 'Masquer ▲' : 'Scores ▼'}
                         </button>
@@ -5124,7 +5124,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => void Notification.requestPermission()}
-                        className="w-full border border-white/15 bg-white/5 px-2 py-0.5 text-left text-[9px] text-zinc-300 hover:border-amber-400/50 hover:text-amber-200"
+                        className="w-full border border-white/15 bg-white/5 px-2 py-0.5 text-left text-[11px] text-zinc-300 hover:border-amber-400/50 hover:text-amber-200"
                       >
                         {t.dailyReminderBtn}
                       </button>
@@ -5138,7 +5138,7 @@ export default function App() {
                             setLbBoard(b);
                             void fetchLeaderboard(b);
                           }}
-                          className={`border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
+                          className={`border px-1.5 py-0.5 text-[11px] uppercase tracking-wider ${
                             lbBoard === b ? 'border-amber-400/60 text-amber-300' : 'border-white/10 text-zinc-500 hover:text-zinc-300'
                           }`}
                         >
@@ -5153,7 +5153,7 @@ export default function App() {
                       const hLeft = Math.floor((left % 86_400_000) / 3_600_000);
                       return (
                         <div className="space-y-0.5 border-t border-white/10 pt-1">
-                          <p className="flex justify-between text-[9px] uppercase tracking-wider text-violet-300">
+                          <p className="flex justify-between text-[11px] uppercase tracking-wider text-violet-300">
                             <span>{tt('Ligue de la semaine', 'Weekly league', 'Liga semanal')}</span>
                             <span className="text-zinc-500">{tt('fin dans', 'ends in', 'termina en')} {dLeft}{tt('j', 'd', 'd')} {hLeft}h</span>
                           </p>
@@ -5163,13 +5163,13 @@ export default function App() {
                               <span className="shrink-0 text-zinc-300">{mny(e.total)} · <span className="text-violet-300">{tierName[e.tier]}</span></span>
                             </div>
                           ))}
-                          <p className="text-[9px] leading-snug text-zinc-500">{tt('Les paliers (Maître, Or, Argent, Bronze) se jouent sur les marges de tes contrats quotidiens de la semaine.', 'Tiers (Master, Gold, Silver, Bronze) are decided by your weekly daily-contract margins.', 'Los rangos (Maestro, Oro, Plata, Bronce) se deciden por los márgenes de tus contratos diarios de la semana.')}</p>
+                          <p className="text-[11px] leading-snug text-zinc-500">{tt('Les paliers (Maître, Or, Argent, Bronze) se jouent sur les marges de tes contrats quotidiens de la semaine.', 'Tiers (Master, Gold, Silver, Bronze) are decided by your weekly daily-contract margins.', 'Los rangos (Maestro, Oro, Plata, Bronce) se deciden por los márgenes de tus contratos diarios de la semana.')}</p>
                         </div>
                       );
                     })()}
                     {highlight && (
                       <p className="border-l border-amber-400/60 pl-2 text-[11px] italic leading-snug text-zinc-300">
-                        <span className="block text-[9px] not-italic uppercase tracking-wider text-amber-300">
+                        <span className="block text-[11px] not-italic uppercase tracking-wider text-amber-300">
                           {gameLocale === 'en' ? "Yesterday's best line" : gameLocale === 'es' ? 'La mejor frase de ayer' : "La meilleure réplique d'hier"} · {highlight.pseudo} · −{highlight.discount} %
                         </span>
                         « {highlight.line} »
@@ -5180,7 +5180,7 @@ export default function App() {
                         <span className="truncate">
                           #{idx + 1} {entry.pseudo}
                           {entry.badge && (
-                            <span className="ml-1.5 border border-amber-400/40 px-1 text-[8px] uppercase text-amber-300">
+                            <span className="ml-1.5 border border-amber-400/40 px-1 text-[11px] uppercase text-amber-300">
                               {LB_COPY[gameLocale].badges[entry.badge]}
                             </span>
                           )}
@@ -5199,12 +5199,12 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setShowArchive7d((v) => !v)}
-                          className="w-full text-left text-[9px] uppercase tracking-wider text-zinc-400 hover:text-amber-300"
+                          className="w-full text-left text-[11px] uppercase tracking-wider text-zinc-400 hover:text-amber-300"
                         >
                           {showArchive7d ? t.dailyHide7d : t.dailyShow7d}
                         </button>
                         {showArchive7d && (
-                          <div className="mt-1 space-y-0.5 text-[9px]">
+                          <div className="mt-1 space-y-0.5 text-[11px]">
                             {historyDays.map((d) => (
                               <div key={d.date} className="flex justify-between text-zinc-400">
                                 <span>{d.date.slice(5)}</span>
@@ -5352,7 +5352,7 @@ export default function App() {
                             {gameLocale === 'en' ? 'You' : gameLocale === 'es' ? 'Tú' : 'Toi'} : « {lastPlayerTurn.content} »
                           </p>
                         ) : (
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                             {gameLocale === 'en' ? 'Opening' : gameLocale === 'es' ? 'Apertura' : 'Ouverture'}
                           </span>
                         )}
@@ -5360,7 +5360,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setShowHistory((v) => !v)}
-                            className="shrink-0 font-mono text-[10px] uppercase text-zinc-400 hover:text-amber-300"
+                            className="shrink-0 font-mono text-[11px] uppercase text-zinc-400 hover:text-amber-300"
                           >
                             {showHistory
                               ? (gameLocale === 'en' ? 'Hide log' : gameLocale === 'es' ? 'Ocultar log' : 'Masquer log')
@@ -5408,11 +5408,11 @@ export default function App() {
                 })()}
 
                 {(error || (cash < askedPrice && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2)) && (
-                  <div className="mt-1 border border-amber-500/40 bg-[#16120d]/95 px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[10px] sm:text-xs text-amber-200 shadow-lg">
+                  <div className="mt-1 border border-amber-500/40 bg-[#16120d]/95 px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[11px] sm:text-xs text-amber-200 shadow-lg">
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-amber-400 font-bold shrink-0">⚠️</span>
-                        <span className="truncate text-[10px] sm:text-[11px]">
+                        <span className="truncate text-[11px] sm:text-[11px]">
                           {error || (
                             <>
                               <span className="sm:hidden font-semibold">
@@ -5435,7 +5435,7 @@ export default function App() {
                               triggerHaptic(10);
                               setCashWarningCollapsed((v) => !v);
                             }}
-                            className="border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300 hover:bg-amber-500/25 active:scale-95 transition-all"
+                            className="border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-300 hover:bg-amber-500/25 active:scale-95 transition-all"
                           >
                             {cashWarningCollapsed ? tt('Trouver du cash ▼', 'Raise cash ▼', 'Conseguir cash ▼') : tt('Réduire ▲', 'Collapse ▲', 'Reducir ▲')}
                           </button>
@@ -5461,7 +5461,7 @@ export default function App() {
                               sellItem(inventory[0].id, 'fast');
                               setError(null);
                             }}
-                            className="border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-200 hover:bg-emerald-500/35 active:scale-95 transition-transform"
+                            className="border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-200 hover:bg-emerald-500/35 active:scale-95 transition-transform"
                           >
                             {tt(
                               `Vendre ${localizeItemName(inventory[0].name, gameLocale)} (+${formatMoney(Math.round(inventory[0].streetValue * 0.7), gameLocale)} $)`,
@@ -5474,7 +5474,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => withdrawFromSwiss(500)}
-                            className="border border-amber-400/60 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-200 hover:bg-amber-500/35 active:scale-95 transition-transform"
+                            className="border border-amber-400/60 bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-200 hover:bg-amber-500/35 active:scale-95 transition-transform"
                           >
                             {tt('Retirer 500 $ (Suisse)', 'Withdraw $500 (Swiss)', 'Retirar 500 $ (Suiza)')}
                           </button>
@@ -5483,7 +5483,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={takeSyndicateLoan}
-                            className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-amber-500/30 active:scale-95 transition-transform"
+                            className="border border-amber-500/60 bg-amber-950/60 px-2 py-0.5 text-[11px] font-bold text-amber-300 hover:bg-amber-500/30 active:scale-95 transition-transform"
                           >
                             {tt(`Crédit Syndicat (+1 000 $, +${ascMod?.loanHeat ?? 15}% Heat)`, `Syndicate Loan (+$1,000, +${ascMod?.loanHeat ?? 15}% Heat)`, `Crédito Sindicato (+1.000 $, +${ascMod?.loanHeat ?? 15}% Heat)`)}
                           </button>
@@ -5492,7 +5492,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={passClient}
-                            className="border border-white/30 bg-black/50 px-2 py-0.5 text-[10px] font-bold text-zinc-200 hover:bg-white/10 active:scale-95 transition-transform"
+                            className="border border-white/30 bg-black/50 px-2 py-0.5 text-[11px] font-bold text-zinc-200 hover:bg-white/10 active:scale-95 transition-transform"
                           >
                             {tt('Passer ce client', 'Pass on this client', 'Pasar de este cliente')}
                           </button>
@@ -5658,7 +5658,7 @@ export default function App() {
                           {copiedShare ? t.copiedBtn : t.shareBtn}
                         </button>
                         {hasPass ? (
-                          <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-400/80">
+                          <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-400/80">
                             {passOpen ? t.freeAccess : t.passActive30d}
                           </span>
                         ) : (
@@ -5739,7 +5739,7 @@ export default function App() {
                               }}
                               className="w-20 bg-transparent text-center font-[family-name:var(--font-display)] text-2xl leading-none tracking-wider text-emerald-300 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                             />
-                            <span className="block font-mono text-[9px] uppercase text-zinc-400">{tt('Ton prix', 'Your price', 'Tu precio')}</span>
+                            <span className="block font-mono text-[11px] uppercase text-zinc-400">{tt('Ton prix', 'Your price', 'Tu precio')}</span>
                           </div>
                           <button type="button" onClick={() => setBuyerAsk(Math.min(99999, ask + 100))} className="border-l border-white/10 px-2 py-1.5 font-mono text-xs text-zinc-300 hover:bg-white/10">+100</button>
                         </div>
@@ -5760,7 +5760,7 @@ export default function App() {
                               type="button"
                               disabled={done}
                               onClick={() => useBuyerArgument(a.key)}
-                              className="border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-left font-mono text-[10px] leading-tight text-amber-200 hover:bg-amber-500/25 disabled:opacity-30"
+                              className="border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-left font-mono text-[11px] leading-tight text-amber-200 hover:bg-amber-500/25 disabled:opacity-30"
                             >
                               {gameLocale === 'en' ? a.en : gameLocale === 'es' ? a.es : a.fr}
                             </button>
@@ -5909,7 +5909,7 @@ export default function App() {
                                 </span>
                               </div>
                             )}
-                            <span className="block font-mono text-[9px] uppercase text-zinc-400">
+                            <span className="block font-mono text-[11px] uppercase text-zinc-400">
                               {cash < 100
                                 ? (gameLocale === 'en' ? 'register too low' : 'caisse trop basse')
                                 : (gameLocale === 'en'
@@ -5951,7 +5951,7 @@ export default function App() {
                           onClick={passClient}
                           disabled={loading}
                           title={tt('Décliner poliment sans pénalité de Heat', 'Decline politely with no Heat penalty', 'Rechazar con educación sin penalización de Heat')}
-                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[10px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-white/20 bg-black/60 px-2.5 py-2 font-mono text-[11px] uppercase text-zinc-300 hover:border-white/40 hover:text-white disabled:opacity-40"
                         >
                           {t.pass}
                         </button>
@@ -5961,7 +5961,7 @@ export default function App() {
                             onClick={phantomBuyout}
                             disabled={loading}
                             title={tt('Revend jusqu’à 4 pièces du coffre à ×1,2 — plafond 15 000 $', 'Resells up to 4 vault pieces at ×1.2 — $15,000 cap', 'Revende hasta 4 piezas de la caja fuerte a ×1,2 — tope de 15 000 $')}
-                            className="max-sm:hidden border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
+                            className="max-sm:hidden border border-amber-500/60 bg-amber-500/15 px-2.5 py-2 font-mono text-[11px] font-bold uppercase text-amber-200 hover:bg-amber-500/25 disabled:opacity-40"
                           >
                             {t.phantomBuyout(Math.min(PHANTOM_MAX_ITEMS, inventory.length))}
                           </button>
@@ -5971,7 +5971,7 @@ export default function App() {
                           onClick={rejectTrap}
                           disabled={loading}
                           title={tt('Le démasquer : un infiltré décampe, un client réglo s\'en va', 'Expose him: an undercover agent bolts, an honest client walks away', 'Desenmascararlo: un infiltrado huye, un cliente legal se va')}
-                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[10px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
+                          className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden border border-red-500/70 bg-red-950/70 px-2.5 py-2 font-mono text-[11px] font-bold uppercase text-red-200 hover:bg-red-900 disabled:opacity-40"
                         >
                           {t.expose}
                         </button>
@@ -5987,7 +5987,7 @@ export default function App() {
                             type="button"
                             disabled={loading}
                             onClick={q.run}
-                            className={`border px-2.5 py-1 font-mono text-[10px] active:scale-95 transition-transform disabled:opacity-40 ${
+                            className={`border px-2.5 py-1 font-mono text-[11px] active:scale-95 transition-transform disabled:opacity-40 ${
                               q.tone === 'amber'
                                 ? 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/25'
                                 : q.tone === 'red'
@@ -6042,7 +6042,7 @@ export default function App() {
                         </button>
                       </form>
                       {quota && (
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 font-mono text-[10px] text-zinc-400 max-sm:justify-center">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 font-mono text-[11px] text-zinc-400 max-sm:justify-center">
                           <button type="button" onClick={() => setShowQuotaInfo((v) => !v)} className={`inline-flex items-center gap-1 ${quota.remaining <= 5 ? 'text-amber-300' : ''}`} aria-expanded={showQuotaInfo}>
                             <MessageSquare className="h-3 w-3" />
                             {quota.remaining > 0
@@ -6071,7 +6071,7 @@ export default function App() {
                 )}
 
                 {debugMode && (
-                  <p className="mt-1 font-mono text-[9px] text-amber-500/50">
+                  <p className="mt-1 font-mono text-[11px] text-amber-500/50">
                     plancher dynamique {dynamicFloor} $ · objet {currentCase.item.name} · rue{' '}
                     {currentCase.streetValue} $
                   </p>
@@ -6172,7 +6172,7 @@ export default function App() {
             {ascMod && (
               <p className="mt-4 border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-xs leading-snug text-amber-200"><span className="font-bold">{tt('Ascension', 'Ascension', 'Ascensión')} {ROMAN[ascMod.level - 1]} · {ascMod.title[gameLocale]}</span> — {ascMod.desc[gameLocale]}</p>
             )}
-            <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
+            <h4 className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
             <ul className="space-y-1 text-xs leading-relaxed text-zinc-300">
               <li><span className="text-amber-300">{t.fear}</span> — {tt('plus elle monte, plus son prix plancher baisse.', 'the higher it goes, the lower his floor price.', 'cuanto más sube, más baja su precio mínimo.')}</li>
               <li><span className="text-orange-400">{t.anger}</span> — {tt('trop haute, il claque la porte.', 'too high and he walks out.', 'demasiado alta y se va dando un portazo.')}</li>
@@ -6180,13 +6180,13 @@ export default function App() {
             </ul>
             {activeCombos(jokerIds).length > 0 && (
               <div className="mt-4 space-y-1.5">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-violet-300">{tt('Combos actifs', 'Active combos', 'Combos activos')}</h4>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-violet-300">{tt('Combos actifs', 'Active combos', 'Combos activos')}</h4>
                 {activeCombos(jokerIds).map((c) => (
                   <p key={c.id} className="border border-violet-400/40 bg-violet-950/40 px-2 py-1.5 text-xs leading-snug text-violet-100"><span className="font-bold">{c.name[gameLocale]}</span> — {c.desc[gameLocale]}</p>
                 ))}
               </div>
             )}
-            <h4 className="mb-1.5 mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Tes atouts', 'Your jokers', 'Tus comodines')} ({jokerIds.length})</h4>
+            <h4 className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Tes atouts', 'Your jokers', 'Tus comodines')} ({jokerIds.length})</h4>
             {jokerIds.length === 0 ? (
               <p className="text-xs leading-relaxed text-zinc-400">{tt('Aucun pour l’instant. Tu en choisis un parmi trois à chaque nuit payée : ils changent tes règles (prix, jauges, revente).', 'None yet. You pick one of three after each paid night: they change your rules (price, gauges, resale).', 'Ninguno por ahora. Eliges uno de tres tras cada noche pagada: cambian tus reglas (precio, medidores, reventa).')}</p>
             ) : (
@@ -6241,7 +6241,7 @@ export default function App() {
                 <button type="button" onClick={() => setShowClientSheet(false)} className="p-1 text-zinc-500">✕</button>
               </div>
               <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Profil', 'Profile', 'Perfil')}</div>
+                <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Profil', 'Profile', 'Perfil')}</div>
                 {temp && playerTurns >= 3 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {temp.tags.length === 0 && <span className="text-zinc-400">{tt('Tempérament sans relief.', 'No strong temperament.', 'Temperamento sin relieve.')}</span>}
@@ -6271,14 +6271,14 @@ export default function App() {
               </div>
               {psychoAudit.length > 1 && (
                 <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-[11px]">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{tt('Historique des jauges', 'Gauge history', 'Historial de medidores')}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Historique des jauges', 'Gauge history', 'Historial de medidores')}</div>
                   {psychoAudit.slice(1).reverse().map((entry) => (
                     <div key={entry.id} className="border-b border-white/5 pb-1 text-zinc-300">
                       <div className="flex justify-between gap-2">
                         <span className="min-w-0 truncate font-semibold text-amber-200/90">#{entry.turn} · {hitLoc(entry.action)}</span>
                         {entry.priceDelta !== 0 && <span className={entry.priceDelta < 0 ? 'font-bold text-emerald-400' : 'text-red-400'}>{entry.priceDelta < 0 ? '' : '+'}{mny(entry.priceDelta)}</span>}
                       </div>
-                      <div className="flex flex-wrap gap-x-3 text-[10px] text-zinc-400">
+                      <div className="flex flex-wrap gap-x-3 text-[11px] text-zinc-400">
                         {entry.peurDelta !== 0 && <span className="text-amber-300">{t.fear} {entry.peur - entry.peurDelta}→{entry.peur}%</span>}
                         {entry.colereDelta !== 0 && <span className="text-red-400">{t.anger} {entry.colere - entry.colereDelta}→{entry.colere}%</span>}
                         {entry.mefianceDelta !== 0 && <span className="text-sky-300">{t.suspicion} {entry.mefiance - entry.mefianceDelta}→{entry.mefiance}%</span>}
@@ -6353,7 +6353,7 @@ export default function App() {
               <div className={`p-2.5 rounded-lg border ${inspected ? 'border-amber-500/40 bg-amber-950/20 text-amber-200' : 'border-white/5 bg-black/40 text-zinc-500'}`}>
                 <div className="font-bold uppercase text-amber-400 text-[11px] flex items-center justify-between">
                   <span className="flex items-center gap-1"><Search className="h-3 w-3" /> {t.loupe}</span>
-                  {inspected && <span className="text-[10px] text-amber-300">✓ {tt('Révélé', 'Revealed', 'Revelado')}</span>}
+                  {inspected && <span className="text-[11px] text-amber-300">✓ {tt('Révélé', 'Revealed', 'Revelado')}</span>}
                 </div>
                 <p className="mt-1 text-[11px] leading-relaxed">
                   {inspected ? localizeItemText(currentCase.item.hiddenClue, gameLocale) : tt('Pas encore examinée. Touche le bouton Loupe ci-dessus.', 'Not examined yet. Tap the Magnifier button above.', 'Aún sin examinar. Toca el botón Lupa arriba.')}
@@ -6366,7 +6366,7 @@ export default function App() {
                       confrontWithClue(false);
                     }}
                     disabled={loading || grilled.loupe}
-                    className="mt-2 border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase text-amber-300 hover:bg-amber-500/35"
+                    className="mt-2 border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[11px] font-bold uppercase text-amber-300 hover:bg-amber-500/35"
                   >
                     {t.clueGrill}
                   </button>
@@ -6376,7 +6376,7 @@ export default function App() {
               <div className={`p-2.5 rounded-lg border ${uvScanned ? 'border-sky-500/40 bg-sky-950/20 text-sky-200' : 'border-white/5 bg-black/40 text-zinc-500'}`}>
                 <div className="font-bold uppercase text-sky-400 text-[11px] flex items-center justify-between">
                   <span className="flex items-center gap-1"><Flashlight className="h-3 w-3" /> {t.uv}</span>
-                  {uvScanned && <span className="text-[10px] text-sky-300">✓ {tt('Scanné', 'Scanned', 'Escaneado')}</span>}
+                  {uvScanned && <span className="text-[11px] text-sky-300">✓ {tt('Scanné', 'Scanned', 'Escaneado')}</span>}
                 </div>
                 <p className="mt-1 text-[11px] leading-relaxed">
                   {uvScanned ? localizeItemText(currentCase.item.uvClue, gameLocale) : tt('Pas encore passée à la lampe UV. Touche le bouton UV ci-dessus.', 'Not swept with the UV lamp yet. Tap the UV button above.', 'Aún sin pasar la lámpara UV. Toca el botón UV arriba.')}
@@ -6389,7 +6389,7 @@ export default function App() {
                       confrontWithClue(true);
                     }}
                     disabled={loading || grilled.uv}
-                    className="mt-2 border border-sky-400/50 bg-sky-500/20 px-2 py-1 text-[10px] font-bold uppercase text-sky-200 hover:bg-sky-500/35"
+                    className="mt-2 border border-sky-400/50 bg-sky-500/20 px-2 py-1 text-[11px] font-bold uppercase text-sky-200 hover:bg-sky-500/35"
                   >
                     {t.clueGrill}
                   </button>
@@ -6439,7 +6439,7 @@ export default function App() {
                         <div className="absolute top-2 left-2 h-8 w-8 rounded bg-black/60 border border-amber-500/30 flex items-center justify-center text-amber-300 backdrop-blur-sm">
                           <JokerIcon id={jk.id} className="w-4 h-4" />
                         </div>
-                        <span className="absolute top-2 right-2 text-[10px] font-mono bg-black/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider backdrop-blur-sm">
+                        <span className="absolute top-2 right-2 text-[11px] font-mono bg-black/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider backdrop-blur-sm">
                           {locJk.tag}
                         </span>
                       </div>
@@ -6447,7 +6447,7 @@ export default function App() {
                         {locJk.name}
                       </h3>
                       {comboCompletedBy(jk.id, jokerIds) && (
-                        <p className="border border-violet-400/50 bg-violet-950/50 px-2 py-1 font-mono text-[10px] leading-snug text-violet-200">
+                        <p className="border border-violet-400/50 bg-violet-950/50 px-2 py-1 font-mono text-[11px] leading-snug text-violet-200">
                           ✦ {tt('COMBO', 'COMBO', 'COMBO')} · {comboCompletedBy(jk.id, jokerIds)!.name[gameLocale]} : {comboCompletedBy(jk.id, jokerIds)!.desc[gameLocale]}
                         </p>
                       )}
@@ -6455,7 +6455,7 @@ export default function App() {
                     </div>
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between">
                       <span className="text-xs font-semibold text-amber-400 group-hover:underline">{t.jokerDraftActivate}</span>
-                      <span className="text-[10px] text-zinc-500 font-mono tracking-wider">
+                      <span className="text-[11px] text-zinc-500 font-mono tracking-wider">
                         {tt('✦ ATOUT', '✦ PERK', '✦ COMODÍN')}
                       </span>
                     </div>
@@ -6493,7 +6493,7 @@ export default function App() {
 
             {/* Street Name / Blase */}
             <div className="space-y-1">
-              <span className="text-[10px] uppercase text-zinc-500 tracking-wider">
+              <span className="text-[11px] uppercase text-zinc-500 tracking-wider">
                 {gameLocale === 'en' ? 'Street Name' : gameLocale === 'es' ? 'Apodo' : 'Blase'}
               </span>
               <input
@@ -6512,12 +6512,12 @@ export default function App() {
 
             {/* Compte : connexion / création de compte (sauvegarde cloud) */}
             <div className="space-y-1">
-              <span className="text-[10px] uppercase text-zinc-500 tracking-wider">
+              <span className="text-[11px] uppercase text-zinc-500 tracking-wider">
                 {tt('Compte', 'Account', 'Cuenta')}
               </span>
               {authUser ? (
                 <div className="flex items-center justify-between gap-2 rounded border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1.5 text-[11px] text-emerald-300">
-                  <span className="min-w-0 truncate" title={authUser.email}>{authUser.name || authUser.email} <span className="text-[9px] uppercase text-zinc-500">({cloudStatus})</span></span>
+                  <span className="min-w-0 truncate" title={authUser.email}>{authUser.name || authUser.email} <span className="text-[11px] uppercase text-zinc-500">({cloudStatus})</span></span>
                   <button
                     type="button"
                     onClick={async () => {
@@ -6552,14 +6552,14 @@ export default function App() {
                   {tt('Se connecter / créer un compte avec Google', 'Sign in / sign up with Google', 'Iniciar sesión / crear cuenta con Google')}
                 </button>
               )}
-              <p className="text-[10px] leading-snug text-zinc-500">
+              <p className="text-[11px] leading-snug text-zinc-500">
                 {tt('Un compte sauvegarde ta progression dans le cloud et te permet de publier ton score.', 'An account saves your progress in the cloud and lets you publish your score.', 'Una cuenta guarda tu progreso en la nube y te permite publicar tu puntuación.')}
               </p>
             </div>
 
             {/* Language Segmented Pill */}
             <div className="space-y-1">
-              <span className="text-[10px] uppercase text-zinc-500 tracking-wider">
+              <span className="text-[11px] uppercase text-zinc-500 tracking-wider">
                 {gameLocale === 'en' ? 'Language' : gameLocale === 'es' ? 'Idioma' : 'Langue'}
               </span>
               <div className="grid grid-cols-3 gap-1 rounded bg-black/70 p-0.5 border border-white/5 text-[11px]">
@@ -6601,7 +6601,7 @@ export default function App() {
                 }`}
               >
                 <span>{tt('Haptique', 'Haptics', 'Háptico')}</span>
-                <span className="text-[9px] uppercase font-bold">{hapticsEnabled ? 'ON' : 'OFF'}</span>
+                <span className="text-[11px] uppercase font-bold">{hapticsEnabled ? 'ON' : 'OFF'}</span>
               </button>
 
               <button
@@ -6614,7 +6614,7 @@ export default function App() {
                 }`}
               >
                 <span>{tt('Son', 'Sound', 'Sonido')}</span>
-                <span className="text-[9px] uppercase font-bold">{!muted ? 'ON' : 'OFF'}</span>
+                <span className="text-[11px] uppercase font-bold">{!muted ? 'ON' : 'OFF'}</span>
               </button>
             </div>
 
@@ -6630,11 +6630,11 @@ export default function App() {
               className={`flex w-full items-center justify-between rounded border px-2.5 py-1.5 text-[11px] transition-colors ${telemetryOn ? 'border-amber-400/40 bg-amber-400/10 text-amber-300' : 'border-white/5 bg-black/40 text-zinc-500'}`}
             >
               <span>{tt('Statistiques anonymes', 'Anonymous stats', 'Estadísticas anónimas')}</span>
-              <span className="text-[9px] font-bold uppercase">{telemetryOn ? 'ON' : 'OFF'}</span>
+              <span className="text-[11px] font-bold uppercase">{telemetryOn ? 'ON' : 'OFF'}</span>
             </button>
 
             {/* Career Summary Ticker */}
-            <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-zinc-500">
+            <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[11px] text-zinc-500">
               <span>{tt('Bénéfice', 'Profit', 'Beneficio')}: <strong className="text-amber-300">{mny(totalProfit)}</strong></span>
               <span>·</span>
               <span>{tt('Suisse', 'Swiss', 'Suiza')}: <strong className="text-emerald-400">{mny(swissBank)}</strong></span>
@@ -6695,7 +6695,7 @@ export default function App() {
                   <div className="text-xs font-bold text-amber-200 truncate">
                     « {localizeItemName(item.name, gameLocale)} »
                   </div>
-                  <div className="text-[10px] text-zinc-400 flex items-center gap-2">
+                  <div className="text-[11px] text-zinc-400 flex items-center gap-2">
                     <span>{localizeFaction(item.faction, gameLocale)}</span>
                     <span>·</span>
                     <span className="text-emerald-400 font-semibold">
@@ -6818,8 +6818,8 @@ export default function App() {
                   <div className="text-xs font-bold text-amber-200 truncate">
                     « {localizeItemName(item.name, gameLocale)} »
                   </div>
-                  <div className="text-[10px] text-zinc-400 flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-500/30 font-bold uppercase text-[9px]">
+                  <div className="text-[11px] text-zinc-400 flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-500/30 font-bold uppercase text-[11px]">
                       {tt('Sale / Traçable', 'Dirty / Traceable', 'Sucia / Rastreable')}
                     </span>
                     <span>·</span>
@@ -6874,7 +6874,7 @@ export default function App() {
                   </span>
                 </button>
                 {!canClean && (
-                  <p className="text-[10px] text-red-400/90 text-center font-sans">
+                  <p className="text-[11px] text-red-400/90 text-center font-sans">
                     {tt(`Cash insuffisant pour nettoyer (${cleanCost} $ requis / tu as ${cash} $).`, `Not enough cash to clean ($${cleanCost} required / you have $${cash}).`, `Efectivo insuficiente para limpiar (${cleanCost} $ requeridos / tienes ${cash} $).`)}
                   </p>
                 )}
@@ -6944,8 +6944,8 @@ export default function App() {
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 active:bg-white/5 ${active ? 'text-amber-300' : 'text-zinc-500'}`}
             >
               <Icon className="h-5 w-5" />
-              <span className="max-w-full truncate px-0.5 text-[10px] font-medium">{it.label}</span>
-              {it.badge && <span className="absolute left-[calc(50%+8px)] top-0.5 rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-4 text-zinc-950">{it.badge}</span>}
+              <span className="max-w-full truncate px-0.5 text-[11px] font-medium">{it.label}</span>
+              {it.badge && <span className="absolute left-[calc(50%+8px)] top-0.5 rounded-full bg-amber-500 px-1 text-[11px] font-bold leading-4 text-zinc-950">{it.badge}</span>}
             </button>
           );
         })}
