@@ -8,6 +8,9 @@ import path from 'node:path';
 import { buildDailyContract } from './daily.mjs';
 import { handleAuthAndProfileRoutes, getAuthUser } from './auth-profiles.mjs';
 import { callOpenRouter, openRouterKeys } from './openrouter.mjs';
+import { callVertex, vertexAccounts } from './vertex.mjs';
+import { kvGet, kvSet } from './store.mjs';
+import { applyStripeEvent, passKey, isActive } from './entitlements.mjs';
 import { localizeServerError, requestLocale } from './i18n.mjs';
 import { handleAdminRoutes, getSystemConfig, syncOverridesWithSupabase } from './admin.mjs';
 import { getLeaderboardFromSupabase, saveLeaderboardEntryToSupabase, isSupabaseConfigured } from './supabase.mjs';
@@ -355,6 +358,30 @@ function quotaKeys(req) {
   const user = getAuthUser(req, verifyToken);
   return { user: user ? `u:${user.id}|${today()}` : null, ip: `${clientIp(req)}|${today()}` };
 }
+// Compteurs durables (sur Vercel la mémoire du processus ne suffit pas) : relus au premier accès du jour, écrits à chaque débit.
+const hydratedQuota = new Set();
+let budgetSyncAt = 0;
+const remoteQuotaKey = (k) => `q:${k.split('|')[0]}`;
+async function hydrateQuota(req) {
+  const k = quotaKeys(req);
+  await Promise.all([k.user, k.ip].filter(Boolean).map(async (key) => {
+    if (hydratedQuota.has(key)) return;
+    hydratedQuota.add(key);
+    const rec = await kvGet(remoteQuotaKey(key)).catch(() => null);
+    if (rec && rec.day === today()) npcDailyByIp.set(key, Math.max(npcDailyByIp.get(key) || 0, Number(rec.n) || 0));
+  }));
+  if (Date.now() - budgetSyncAt > 30_000) {
+    budgetSyncAt = Date.now();
+    const b = await kvGet('q:budget', { fresh: true }).catch(() => null);
+    if (b && b.day === today()) {
+      npcCostToday = Math.max(npcCostToday, Number(b.usd) || 0);
+      npcGlobalToday = Math.max(npcGlobalToday, Number(b.n) || 0);
+    }
+  }
+}
+const persistQuota = (keys) => Promise.all(keys.filter(Boolean).map((key) => kvSet(remoteQuotaKey(key), { day: today(), n: npcDailyByIp.get(key) || 0 }))).catch(() => {});
+const persistBudget = () => kvSet('q:budget', { day: today(), usd: npcCostToday, n: npcGlobalToday }).catch(() => {});
+
 function quotaOf(req) {
   const pass = hasValidPassCookie(req);
   const limit = pass ? PASS_DAILY_NPC_LIMIT : FREE_DAILY_NPC_LIMIT;
@@ -363,7 +390,19 @@ function quotaOf(req) {
   return { tier: pass ? 'pass' : 'free', used: Math.min(used, limit), limit, remaining: Math.max(0, limit - used) };
 }
 
+// Résout le Pass une fois par requête : abonnement du compte (Stripe) s'il existe, sinon cookie signé. Résultat dans req._pass.
+async function resolvePass(req) {
+  const user = getAuthUser(req, verifyToken);
+  const rec = user ? await kvGet(passKey(user.id)).catch(() => null) : null;
+  req._pass = rec ? isActive(rec) : cookiePassValid(req);
+  return req._pass;
+}
+
 function hasValidPassCookie(req) {
+  return req._pass !== undefined ? req._pass : cookiePassValid(req);
+}
+
+function cookiePassValid(req) {
   const cookie = req.headers.cookie || '';
   const match = cookie.match(/(?:^|;\s*)syndicate_pass=([^;]+)/);
   const claims = match ? verifyToken(decodeURIComponent(match[1])) : null;
@@ -454,7 +493,7 @@ export async function handleRequest(req, res) {
       const sys = getSystemConfig();
       const providers = {
         ollama: true,
-        openrouter: openRouterKeys().length > 0,
+        openrouter: openRouterKeys().length > 0 || vertexAccounts().length > 0,
         gemini: Boolean(process.env.GEMINI_API_KEY),
         groq: Boolean(process.env.GROQ_API_KEY),
         deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
@@ -828,7 +867,9 @@ export async function handleRequest(req, res) {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/quota') {
-      if (npcDayStamp !== today()) { npcDayStamp = today(); npcDailyByIp.clear(); npcGlobalToday = 0; npcCostToday = 0; }
+      if (npcDayStamp !== today()) { npcDayStamp = today(); npcDailyByIp.clear(); hydratedQuota.clear(); npcGlobalToday = 0; npcCostToday = 0; }
+      await resolvePass(req);
+      await hydrateQuota(req);
       sendJson(res, 200, quotaOf(req));
       return;
     }
@@ -842,11 +883,13 @@ export async function handleRequest(req, res) {
       if (npcDayStamp !== dayKey) {
         npcDayStamp = dayKey;
         npcDailyByIp.clear();
+        hydratedQuota.clear();
         npcGlobalToday = 0;
         npcCostToday = 0;
       }
       const qk = quotaKeys(req);
-      const hasPassNow = hasValidPassCookie(req);
+      const hasPassNow = await resolvePass(req);
+      await hydrateQuota(req);
       const q0 = quotaOf(req);
       const ipUsed = npcDailyByIp.get(qk.ip) || 0;
       if (q0.remaining <= 0 || ipUsed >= q0.limit * 3) {
@@ -868,6 +911,7 @@ export async function handleRequest(req, res) {
       npcDailyByIp.set(qk.ip, ipUsed + 1);
       if (qk.user) npcDailyByIp.set(qk.user, (npcDailyByIp.get(qk.user) || 0) + 1);
       npcGlobalToday += 1;
+      await persistQuota([qk.ip, qk.user]);
       const refund = () => {
         npcDailyByIp.set(qk.ip, Math.max(0, (npcDailyByIp.get(qk.ip) || 1) - 1));
         if (qk.user) npcDailyByIp.set(qk.user, Math.max(0, (npcDailyByIp.get(qk.user) || 1) - 1));
@@ -895,19 +939,21 @@ export async function handleRequest(req, res) {
         }));
 
       if (provider === 'openrouter') {
-        if (openRouterKeys().length === 0) {
+        if (openRouterKeys().length === 0 && vertexAccounts().length === 0) {
           refund();
           sendJson(res, 503, { error: 'OPENROUTER_API_KEY non configurée sur le serveur.' });
           return;
         }
         // Le Pass passe d'abord par les modèles payants (plus réguliers), le gratuit par les modèles gratuits.
-        const out = await callOpenRouter({ systemPrompt, turns, preferPaid: hasPassNow });
+        const out = (openRouterKeys().length ? await callOpenRouter({ systemPrompt, turns, preferPaid: hasPassNow }) : null) || (await callVertex({ systemPrompt, turns }));
         if (!out) {
           refund();
+          await persistQuota([qk.ip, qk.user]);
           sendJson(res, 503, { error: 'Les vendeurs IA sont saturés. Réessaie dans un instant.', code: 'AI_BUSY' });
           return;
         }
         npcCostToday += out.costUsd;
+        await persistBudget();
         recordNpcTurn(npcRun, out.raw);
         sendJson(res, 200, { raw: out.raw, quota: quotaOf(req) });
         return;
@@ -1112,6 +1158,12 @@ export async function handleRequest(req, res) {
       form.set('line_items[0][quantity]', '1');
       form.set('success_url', `${ALLOWED_ORIGIN}/api/pass/claim?session_id={CHECKOUT_SESSION_ID}`);
       form.set('cancel_url', `${ALLOWED_ORIGIN}/?pass=cancel`);
+      const buyer = getAuthUser(req, verifyToken);
+      if (buyer) {
+        form.set('client_reference_id', buyer.id);
+        form.set('metadata[uid]', buyer.id);
+        if (mode === 'subscription') form.set('subscription_data[metadata][uid]', buyer.id);
+      }
 
       const upstream = await fetch('https://api.stripe.com/v1/checkout/sessions', {
         method: 'POST',
@@ -1167,6 +1219,10 @@ export async function handleRequest(req, res) {
         return;
       }
       passClaims.set(sessionId, claimed + 1);
+      const claimUser = getAuthUser(req, verifyToken);
+      if (claimUser && session.client_reference_id === claimUser.id) {
+        await applyStripeEvent({ type: 'checkout.session.completed', data: { object: session } }, { get: kvGet, set: kvSet }).catch(() => {});
+      }
 
       const passToken = issueToken({
         kind: 'pass',
@@ -1184,10 +1240,7 @@ export async function handleRequest(req, res) {
 
     /* ---------------- Statut du Pass (cookie httpOnly signé) ---------------- */
     if (req.method === 'GET' && url.pathname === '/api/pass') {
-      const cookie = req.headers.cookie || '';
-      const match = cookie.match(/(?:^|;\s*)syndicate_pass=([^;]+)/);
-      const claims = match ? verifyToken(decodeURIComponent(match[1])) : null;
-      const valid = Boolean(claims && claims.kind === 'pass' && claims.exp > Date.now());
+      const valid = await resolvePass(req);
 
       // Sans Stripe configuré, le Pass serait invendable ET bloquant : on ouvre
       // l'accès pour ne pas tuer le classement en local/dev.
@@ -1229,6 +1282,8 @@ export async function handleRequest(req, res) {
         processedStripeEvents.add(event.id);
         if (processedStripeEvents.size > 5_000) processedStripeEvents.clear();
       }
+
+      await applyStripeEvent(event, { get: (k) => kvGet(k, { fresh: true }), set: kvSet }).catch(() => {});
 
       if (event?.type === 'checkout.session.completed') {
         if (!SESSION_SECRET) {

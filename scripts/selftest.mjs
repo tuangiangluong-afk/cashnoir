@@ -165,5 +165,39 @@ try {
   const msgs = ['Les vendeurs IA sont saturés. Réessaie dans un instant.', 'Budget IA du jour épuisé. Reviens demain.', 'Usage raisonnable atteint (300 répliques/jour). Reviens demain.', 'Quota gratuit atteint (40 répliques/jour). Débloque le Pass Syndicat pour négocier en illimité.'];
   check('erreurs crédits/IA : traduites en anglais et espagnol', msgs.every((m) => ['en', 'es'].every((l) => localizeServerError(m, l) !== m)));
 }
+// Abonnement Pass lié au compte : achat, renouvellement, résiliation programmée, annulation.
+{
+  const { applyStripeEvent, passKey, isActive } = await import('../server/entitlements.mjs');
+  const m = new Map();
+  const store = { get: async (k) => m.get(k) ?? null, set: async (k, v) => void m.set(k, v) };
+  const T = 1_700_000_000_000;
+  const DAY = 86_400_000;
+  await applyStripeEvent({ type: 'checkout.session.completed', data: { object: { client_reference_id: 'u1', mode: 'subscription', status: 'complete', subscription: 'sub_1', customer: 'cus_1' } } }, store, T);
+  check('abonnement : achat → Pass actif sur le compte', isActive(m.get(passKey('u1')), T + DAY));
+  await applyStripeEvent({ type: 'invoice.paid', data: { object: { subscription: 'sub_1', lines: { data: [{ period: { end: (T + 60 * DAY) / 1000 } }] } } } }, store, T + 30 * DAY);
+  check('abonnement : renouvellement → accès prolongé', isActive(m.get(passKey('u1')), T + 61 * DAY));
+  await applyStripeEvent({ type: 'customer.subscription.updated', data: { object: { id: 'sub_1', object: 'subscription', status: 'active', cancel_at_period_end: true, current_period_end: (T + 40 * DAY) / 1000 } } }, store, T + 31 * DAY);
+  check('abonnement : résiliation programmée → accès jusqu’à la fin de la période', isActive(m.get(passKey('u1')), T + 39 * DAY) && !isActive(m.get(passKey('u1')), T + 41 * DAY));
+  await applyStripeEvent({ type: 'customer.subscription.deleted', data: { object: { id: 'sub_1', object: 'subscription' } } }, store, T + 35 * DAY);
+  check('abonnement : annulation/remboursement → Pass retiré aussitôt', !isActive(m.get(passKey('u1')), T + 35 * DAY + 1));
+  check('abonnement : événement d’un inconnu ignoré', (await applyStripeEvent({ type: 'invoice.paid', data: { object: { subscription: 'sub_zzz' } } }, store, T)) === null);
+}
+// Vertex : compte 1 en panne → compte 2 ; échec total → null sans exception.
+{
+  const { callVertex } = await import('../server/vertex.mjs');
+  const { generateKeyPairSync } = await import('node:crypto');
+  const pem = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } }).privateKey;
+  const accounts = [1, 2].map((i) => ({ client_email: `sa${i}@x.iam`, project_id: `p${i}`, private_key: pem }));
+  const calls = [];
+  const fetchImpl = async (u, o) => {
+    if (String(u).includes('oauth2')) return { ok: true, status: 200, json: async () => ({ access_token: 't', expires_in: 3600 }) };
+    calls.push(String(u).match(/projects\/(p\d)/)[1]);
+    return String(u).includes('/p1/') ? { ok: false, status: 403, json: async () => ({}) } : { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"d":1}' }] } }], usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 100 } }) };
+  };
+  const r = await callVertex({ systemPrompt: 's', turns: [{ role: 'user', content: 'x' }], fetchImpl, accounts, now: () => 5e12 });
+  check('vertex : compte 1 refusé (403) → compte 2, coût estimé remonté', r?.raw === '{"d":1}' && calls.includes('p2') && r.costUsd > 0, JSON.stringify(calls));
+  const r2 = await callVertex({ systemPrompt: 's', turns: [], fetchImpl: async () => { throw new Error('x'); }, accounts, now: () => 6e12 });
+  check('vertex : panne totale → null sans exception', r2 === null);
+}
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);
