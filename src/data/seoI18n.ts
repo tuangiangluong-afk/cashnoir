@@ -141,7 +141,7 @@ const VERSUS: Record<string, Record<'en' | 'es', VersusText>> = {
       rows: [
         { criteria: 'Tipo de interacción', cashNoir: 'Texto libre en tiempo real frente a agentes de IA', other: 'Inspección manual de documentos + sello fijo' },
         { criteria: 'Lo que está en juego', cashNoir: 'Bajar el precio y evitar a los infiltrados', other: 'Aprobar o rechazar la entrada según los decretos' },
-        { criteria: 'Rejugabilidad a largo plazo', cashNoir: '20 personajes escritos, 36 reliquias del Códice, 5 sindicatos, NG+', other: 'Campaña narrativa de 31 días + modo infinito' },
+        { criteria: 'Rejugabilidad a largo plazo', cashNoir: '100 personajes escritos, 10 Facciones, 10 rangos de Ascensión, Sagas ramificadas, Contrato 24h', other: 'Campaña narrativa de 31 días + modo infinito' },
         { criteria: 'Acceso', cashNoir: 'Navegador / PWA gratis, sin instalar nada', other: 'De pago (Steam / móvil)' },
       ],
       verdict: 'Si te gusta la paranoia fría de Papers, Please pero quieres hablar libremente con sospechosos que se marcan faroles y se enfadan de verdad, CASH NOIR es el siguiente paso lógico.',

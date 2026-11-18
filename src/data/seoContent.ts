@@ -87,13 +87,34 @@ export const SITE_COPY: Record<
     vsTestBtn: string;
     guideApplyBtn: string;
     footerTag: string;
+    ascensionEyebrow: string;
+    ascensionTitle: string;
+    ascensionSub: string;
+    ascensionTiers: { level: string; name: string; rule: string; survival: string }[];
+    sagasEyebrow: string;
+    sagasTitle: string;
+    sagasSub: string;
+    sagasDilemmaTitle: string;
+    sagasDilemmaVault: string;
+    sagasDilemmaSell: string;
+    autopsyEyebrow: string;
+    autopsyTitle: string;
+    autopsySub: string;
+    autopsyPoints: { tag: string; title: string; desc: string }[];
+    arbitrageEyebrow: string;
+    arbitrageTitle: string;
+    arbitrageSub: string;
+    arbitrageFastTitle: string;
+    arbitrageFastDesc: string;
+    arbitrageAuctionTitle: string;
+    arbitrageAuctionDesc: string;
   }
 > = {
   fr: {
     htmlLang: 'fr',
-    metaTitle: 'CASH NOIR — Interrogatoire psychologique face à des agents IA en temps réel',
+    metaTitle: 'CASH NOIR — Interrogatoire psychologique face à des agents IA en temps réel · Rogue-like Hardcore',
     metaDesc:
-      'Zéro dialogue pré-écrit. Négocie en temps réel face à des personnages psychologiques autonomes, démasque les infiltrés sous lampe UV et bâtis ton empire criminel.',
+      'Zéro QCM, zéro dialogue figé. Négocie en temps réel face à 100 personnages psychologiques autonomes, affronte les 10 niveaux d’Ascension, résous des sagas criminelles ramifiées et autopsie chaque deal.',
     navBlog: 'Dossiers',
     navVs: 'Comparatifs',
     navGuides: 'Guides',
@@ -113,16 +134,16 @@ export const SITE_COPY: Record<
       'Tu tapes ou tu parles librement. Lâche son prénom avant qu’il ne se présente, montre un indice relevé à l’UV, ou pousse trop loin : il baisse son prix, ment… ou sort son arme.',
     aiPoints: [
       {
+        label: '100 Personnages Noirs & 10 Factions',
+        text: 'Chirurgienne radiée, tueur du Cartel, baronne des nuits, ripou de la brigade financière : chacun a sa faille, sa rancune et son réseau.',
+      },
+      {
         label: 'Peur · Colère · Méfiance',
-        text: 'Trois jauges vivantes calculées à chaque réplique. À 80 % de Colère, la négociation s’arrête au bout d’un canon.',
+        text: 'Trois jauges vivantes calculées à chaque réplique en temps réel. À 80 % de Colère, la négociation s’arrête au bout d’un canon.',
       },
       {
-        label: '20 profils écrits, zéro clone',
-        text: 'Chirurgienne radiée, artificier amputé, hackeuse sous bracelet : chacun arrive avec sa gueule, son secret et sa ligne rouge.',
-      },
-      {
-        label: 'Mémoire & Rancune',
-        text: 'Ce que tu refuses enrichit tes 3 rivaux. Ce que tu braques revient te chercher deux à cinq nuits plus tard.',
+        label: 'Double Fond & Indices Physiques',
+        text: 'Chaque pièce s’inspecte à la loupe et sous lampe UV. Numéros de série meulés, faux compartiments, secrets révélés.',
       },
     ],
     fomoHeading: 'MÊME PIÈCE. MÊME VENDEUR. UN SEUL ESSAI PAR JOUR.',
@@ -142,7 +163,7 @@ export const SITE_COPY: Record<
     simBtnUv: 'Passer l’UV',
     simBtnBluff: 'Citer Saint-Luc',
     simBtnPlay: 'Ouvrir la vraie partie (/play) →',
-    castEyebrow: 'Casting Écrit · Saison 1',
+    castEyebrow: '100 personnages écrits · Saison',
     castTitle: 'CHACUN SON PASSÉ. CHACUN SA FAILLE.',
     castSub: '4 épisodes scénarisés par saison · 36 reliques Codex à voler',
     castCards: [
@@ -169,18 +190,20 @@ export const SITE_COPY: Record<
     freeLabel: 'Accès Comptoir',
     freePrice: '0 $',
     freeBullets: [
-      'Campagne infinie & 100 personnages écrits',
-      'Loupe, Lampe UV, Scanner police',
-      'IA temps réel (60 répliques/jour), puis vendeurs scriptés',
-      'Contrat mondial quotidien (1 essai/j) & Compte Google'
+      'Campagne infinie, 100 personnages écrits & 10 Factions',
+      'Ascension I à X avec malus cumulatifs impitoyables',
+      'Sagas ramifiées & Pistes d’enquête à prime (+7 500 $)',
+      'Autopsie forensic de deal & Conseils de survie du Parrain',
+      'Contrat mondial 24h (1 essai/jour) avec classement live',
     ],
     freeBtn: 'Jouer gratuitement →',
     vipLabel: 'Pass Syndicat · 30 jours',
     vipPrice: 'Accès VIP',
     vipBullets: [
-      'IA temps réel sans limite (usage raisonnable)',
-      'Publication au Classement Mondial officiel',
-      'Soutien direct aux serveurs IA temps réel',
+      'IA temps réel sans limite (négociation vocale & texte)',
+      'Accès illimité aux 10 niveaux d’Ascension & Sagas',
+      'Certification officielle au Classement Mondial 24h',
+      'Sauvegarde Cloud multi-appareils & accès anticipé saisons',
     ],
     vipBtn: 'Débloquer le Pass Syndicat →',
     vipBusy: 'Redirection Stripe...',
@@ -191,12 +214,42 @@ export const SITE_COPY: Record<
     vsTestBtn: 'Tester CASH NOIR gratuitement sur /play →',
     guideApplyBtn: 'Appliquer sur /play →',
     footerTag: 'CASH NOIR · Jeu de marché noir IA temps réel',
+    ascensionEyebrow: 'Rogue-Like Hardcore · 10 Niveaux Cumulatifs',
+    ascensionTitle: 'SURVIVRE AU JOUR 1 EST FACILE. BATTRE LE NIVEAU X EST UN MIRACLE.',
+    ascensionSub: 'Chaque palier d’Ascension conserve les règles des précédents et en ajoute une nouvelle. Simulation réelle sur 300 parties : 100 % de survie en mode normal, 29 % au niveau VII, moins de 1 % au niveau X.',
+    ascensionTiers: [
+      { level: 'I', name: 'Quartier Chaud', rule: 'Loyer +15 %, méfiance +10, 1 reroll en moins', survival: '90 % survie' },
+      { level: 'III', name: 'Pression Policière', rule: 'Descente de police dès 70 % de Heat au lieu de 85 %', survival: '68 % survie' },
+      { level: 'VII', name: 'Loyer Étrangleur', rule: 'Loyer +35 %, plancher des vendeurs +8 %', survival: '29 % survie' },
+      { level: 'X', name: 'Parrain Suprême', rule: 'Loyer +50 %, plancher +12 %, Heat bloqué à 15 % minimum', survival: '< 1 % survie' },
+    ],
+    sagasEyebrow: 'Arcs Narratifs & Pistes Ramifiées',
+    sagasTitle: 'LE DILEMME DU COFFRE : GARDER POUR LA PRIME, OU LIQUIDER POUR LE LOYER ?',
+    sagasSub: 'Rolex Daytona en or rose volée, dossier confidentiel sous microfilm, relique sacrilège... Certaines pièces déclenchent une intrigue ouverte dans ton Carnet. Un client récurrent viendra la réclamer au comptoir.',
+    sagasDilemmaTitle: 'Conséquence irréversible sur chaque pièce d’enquête',
+    sagasDilemmaVault: '🛡️ Garder au coffre : +7 500 $ de prime finale + baisse immédiate du Heat quand l’intrigue se dénoue.',
+    sagasDilemmaSell: '⚡ Liquider maintenant : Cash immédiat pour payer ton loyer du soir... mais intrigue DÉFINITIVEMENT rompue.',
+    autopsyEyebrow: 'Zéro Complaisance · Analyse Déterministe',
+    autopsyTitle: 'CHACUNE DE TES RÉPLIQUES LAISSE UNE BALLE OU UNE MARGE.',
+    autopsySub: 'Après chaque départ de client, l’Autopsie du Deal dissèque tes choix au scanner. À la faillite, le Conseil du Parrain t’explique exactement pourquoi ta caisse a coulé.',
+    autopsyPoints: [
+      { tag: '⚠️ ERREURS', title: 'Décrochage de Colère & Sous-Offres', desc: 'Détection du tour exact où l’acheteur s’est braqué ou où ton offre est tombée sous son plancher secret.' },
+      { tag: '✓ SUCCÈS', title: 'Failles & Timing du Prénom', desc: 'Identification du levier qui a fait chuter le prix (-25 % et plus) et du bon usage des indices matériels.' },
+      { tag: '💡 CONSEILS', title: 'Profilage & Conseils du Parrain', desc: 'Recommandations psychologiques adaptées au tempérament du client pour ne plus jamais te faire plumer.' },
+    ],
+    arbitrageEyebrow: 'Économie Vivante & Recel Nocturne',
+    arbitrageTitle: 'VENTE RAPIDE DISCRÈTE OU ENCHÈRES CLANDESTINES ?',
+    arbitrageSub: 'À minuit, le loyer tombe. Si tout ton cash est immobilisé dans des pièces non vendues, c’est le Game Over.',
+    arbitrageFastTitle: '⚡ Vente Rapide (Rue)',
+    arbitrageFastDesc: 'Liquidation immédiate, illimitée, -5 % Heat police. Parfait pour payer le loyer d’urgence ou écouler les petites pièces sans attirer l’attention.',
+    arbitrageAuctionTitle: '🏛 Enchères Clandestines (Salle des Ventes)',
+    arbitrageAuctionDesc: 'Prix fort (+20 % cote max), mais 1 seule par nuit (marché saturé à -25 % dès la 2e) et EXIGE un nettoyage préalable (-250 $), sinon +18 % de Heat policier immédiat !',
   },
   en: {
     htmlLang: 'en',
-    metaTitle: 'CASH NOIR — Real-Time AI Black-Market Interrogation Game',
+    metaTitle: 'CASH NOIR — Real-Time AI Black-Market Interrogation · Hardcore Rogue-Like',
     metaDesc:
-      'No dialogue trees. Negotiate in real time against 20 hand-written AI sellers with live fear, anger, and secrets. Expose undercover cops and build your empire.',
+      'Zero dialogue trees, zero scripted paths. Negotiate in real time against 100 psychological AI agents, conquer 10 brutal Ascension levels, navigate branching sagas, and autopsy every deal.',
     navBlog: 'Journal',
     navVs: 'Compare',
     navGuides: 'Guides',
@@ -216,16 +269,16 @@ export const SITE_COPY: Record<
       'Type or speak freely. Drop their real name before they introduce themselves, flash a UV blood trace, or push too hard — watch them sweat, drop their price, or draw a gun.',
     aiPoints: [
       {
+        label: '100 Written Characters & 10 Factions',
+        text: 'Disbarred surgeons, cartel hitmen, night-club heiresses, corrupt inspectors — each carries distinct flaws, grudges, and red lines.',
+      },
+      {
         label: 'Fear · Anger · Suspicion',
-        text: 'Three live meters recalculated every turn. Push Anger past 80% and negotiation ends down the barrel of a gun.',
+        text: 'Three live meters recalculated in real time every turn. Push Anger past 80% and negotiation ends down the barrel of a revolver.',
       },
       {
-        label: '20 Faces, Zero Clones',
-        text: 'Disbarred surgeons, amputee smugglers, ankle-monitor hackers — each arrives with their own face, flaw, and red line.',
-      },
-      {
-        label: 'Memory & Grudges',
-        text: 'Refuse a deal and 3 rival fences poach it. Cross a syndicate and they send hostile sellers 2–5 nights later.',
+        label: 'False Bottoms & Physical Clues',
+        text: 'Inspect every relic under magnifier and UV light. Filed serial numbers, hidden microfilms, secret trapdoors.',
       },
     ],
     fomoHeading: 'SAME ITEM. SAME SELLER. ONE GLOBAL SHOT PER DAY.',
@@ -245,7 +298,7 @@ export const SITE_COPY: Record<
     simBtnUv: 'Scan UV',
     simBtnBluff: 'Name-drop Saint-Luc',
     simBtnPlay: 'Play the real counter (/play) →',
-    castEyebrow: '20 hand-written characters · Season',
+    castEyebrow: '100 written characters · Season',
     castTitle: 'EVERYONE HAS A PAST. EVERYONE HAS A CRACK.',
     castSub: '4 scripted episodes per season · 36 mythic Codex relics',
     castCards: [
@@ -272,18 +325,20 @@ export const SITE_COPY: Record<
     freeLabel: 'Counter Access',
     freePrice: '$0',
     freeBullets: [
-      'Endless career & 100 written characters',
-      'Loupe, UV Lamp, Police Scanner',
-      'Real-time AI (60 replies/day), then scripted sellers',
-      'Daily global contract (1 shot/day) & Google Account',
+      'Endless career, 100 written characters & 10 Factions',
+      'Ascension I to X with unforgiving cumulative penalties',
+      'Branching story sagas & high-stake bounty leads (+$7,500)',
+      'Forensic deal autopsy & Godfather survival debriefs',
+      'Daily 24h global contract (1 shot/day) with live leaderboard',
     ],
     freeBtn: 'Play Free →',
     vipLabel: 'Syndicate Pass · 30 Days',
     vipPrice: 'VIP Access',
     vipBullets: [
-      'Unlimited real-time AI (fair use)',
-      'Official Global Leaderboard publishing',
-      'Direct support for real-time AI servers',
+      'Unlimited real-time AI (voice & text negotiation)',
+      'Full access to all 10 Ascension tiers & story sagas',
+      'Official verified ranking on the 24h Global Leaderboard',
+      'Multi-device Cloud save & early access to new seasons',
     ],
     vipBtn: 'Unlock Syndicate Pass →',
     vipBusy: 'Redirecting to Stripe...',
@@ -294,12 +349,42 @@ export const SITE_COPY: Record<
     vsTestBtn: 'Play CASH NOIR free on /play →',
     guideApplyBtn: 'Apply on /play →',
     footerTag: 'CASH NOIR · Real-Time AI Black-Market Game',
+    ascensionEyebrow: 'Hardcore Rogue-Like · 10 Cumulative Tiers',
+    ascensionTitle: 'SURVIVING DAY 1 IS EASY. BEATING ASCENSION X IS A MIRACLE.',
+    ascensionSub: 'Each Ascension tier stacks on previous penalties and injects a new restriction. Real Monte-Carlo simulation: 100% survival on standard runs, 29% at Ascension VII, under 1% at Ascension X.',
+    ascensionTiers: [
+      { level: 'I', name: 'Hot Corner', rule: 'Rent +15%, suspicion +10, 1 fewer reroll', survival: '90% survival' },
+      { level: 'III', name: 'Police Heatwave', rule: 'Police raids trigger at 70% Heat instead of 85%', survival: '68% survival' },
+      { level: 'VII', name: 'Chokehold Rent', rule: 'Rent +35%, seller floor prices +8%', survival: '29% survival' },
+      { level: 'X', name: 'Supreme Godfather', rule: 'Rent +50%, floor +12%, Heat locked at minimum 15%', survival: '< 1% survival' },
+    ],
+    sagasEyebrow: 'Criminal Story Arcs & Branching Leads',
+    sagasTitle: 'THE SAFE DILEMMA: HOARD FOR THE BOUNTY, OR FLIP FOR TONIGHT’S RENT?',
+    sagasSub: 'Stolen rose-gold Rolex Daytona, confidential microfilm dossier, sacrilegious relic... Certain key acquisitions trigger open criminal investigations in your Notebook. A recurring character will arrive at the counter to claim it.',
+    sagasDilemmaTitle: 'Irreversible consequences on every story item',
+    sagasDilemmaVault: '🛡️ Keep in Vault: +$7,500 final bounty + instant Heat drop when the storyline concludes.',
+    sagasDilemmaSell: '⚡ Liquidate Now: Instant cash to cover tonight’s rent... but the story arc is PERMANENTLY broken.',
+    autopsyEyebrow: 'Zero Sugarcoating · Forensic Analysis',
+    autopsyTitle: 'EVERY PHRASE LEAVES EITHER A BULLET OR A MARGIN.',
+    autopsySub: 'After every customer leaves, the Deal Autopsy dissects your moves turn by turn. On game over, Godfather Advice breaks down exactly why your register ran dry.',
+    autopsyPoints: [
+      { tag: '⚠️ MISTAKES', title: 'Anger Spikes & Lowball Errors', desc: 'Identifies the exact turn the seller lost their temper or where your offer fell beneath their secret floor.' },
+      { tag: '✓ WINS', title: 'Psychological Flaws & Name Timing', desc: 'Pins down the leverage that broke their price (25%+ drops) and the surgical use of forensic clues.' },
+      { tag: '💡 ADVICE', title: 'Profiling & Survival Advice', desc: 'Tailored tips based on customer temperament so you never get taken to the cleaners again.' },
+    ],
+    arbitrageEyebrow: 'Living Black-Market Economics',
+    arbitrageTitle: 'DISCREET QUICK FLIP OR UNDERGROUND AUCTION?',
+    arbitrageSub: 'At midnight rent is due. If your cash is locked in unsold physical loot, it is instant Game Over.',
+    arbitrageFastTitle: '⚡ Quick Sale (Street Liquidation)',
+    arbitrageFastDesc: 'Instant cash, unlimited volume, cools police (-5% Heat). Ideal for urgent rent deadlines or cheap items without drawing heat.',
+    arbitrageAuctionTitle: '🏛 Underground Auction House',
+    arbitrageAuctionDesc: 'Top price (+20% max market rate), but strictly 1 per night (market saturates at -25% on subsequent items) and REQUIRES prior workshop cleaning (-$250), otherwise +18% instant Police Heat!',
   },
   es: {
     htmlLang: 'es',
-    metaTitle: 'CASH NOIR — Juego de interrogatorio noir con agentes IA en tiempo real',
+    metaTitle: 'CASH NOIR — Interrogatorio noir con agentes IA en tiempo real · Rogue-like Hardcore',
     metaDesc:
-      'Sin árboles de diálogo escritos. Negocia en tiempo real contra 20 vendedores IA escritos a mano con miedo, ira y secretos reales. Desenmascara infiltrados y domina la ciudad.',
+      'Sin árboles de diálogo ni guiones prefijados. Negocia en tiempo real frente a 100 agentes IA psicológicos, supera 10 niveles de Ascensión, resuelve sagas ramificadas y autopsia cada trato.',
     navBlog: 'Artículos',
     navVs: 'Comparativas',
     navGuides: 'Guías',
@@ -319,16 +404,16 @@ export const SITE_COPY: Record<
       'Escribe o habla libremente. Suelta su nombre antes de que se presente, enseña un rastro bajo luz UV o presiona demasiado: baja el precio, miente o saca un arma.',
     aiPoints: [
       {
+        label: '100 Personajes Escritos y 10 Facciones',
+        text: 'Cirujana inhabilitada, sicario del Cártel, baronesa nocturna, inspector corrupto: cada uno con su punto débil, rencor y límites.',
+      },
+      {
         label: 'Miedo · Ira · Desconfianza',
-        text: 'Tres medidores vivos en cada turno. Si la Ira supera el 80 %, la negociación termina frente a un cañón.',
+        text: 'Tres medidores vivos calculados en tiempo real cada turno. Si la Ira supera el 80 %, la negociación concluye ante el cañón de un revólver.',
       },
       {
-        label: '20 rostros, cero clones',
-        text: 'Cirujana inhabilitada, contrabandista amputado, hacker con tobillera: cada uno tiene su ficha, su grieta y su límite.',
-      },
-      {
-        label: 'Memoria y Rencor',
-        text: 'Lo que rechazas lo compran 3 rivales IA. Si traicionas a un sindicato, vuelve a por ti noches después.',
+        label: 'Dobles Fondos y Huellas Físicas',
+        text: 'Examina cada reliquia con lupa y luz UV. Números de serie borrados, compartimentos ocultos y rastros biológicos.',
       },
     ],
     fomoHeading: 'MISMA PIEZA. MISMO VENDEDOR. UN SOLO INTENTO AL DÍA.',
@@ -348,7 +433,7 @@ export const SITE_COPY: Record<
     simBtnUv: 'Pasar luz UV',
     simBtnBluff: 'Citar Saint-Luc',
     simBtnPlay: 'Jugar en el mostrador real (/play) →',
-    castEyebrow: '20 personajes escritos a mano · Temporada',
+    castEyebrow: '100 personajes escritos a mano · Temporada',
     castTitle: 'CADA UNO TIENE UN PASADO. Y UNA GRIETA.',
     castSub: '4 episodios con historia por temporada · 36 reliquias del Codex',
     castCards: [
@@ -375,18 +460,20 @@ export const SITE_COPY: Record<
     freeLabel: 'Acceso Mostrador',
     freePrice: '0 $',
     freeBullets: [
-      'Campaña infinita y 100 personajes escritos',
-      'Lupa, Lámpara UV y Escáner policial',
-      'IA en tiempo real (60 respuestas/día), luego vendedores guionizados',
-      'Contrato mundial diario (1 intento/día) y Cuenta Google'
+      'Campaña infinita, 100 personajes escritos y 10 Facciones',
+      'Ascensión I a X con penalizaciones acumulativas implacables',
+      'Sagas ramificadas y pistas de investigación con recompensa (+7.500 $)',
+      'Autopsia forense de cada trato y consejos de supervivencia del Padrino',
+      'Contrato diario mundial 24h (1 intento/día) con ranking en vivo',
     ],
     freeBtn: 'Jugar gratis →',
     vipLabel: 'Pase Sindicato · 30 días',
     vipPrice: 'Acceso VIP',
     vipBullets: [
-      'IA en tiempo real sin límite (uso razonable)',
-      'Publicación oficial en el Ranking Mundial',
-      'Soporte directo a servidores IA en vivo',
+      'IA en tiempo real ilimitada (negociación por voz y texto)',
+      'Acceso total a los 10 rangos de Ascensión y sagas',
+      'Certificación oficial en el Ranking Mundial 24h',
+      'Guardado en la nube multidispositivo y acceso anticipado a temporadas',
     ],
     vipBtn: 'Desbloquear Pase Sindicato →',
     vipBusy: 'Redirigiendo a Stripe...',
@@ -397,6 +484,36 @@ export const SITE_COPY: Record<
     vsTestBtn: 'Probar CASH NOIR gratis en /play →',
     guideApplyBtn: 'Aplicar en /play →',
     footerTag: 'CASH NOIR · Juego de mercado negro IA en tiempo real',
+    ascensionEyebrow: 'Rogue-Like Hardcore · 10 Niveles Acumulativos',
+    ascensionTitle: 'SOBREVIVIR AL DÍA 1 ES FÁCIL. SUPERAR ASCENSIÓN X ES UN MILAGRO.',
+    ascensionSub: 'Cada rango de Ascensión conserva las penalizaciones anteriores y suma una nueva traba. Simulación real sobre 300 partidas: 100 % de supervivencia en modo normal, 29 % en nivel VII, menos del 1 % en nivel X.',
+    ascensionTiers: [
+      { level: 'I', name: 'Barrio Caliente', rule: 'Alquiler +15 %, desconfianza +10, 1 reroll menos', survival: '90 % supervivencia' },
+      { level: 'III', name: 'Presión Policial', rule: 'Redadas policiales desde 70 % de Heat en vez de 85 %', survival: '68 % supervivencia' },
+      { level: 'VII', name: 'Alquiler Asfixiante', rule: 'Alquiler +35 %, precios mínimos de venta +8 %', survival: '29 % supervivencia' },
+      { level: 'X', name: 'Padrino Supremo', rule: 'Alquiler +50 %, precio base +12 %, Heat fijado en mínimo 15 %', survival: '< 1 % supervivencia' },
+    ],
+    sagasEyebrow: 'Tramas Criminales y Pistas Ramificadas',
+    sagasTitle: 'EL DILEMA DE LA CAJA: ¿GUARDAR POR LA RECOMPENSA O LIQUIDAR POR EL ALQUILER?',
+    sagasSub: 'Rolex Daytona de oro rosa robado, informe clasificado en microfilm, reliquia sacrílega... Ciertas piezas abren una investigación en tu Cuaderno. Un cliente recurrente vendrá al mostrador a reclamarla.',
+    sagasDilemmaTitle: 'Consecuencia irreversible en cada pieza de investigación',
+    sagasDilemmaVault: '🛡️ Guardar en caja: +7.500 $ de recompensa final + caída inmediata de Heat al resolverse la trama.',
+    sagasDilemmaSell: '⚡ Liquidar ahora: Dinero inmediato para pagar el alquiler de hoy... pero trama PERMANENTEMENTE rota.',
+    autopsyEyebrow: 'Cero Complacencia · Análisis Forense',
+    autopsyTitle: 'CADA FRASE DEJA UNA BALA O UN MARGEN.',
+    autopsySub: 'Al marcharse cada cliente, la Autopsia del Trato escanea tus decisiones turno a turno. Al quebrar, los Consejos del Padrino diseccionan exactamente por qué se vació tu caja.',
+    autopsyPoints: [
+      { tag: '⚠️ ERRORES', title: 'Picos de Ira y Ofertas Bajas', desc: 'Detecta el turno exacto en que el vendedor se enfureció o donde tu oferta quedó por debajo de su precio mínimo.' },
+      { tag: '✓ ACIERTOS', title: 'Puntos Débiles y Nombre Clave', desc: 'Identifica la palanca que desplomó el precio (-25 % o más) y el uso preciso de las pistas físicas.' },
+      { tag: '💡 CONSEJOS', title: 'Perfil Psicológico y Consejos', desc: 'Recomendaciones tácticas adaptadas al temperamento del cliente para no volver a salir trasquilado.' },
+    ],
+    arbitrageEyebrow: 'Economía Viva y Redes Clandestinas',
+    arbitrageTitle: '¿VENTA RÁPIDA DISCRETA O SUBASTA CLANDESTINA?',
+    arbitrageSub: 'A medianoche vence el alquiler. Si todo tu dinero está inmovilizado en piezas sin vender, es Game Over directo.',
+    arbitrageFastTitle: '⚡ Venta Rápida (Calle)',
+    arbitrageFastDesc: 'Liquidación inmediata, sin límite, enfría a la policía (-5 % Heat). Ideal para cubrir el alquiler urgente o vender piezas baratas sin llamar la atención.',
+    arbitrageAuctionTitle: '🏛 Subasta Clandestina (Sala de Ventas)',
+    arbitrageAuctionDesc: 'Tope de precio (+20 % valor de mercado), pero solo 1 por noche (saturación al -25 % en la 2ª) y EXIGE limpieza previa en taller (-250 $), ¡si no, +18 % de Heat policial inmediato!',
   },
 };
 
@@ -487,7 +604,7 @@ export const VERSUS_PAGES: VersusPage[] = [
     rows: [
       { criteria: 'Type d’interaction', cashNoir: 'Texte libre en temps réel face à des agents IA', other: 'Inspection manuelle de documents + tampon fixe' },
       { criteria: 'Enjeu du comptoir', cashNoir: 'Faire chuter le prix et éviter les infiltrés', other: 'Valider ou refuser l’entrée selon les décrets' },
-      { criteria: 'Rejouabilité long terme', cashNoir: '20 persos, 36 reliques Codex, 5 syndicats, NG+', other: 'Campagne narrative de 31 jours + mode infini' },
+      { criteria: 'Rejouabilité long terme', cashNoir: '100 persos, 10 Factions, 10 rangs d’Ascension, Sagas ramifiées, Contrat 24h', other: 'Campagne narrative de 31 jours + mode infini' },
       { criteria: 'Accès', cashNoir: 'Navigateur / PWA gratuit, zéro install', other: 'Payant (Steam / mobile)' },
     ],
     verdict:

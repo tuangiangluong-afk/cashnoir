@@ -1,6 +1,6 @@
 import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull } from 'lucide-react';
 import {
   SITE_COPY,
   BLOG_ARTICLES,
@@ -606,6 +606,299 @@ export function MarketingSite({
                     <p className="text-xs leading-relaxed text-zinc-300">{pt.text}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          {/* SAGAS & INTRIGUES RAMIFIÉES — LE DILEMME DU COFFRE */}
+          <section className="border-b border-white/10 bg-[#0a0b0f] px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mx-auto max-w-6xl space-y-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-purple-400">
+                    {copy.sagasEyebrow}
+                  </p>
+                  <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
+                    {copy.sagasTitle}
+                  </h2>
+                </div>
+                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.sagasSub}</p>
+              </div>
+
+              {/* Le Dilemme Irréversible : Carte Visuelle Interactive */}
+              <div className="grid gap-6 lg:grid-cols-12 items-stretch">
+                {/* Exemple de pièce clé d'enquête */}
+                <div className="lg:col-span-5 border border-purple-500/30 bg-[#0e0d14] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_40px_rgba(168,85,247,0.08)] flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-purple-300 uppercase tracking-wider">
+                        <ShieldAlert className="h-4 w-4 text-purple-400" />
+                        {copy.sagasDilemmaTitle}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
+                        Docks du Nord
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5 bg-black/60 p-3 rounded-lg border border-white/10">
+                      <div className="h-16 w-16 shrink-0 rounded bg-black/80 border border-white/10 flex items-center justify-center p-1 overflow-hidden">
+                        <img
+                          src="/assets/items/montre.webp"
+                          alt="Rolex Daytona"
+                          className="h-full w-full object-contain mix-blend-lighten drop-shadow-md"
+                        />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-bold text-amber-200 truncate">Rolex Daytona en Or Rose</p>
+                        <p className="text-[10px] text-zinc-400">
+                          {locale === 'en' ? 'Stolen from an oligarch. Serial number matches an active mob lead in your Notebook.' : locale === 'es' ? 'Robada a un oligarca. El número de serie coincide con una pista activa de tu Cuaderno.' : 'Volée à un oligarque. Numéro de série lié à une intrigue active dans ton Carnet.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="rounded border border-emerald-500/30 bg-emerald-950/20 p-3 space-y-1">
+                        <p className="font-bold text-emerald-300 text-[11px] uppercase tracking-wider">
+                          {copy.sagasDilemmaVault}
+                        </p>
+                      </div>
+                      <div className="rounded border border-red-500/30 bg-red-950/20 p-3 space-y-1">
+                        <p className="font-bold text-red-300 text-[11px] uppercase tracking-wider">
+                          {copy.sagasDilemmaSell}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Les 3 piliers narratifs des Sagas */}
+                <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono text-xs">
+                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <span className="text-[10px] uppercase text-purple-400 font-bold tracking-widest">
+                        {locale === 'en' ? '100 Characters' : locale === 'es' ? '100 Personajes' : '100 Personnages'}
+                      </span>
+                      <h3 className="text-sm font-bold text-zinc-100">
+                        {locale === 'en' ? 'Recurring Grudges & Memory' : locale === 'es' ? 'Rencor y Memoria Viva' : 'Rancune Vivante & Mémoire'}
+                      </h3>
+                      <p className="text-zinc-400 leading-relaxed font-sans text-xs">
+                        {locale === 'en'
+                          ? 'Sell a mob relic to the police and the underworld marks you. The character who brought it returns nights later with demands... or armed muscle.'
+                          : locale === 'es'
+                          ? 'Vende una reliquia del hampa a la policía y el sindicato te señalará. Quien te la vendió volverá noches después exigiendo cuentas... o con matones armados.'
+                          : 'Vends une relique du milieu à la police et le syndicat met ta tête à prix. Le personnage qui te l’a cédée revient quelques nuits plus tard exiger des comptes... ou avec des gros bras.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <span className="text-[10px] uppercase text-amber-400 font-bold tracking-widest">
+                        {locale === 'en' ? '10 Underworld Factions' : locale === 'es' ? '10 Facciones Clandestinas' : '10 Factions Criminelles'}
+                      </span>
+                      <h3 className="text-sm font-bold text-zinc-100">
+                        {locale === 'en' ? 'Shifting Territory War' : locale === 'es' ? 'Guerra Territorial' : 'Guerre de Territoire'}
+                      </h3>
+                      <p className="text-zinc-400 leading-relaxed font-sans text-xs">
+                        {locale === 'en'
+                          ? 'Dock Cartel, Eastern Oligarchs, Financial Squad, Night Barons. Your reputation with each faction unlocks hidden black-market auctions and lower trap rates.'
+                          : locale === 'es'
+                          ? 'Cártel del Puerto, Oligarcas del Este, Brigada Financiera, Barones de la Noche. Tu reputación con cada facción desbloquea subastas exclusivas y reduce trampas.'
+                          : 'Cartel des Docks, Oligarques de l’Est, Brigade Financière, Barons de la Nuit. Ta réputation auprès de chaque faction débloque des ventes exclusives et baisse les pièges.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 sm:col-span-2">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-widest">
+                        {locale === 'en' ? '30+ Physical Relics' : locale === 'es' ? '30+ Reliquias Físicas' : '30+ Reliques Physiques'}
+                      </span>
+                      <span className="text-zinc-500 text-[10px]">
+                        {locale === 'en' ? 'Magnifier & UV Lamp' : locale === 'es' ? 'Lupa y Luz UV' : 'Loupe Horlogère & Lampe UV'}
+                      </span>
+                    </div>
+                    <p className="text-zinc-300 leading-relaxed font-sans text-xs">
+                      {locale === 'en'
+                        ? 'Double bottoms, pickable locks, scraped serial numbers, secret microfilms. Inspecting the physical hardware reveals blackmail leverage before you speak a single word.'
+                        : locale === 'es'
+                        ? 'Dobles fondos, cerraduras forzables, números de serie raspados, microfilms ocultos. Inspeccionar la pieza física te da palancas de chantaje antes de decir una sola palabra.'
+                        : 'Faux tiroirs, serrures crochetables, numéros de série limés, microfilms cachés. L’inspection matérielle de l’objet te donne le levier de chantage avant même d’ouvrir la bouche.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* L'ASCENSION IMPITOYABLE — 10 NIVEAUX CUMULATIFS */}
+          <section className="border-b border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mx-auto max-w-6xl space-y-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">
+                    {copy.ascensionEyebrow}
+                  </p>
+                  <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
+                    {copy.ascensionTitle}
+                  </h2>
+                </div>
+                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.ascensionSub}</p>
+              </div>
+
+              {/* 4 Paliers représentatifs sur les 10 */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 font-mono text-xs">
+                {copy.ascensionTiers.map((tier) => (
+                  <div
+                    key={tier.level}
+                    className="border border-white/10 bg-[#0a0b0f] p-5 rounded-xl space-y-3 relative overflow-hidden flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xl font-bold font-[family-name:var(--font-display)] text-amber-400">
+                          ASCENSION {tier.level}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-zinc-400 font-bold">
+                          {tier.survival}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-zinc-100">{tier.name}</h3>
+                      <p className="text-zinc-400 font-sans text-xs leading-relaxed">{tier.rule}</p>
+                    </div>
+                    <div className="pt-2 border-t border-white/5 text-[10px] text-zinc-500 uppercase flex items-center gap-1.5">
+                      {tier.level === 'X' ? (
+                        <span className="text-red-400 font-bold flex items-center gap-1">
+                          <Skull className="h-3 w-3 text-red-400" />
+                          {locale === 'en' ? 'True Final Boss' : locale === 'es' ? 'Jefe Final Verdadero' : 'Défi Ultime Parrain'}
+                        </span>
+                      ) : (
+                        <span>{locale === 'en' ? 'Stacked Penalty' : locale === 'es' ? 'Penalización Acumulada' : 'Malus Cumulatif'}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Barre de stats & simulation */}
+              <div className="border border-amber-500/20 bg-[#0e1017] p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+                <div className="flex items-center gap-2 text-zinc-300">
+                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                  <span>
+                    {locale === 'en'
+                      ? 'Benchmark: 300 automated 40-day Monte-Carlo runs per tier (scripts/econ-sim.ts).'
+                      : locale === 'es'
+                      ? 'Benchmark: 300 partidas simuladas de 40 días por rango (scripts/econ-sim.ts).'
+                      : 'Benchmark : 300 parties simulées de 40 jours par niveau (scripts/econ-sim.ts).'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onPlay}
+                  className="bg-amber-400 px-4 py-2 font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 transition-colors cursor-pointer text-[10px]"
+                >
+                  {locale === 'en' ? 'Test Your Survival (/play) →' : locale === 'es' ? 'Pruébate en /play →' : 'Tester ta survie sur /play →'}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* AUTOPSIE DU DEAL & CONSEIL DU PARRAIN */}
+          <section className="border-b border-white/10 bg-[#0a0b0f] px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mx-auto max-w-6xl space-y-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">
+                    {copy.autopsyEyebrow}
+                  </p>
+                  <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
+                    {copy.autopsyTitle}
+                  </h2>
+                </div>
+                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.autopsySub}</p>
+              </div>
+
+              {/* 3 Blocs de l'Autopsie */}
+              <div className="grid gap-4 sm:grid-cols-3 font-mono text-xs">
+                {copy.autopsyPoints.map((pt) => (
+                  <div
+                    key={pt.title}
+                    className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2.5 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider inline-block ${
+                        pt.tag.includes('ERREURS') || pt.tag.includes('MISTAKES') || pt.tag.includes('ERRORES')
+                          ? 'bg-red-950/80 text-red-300 border border-red-500/30'
+                          : pt.tag.includes('SUCCÈS') || pt.tag.includes('WINS') || pt.tag.includes('ACIERTOS')
+                          ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
+                      }`}>
+                        {pt.tag}
+                      </span>
+                      <h3 className="text-sm font-bold text-zinc-100">{pt.title}</h3>
+                      <p className="text-zinc-400 font-sans text-xs leading-relaxed">{pt.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ARBITRAGE DE TRÉSORERIE : VENTE RAPIDE VS ENCHÈRES NOCTURNES */}
+          <section className="border-b border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-16">
+            <div className="mx-auto max-w-6xl space-y-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400">
+                    {copy.arbitrageEyebrow}
+                  </p>
+                  <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
+                    {copy.arbitrageTitle}
+                  </h2>
+                </div>
+                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.arbitrageSub}</p>
+              </div>
+
+              {/* Grille 2 Colonnes : Vente Rapide vs Enchères Clandestines */}
+              <div className="grid gap-6 sm:grid-cols-2 font-mono text-xs">
+                {/* Vente Rapide */}
+                <div className="border border-emerald-500/30 bg-[#09110d] p-6 rounded-xl space-y-4 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                      <span className="font-bold text-sm text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                        {copy.arbitrageFastTitle}
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
+                        {locale === 'en' ? '-5% Heat · Unlimited' : locale === 'es' ? '-5% Heat · Ilimitada' : '-5% Heat · Illimitée'}
+                      </span>
+                    </div>
+                    <p className="text-zinc-300 font-sans text-xs leading-relaxed">
+                      {copy.arbitrageFastDesc}
+                    </p>
+                  </div>
+                  <div className="border-t border-emerald-500/10 pt-3 text-[11px] text-emerald-400/80">
+                    ✓ {locale === 'en' ? 'Instant liquidity for midnight rent' : locale === 'es' ? 'Liquidez inmediata para el alquiler nocturno' : 'Liquidité immédiate pour régler le loyer'}
+                  </div>
+                </div>
+
+                {/* Enchères Clandestines */}
+                <div className="border border-amber-500/30 bg-[#120e08] p-6 rounded-xl space-y-4 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                      <span className="font-bold text-sm text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        {copy.arbitrageAuctionTitle}
+                      </span>
+                      <span className="text-[10px] text-amber-400 font-bold px-2 py-0.5 rounded bg-amber-950 border border-amber-500/40">
+                        {locale === 'en' ? '+20% Price · 1/Night' : locale === 'es' ? '+20% Precio · 1/Noche' : '+20% Cote · 1/Nuit'}
+                      </span>
+                    </div>
+                    <p className="text-zinc-300 font-sans text-xs leading-relaxed">
+                      {copy.arbitrageAuctionDesc}
+                    </p>
+                  </div>
+                  <div className="border-t border-amber-500/10 pt-3 text-[11px] text-amber-400/80">
+                    ⚠️ {locale === 'en' ? 'Market crashes by -25% on 2nd auction' : locale === 'es' ? 'El mercado se hunde un -25% en la 2ª subasta' : 'Le marché sature à -25% dès la 2e pièce'}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
