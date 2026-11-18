@@ -53,6 +53,8 @@ const ALLOWED_ORIGINS = (
   .map((o) => o.trim())
   .filter(Boolean);
 const ALLOWED_ORIGIN = ALLOWED_ORIGINS[0];
+// Origines des WebViews Capacitor (iOS `capacitor://localhost`, Android `https://localhost`) : toujours autorisées, même si ALLOWED_ORIGIN est surchargé.
+for (const o of ['capacitor://localhost', 'https://localhost']) if (!ALLOWED_ORIGINS.includes(o)) ALLOWED_ORIGINS.push(o);
 const TRUST_PROXY = process.env.TRUST_PROXY === '1' || Boolean(process.env.VERCEL);
 
 const DATA_DIR = process.env.VERCEL ? path.resolve('/tmp/data') : path.resolve('server/data');
@@ -144,7 +146,8 @@ function sendJson(res, status, data, extraHeaders = {}) {
   if (data && typeof data.error === 'string') data = { ...data, error: localizeServerError(data.error, res.gameLocale || 'fr') };
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': res.corsOrigin || ALLOWED_ORIGIN,
+    Vary: 'Origin',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Game-Locale, X-Admin-Key, Authorization',
@@ -451,12 +454,14 @@ setInterval(() => {
 /* ------------------------------------------------------------------ */
 export async function handleRequest(req, res) {
   res.gameLocale = requestLocale(req);
+  res.corsOrigin = ALLOWED_ORIGINS.includes(req.headers.origin) ? req.headers.origin : ALLOWED_ORIGIN;
   const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`);
 
   if (req.method === 'OPTIONS') {
     baseHeaders(res);
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+      'Access-Control-Allow-Origin': res.corsOrigin,
+      Vary: 'Origin',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, X-Game-Locale, X-Admin-Key, Authorization',

@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import './services/nativeApi';
 import type { Locale } from './data/seoContent';
 
 const GameApp = lazy(() => import('./App.tsx'));
@@ -142,3 +143,7 @@ createRoot(document.getElementById('root')!).render(
     <RootRouter />
   </StrictMode>,
 );
+
+if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

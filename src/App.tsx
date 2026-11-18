@@ -52,6 +52,7 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
+import { startGoogleLogin, clearNativeSession } from './services/nativeApi';
 import { track } from './services/telemetry';
 import { trackEvent, trackPageView } from './services/analytics';
 import { renderShareCard, shareCardImage } from './services/shareCard';
@@ -3370,7 +3371,7 @@ export default function App() {
             onClick={() => {
               if (oauthConfigured) {
                 trackEvent('login_attempt', { method: 'google' });
-                window.location.href = '/api/auth/google';
+                startGoogleLogin();
               } else {
                 setError(tt('Google OAuth non configuré sur ce serveur.', 'Google OAuth is not configured on this server.', 'Google OAuth no está configurado en este servidor.'));
               }
@@ -6522,6 +6523,7 @@ export default function App() {
                     type="button"
                     onClick={async () => {
                       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                      clearNativeSession();
                       cloudReadyRef.current = false;
                       setAuthUser(null);
                       setCloudStatus('idle');
@@ -6536,7 +6538,7 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     if (oauthConfigured) {
-                      window.location.href = '/api/auth/google';
+                      startGoogleLogin();
                     } else {
                       setError(tt('Connexion Google prête : configure GOOGLE_CLIENT_ID et SECRET dans .env.local.', 'Google sign-in ready: set GOOGLE_CLIENT_ID and SECRET in .env.local.', 'Inicio de sesión de Google listo: configura GOOGLE_CLIENT_ID y SECRET en .env.local.'));
                     }

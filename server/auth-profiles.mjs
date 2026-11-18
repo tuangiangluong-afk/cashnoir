@@ -17,6 +17,7 @@ try {
 const SAFE_USER_ID_RE = /^google_[A-Za-z0-9_-]{4,64}$/;
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 const TX_TTL_MS = 10 * 60 * 1000;
+const usedTickets = new Set(); // shortcut: mémoire par instance, ticket déjà limité à 90 s ; passer à Supabase si besoin d'un vrai usage unique.
 
 function b64url(buf) {
   return Buffer.from(buf).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -48,7 +49,9 @@ function cookieFlags(req, maxAgeSeconds) {
 
 export function getAuthUser(req, verifyToken) {
   const cookies = parseCookies(req);
-  const raw = cookies.fence_session;
+  // App native : WKWebView bloque les cookies tiers, la session voyage en `Authorization: Bearer`.
+  const bearer = /^Bearer (.+)$/.exec(String(req.headers.authorization || ''))?.[1];
+  const raw = cookies.fence_session || bearer;
   if (!raw) return null;
   const claims = verifyToken(raw);
   if (!claims || claims.kind !== 'oauth_session' || !(claims.exp > Date.now())) return null;
@@ -263,6 +266,7 @@ export async function handleAuthAndProfileRoutes({
       state,
       codeVerifier,
       redirectUri: callbackBase,
+      native: url.searchParams.get('native') === '1',
       exp: Date.now() + TX_TTL_MS,
     });
 
@@ -351,7 +355,13 @@ export async function handleAuthAndProfileRoutes({
       exp: Date.now() + SESSION_TTL_MS,
     });
 
-    const redirectHome = `${allowedOrigin}/?auth=ok`;
+    // App native : ticket à usage unique (90 s) rendu via le schéma `cashnoir://`, échangé contre la session par POST /api/auth/native.
+    const nativeTicket = tx.native
+      ? issueToken({ kind: 'native_ticket', jti: crypto.randomBytes(12).toString('hex'), session: sessionToken, exp: Date.now() + 90_000 })
+      : '';
+    const redirectHome = nativeTicket
+      ? `cashnoir://auth?ticket=${encodeURIComponent(nativeTicket)}`
+      : `${allowedOrigin}/?auth=ok`;
     res.writeHead(302, {
       Location: redirectHome,
       'Set-Cookie': [
@@ -361,6 +371,20 @@ export async function handleAuthAndProfileRoutes({
       'Cache-Control': 'no-store',
     });
     res.end();
+    return true;
+  }
+
+  /* ---------------- POST /api/auth/native ---------------- */
+  if (req.method === 'POST' && url.pathname === '/api/auth/native') {
+    const body = await readJson(req);
+    const t = verifyToken(String(body?.ticket || ''));
+    if (!t || t.kind !== 'native_ticket' || !(t.exp > Date.now()) || usedTickets.has(t.jti)) {
+      sendJson(res, 403, { error: 'Ticket de connexion invalide ou expiré.' });
+      return true;
+    }
+    usedTickets.add(t.jti);
+    setTimeout(() => usedTickets.delete(t.jti), 120_000).unref?.();
+    sendJson(res, 200, { token: t.session });
     return true;
   }
 
