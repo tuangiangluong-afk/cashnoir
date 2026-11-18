@@ -3,7 +3,15 @@ import type { Locale } from '../data/seoContent';
 import { formatMoney } from '../data/gameI18n';
 import { scriptedNpcRaw } from './scriptedNpc';
 
-export type LLMProvider = 'ollama' | 'gemini' | 'groq' | 'deepseek';
+export type LLMProvider = 'ollama' | 'gemini' | 'groq' | 'deepseek' | 'openrouter';
+
+/** Crédits de négociation du jour (1 crédit = 1 réplique envoyée au vendeur). */
+export interface NpcQuota {
+  tier: 'free' | 'pass';
+  used: number;
+  limit: number;
+  remaining: number;
+}
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -22,6 +30,8 @@ export interface NPCResponse {
   action_speciale: 'aucune' | 'deal_accepte' | 'quitte_la_boutique' | 'sort_son_arme';
   /** Vrai quand la réplique vient du vendeur scripté (IA indisponible ou quota atteint). */
   scripted?: boolean;
+  /** Crédits restants après cette réplique (renvoyé par le serveur). */
+  quota?: NpcQuota;
 }
 
 const JSON_CONTRACTS: Record<Locale, string> = {
@@ -570,6 +580,7 @@ ${jsonContract}`;
 
   let raw = '';
   let scripted = false;
+  let quota: NpcQuota | undefined;
 
   if (config.provider === 'ollama') {
     const messages = [
@@ -603,7 +614,7 @@ ${jsonContract}`;
   } else {
     // Clés Gemini/Groq : exclusivement côté serveur, jamais dans le navigateur.
     let res: Response | null = null;
-    let data: { raw?: string; error?: string } = {};
+    let data: { raw?: string; error?: string; quota?: NpcQuota } = {};
     try {
       res = await fetch('/api/npc', {
         method: 'POST',
@@ -615,7 +626,7 @@ ${jsonContract}`;
           ...(run ? { runId: run.runId, ticket: run.ticket } : {}),
         }),
       });
-      data = (await res.json().catch(() => ({}))) as { raw?: string; error?: string };
+      data = (await res.json().catch(() => ({}))) as { raw?: string; error?: string; quota?: NpcQuota };
     } catch {
       res = null;
     }
@@ -666,10 +677,11 @@ ${jsonContract}`;
       }
     } else {
       raw = String(data?.raw ?? '');
+      quota = data?.quota;
     }
   }
 
   if (!raw) throw new Error(locale === 'en' ? 'Empty model response.' : locale === 'es' ? 'Respuesta vacía del modelo.' : 'Réponse du modèle vide.');
   const parsed = parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, playerOffer, locale, gender, fearCap, leaveGuard);
-  return scripted ? { ...parsed, scripted: true } : parsed;
+  return { ...parsed, ...(scripted ? { scripted: true } : {}), ...(quota ? { quota } : {}) };
 }

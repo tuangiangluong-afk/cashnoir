@@ -113,6 +113,7 @@ import {
   type ChatTurn,
   type LLMConfig,
   type LLMProvider,
+  type NpcQuota,
 } from './services/llm';
 
 const ActionRow = ({ icon, label, hint, onClick, disabled, tone }: { icon: React.ReactNode; label: string; hint?: string; onClick: () => void; disabled?: boolean; tone?: 'danger' }) => (
@@ -950,6 +951,11 @@ export default function App() {
   const [debugMode, setDebugMode] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [provider, setProvider] = useState<LLMProvider>('gemini');
+  const [quota, setQuota] = useState<NpcQuota | null>(null);
+  const [showQuotaInfo, setShowQuotaInfo] = useState(false);
+  useEffect(() => {
+    fetch('/api/quota').then((r) => (r.ok ? r.json() : null)).then((q) => q && setQuota(q as NpcQuota)).catch(() => {});
+  }, []);
 
   // Le moteur IA actif est piloté côté serveur / BO Admin (/api/health).
   useEffect(() => {
@@ -2160,6 +2166,8 @@ export default function App() {
         currentCase.arcStep !== 2, // un client de piste qui n'a plus sa pièce peut légitimement repartir
       );
 
+      if (res.quota) setQuota(res.quota);
+      else if (res.scripted) setQuota((q) => (q ? { ...q, remaining: 0, used: q.limit } : q));
       if (!res.scripted) track('llm_latency', Math.round(performance.now() - t0));
       if (res.scripted && !scriptedNoticeRef.current) {
         scriptedNoticeRef.current = true;
@@ -6028,6 +6036,31 @@ export default function App() {
                           )}
                         </button>
                       </form>
+                      {quota && (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 font-mono text-[10px] text-zinc-400 max-sm:justify-center">
+                          <button type="button" onClick={() => setShowQuotaInfo((v) => !v)} className={`inline-flex items-center gap-1 ${quota.remaining <= 5 ? 'text-amber-300' : ''}`} aria-expanded={showQuotaInfo}>
+                            <MessageSquare className="h-3 w-3" />
+                            {quota.remaining > 0
+                              ? tt(`${quota.remaining} négos IA restantes aujourd’hui`, `${quota.remaining} AI haggles left today`, `${quota.remaining} regateos IA hoy`)
+                              : tt('Négos IA épuisées : vendeur simple jusqu’à demain', 'AI haggles used up: basic seller until tomorrow', 'Regateos IA agotados: vendedor simple hasta mañana')}
+                            <span className="text-zinc-500">ⓘ</span>
+                          </button>
+                          {quota.tier === 'free' && quota.remaining <= 10 && (
+                            <button type="button" onClick={buyPass} disabled={passBusy} className="border border-amber-400/50 bg-amber-500/15 px-1.5 py-0.5 font-bold uppercase tracking-wider text-amber-300 active:scale-95">
+                              {tt('Passer au Pass', 'Get the Pass', 'Obtener el Pase')}
+                            </button>
+                          )}
+                          {showQuotaInfo && (
+                            <p className="basis-full text-zinc-300">
+                              {tt(
+                                '1 négo = 1 réplique que tu envoies au vendeur (message, offre, bluff, pression, loupe ou lumière UV). Les boutons d’inspection sans réplique sont gratuits. Le compteur repart à zéro chaque jour.',
+                                '1 haggle = 1 line you send to the seller (message, offer, bluff, pressure, magnifier or UV light). Inspecting without sending a line is free. The counter resets every day.',
+                                '1 regateo = 1 réplica que envías al vendedor (mensaje, oferta, farol, presión, lupa o luz UV). Inspeccionar sin enviar réplica es gratis. El contador se reinicia cada día.',
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

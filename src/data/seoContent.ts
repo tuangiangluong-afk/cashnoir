@@ -1,4 +1,26 @@
+import {
+  EXPANSION_BLOG_ARTICLES,
+  EXPANSION_GUIDE_PAGES,
+  EXPANSION_VERSUS_PAGES,
+} from './seoExpansionEn.ts';
+
 export type Locale = 'fr' | 'en' | 'es';
+
+export interface RelatedLink {
+  label: string;
+  path: string;
+  kind: 'blog' | 'vs' | 'guide';
+}
+
+export interface FaqEntry {
+  q: string;
+  a: string;
+}
+
+export interface ComparisonTable {
+  headers: string[];
+  rows: string[][];
+}
 
 export interface BlogArticle {
   slug: string;
@@ -7,8 +29,12 @@ export interface BlogArticle {
   readTime: string;
   title: string;
   excerpt: string;
+  directAnswer?: string;
   keywords: string[];
+  table?: ComparisonTable;
   sections: { heading: string; body: string }[];
+  faq?: FaqEntry[];
+  related?: RelatedLink[];
 }
 
 export interface VersusPage {
@@ -19,13 +45,20 @@ export interface VersusPage {
   directAnswer: string;
   rows: { criteria: string; cashNoir: string; other: string }[];
   verdict: string;
+  faq?: FaqEntry[];
+  related?: RelatedLink[];
 }
 
 export interface GuidePage {
   slug: string;
+  publishedAt?: string;
   title: string;
   metaDesc: string;
+  directAnswer?: string;
+  table?: ComparisonTable;
   steps: { title: string; detail: string }[];
+  faq?: FaqEntry[];
+  related?: RelatedLink[];
 }
 
 export const SITE_COPY: Record<
@@ -642,6 +675,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
       },
     ],
   },
+  ...EXPANSION_BLOG_ARTICLES,
 ];
 
 export const VERSUS_PAGES: VersusPage[] = [
@@ -695,6 +729,7 @@ export const VERSUS_PAGES: VersusPage[] = [
     verdict:
       'Complémentaire : le même goût de la faille humaine et de l’ambiance sale, condensé en duels nerveux rejouables à l’infini.',
   },
+  ...EXPANSION_VERSUS_PAGES,
 ];
 
 export const GUIDE_PAGES: GuidePage[] = [
@@ -738,6 +773,7 @@ export const GUIDE_PAGES: GuidePage[] = [
       },
     ],
   },
+  ...EXPANSION_GUIDE_PAGES,
 ];
 
 export const AEO_FAQ: { q: string; a: string }[] = [

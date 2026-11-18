@@ -26,15 +26,27 @@ const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const urlFor = (locale, sub) => (locale === 'en' ? sub || '/' : `/${locale}${sub}`);
 const richHtml = (locale, text) =>
-  esc(text).replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, (_, label, p) => {
-    const href = p === '/play' || p.startsWith('/play/') ? p : urlFor(locale, p);
-    return `<a href="${esc(href)}">${label}</a>`;
-  });
+  esc(text)
+    .replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, (_, label, p) => {
+      const href = p === '/play' || p.startsWith('/play/') ? p : urlFor(locale, p);
+      return `<a href="${esc(href)}">${label}</a>`;
+    })
+    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
 const relatedHtml = (locale, related) =>
   related?.length
     ? `<aside><h2>Related</h2><ul>${related
         .map((r) => `<li><a href="${esc(urlFor(locale, r.path))}">${esc(r.label)}</a></li>`)
         .join('')}</ul></aside>`
+    : '';
+const tableHtml = (locale, table) =>
+  table?.headers?.length && table?.rows?.length
+    ? `<table><thead><tr>${table.headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${table.rows
+        .map((row) => `<tr>${row.map((c) => `<td>${richHtml(locale, c)}</td>`).join('')}</tr>`)
+        .join('')}</tbody></table>`
+    : '';
+const faqHtml = (locale, faq) =>
+  faq?.length
+    ? `<section><h2>FAQ</h2>${faq.map((f) => `<h3>${esc(f.q)}</h3><p>${richHtml(locale, f.a)}</p>`).join('')}</section>`
     : '';
 
 const trimMeta = (s, max) => {
@@ -62,9 +74,11 @@ function page(locale, sub) {
   if (blog) {
     title = `${blog.title} — CASH NOIR`;
     desc = blog.excerpt;
-    body = `<article><h1>${esc(blog.title)}</h1><p>${esc(blog.excerpt)}</p>${blog.sections
+    body = `<article><h1>${esc(blog.title)}</h1><p>${esc(blog.excerpt)}</p>${
+      blog.directAnswer ? `<p><strong>${richHtml(locale, blog.directAnswer)}</strong></p>` : ''
+    }${tableHtml(locale, blog.table)}${blog.sections
       .map((s) => `<h2>${esc(s.heading)}</h2><p>${richHtml(locale, s.body)}</p>`)
-      .join('')}${relatedHtml(locale, blog.related)}</article>`;
+      .join('')}${faqHtml(locale, blog.faq)}${relatedHtml(locale, blog.related)}</article>`;
   } else if (vs) {
     title = `${vs.title} — CASH NOIR`;
     desc = vs.metaDesc;
@@ -72,13 +86,15 @@ function page(locale, sub) {
       vs.competitor,
     )}</th></tr>${vs.rows
       .map((r) => `<tr><th>${esc(r.criteria)}</th><td>${esc(r.cashNoir)}</td><td>${esc(r.other)}</td></tr>`)
-      .join('')}</table><p>${richHtml(locale, vs.verdict)}</p>${relatedHtml(locale, vs.related)}</article>`;
+      .join('')}</table><p>${richHtml(locale, vs.verdict)}</p>${faqHtml(locale, vs.faq)}${relatedHtml(locale, vs.related)}</article>`;
   } else if (guide) {
     title = `${guide.title} — CASH NOIR`;
     desc = guide.metaDesc;
-    body = `<article><h1>${esc(guide.title)}</h1><p>${esc(guide.metaDesc)}</p><ol>${guide.steps
+    body = `<article><h1>${esc(guide.title)}</h1><p>${esc(guide.metaDesc)}</p>${
+      guide.directAnswer ? `<p><strong>${richHtml(locale, guide.directAnswer)}</strong></p>` : ''
+    }${tableHtml(locale, guide.table)}<ol>${guide.steps
       .map((s) => `<li><h2>${esc(s.title)}</h2><p>${richHtml(locale, s.detail)}</p></li>`)
-      .join('')}</ol>${relatedHtml(locale, guide.related)}</article>`;
+      .join('')}</ol>${faqHtml(locale, guide.faq)}${relatedHtml(locale, guide.related)}</article>`;
   } else if (kind === 'guides') {
     title = `${copy.navGuides} — CASH NOIR`;
     body = `<h1>${esc(copy.navGuides)}</h1><ul>${GUIDE_PAGES.map((g) => {
@@ -135,16 +151,32 @@ function page(locale, sub) {
   const ld = blog
     ? {
         '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: blog.title,
-        datePublished: blog.publishedAt,
-        dateModified: blog.publishedAt,
-        inLanguage: copy.htmlLang,
-        description: blog.excerpt,
-        image: OG_IMAGE,
-        author: pub,
-        publisher: pub,
-        speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', 'article p'] },
+        '@graph': [
+          {
+            '@type': 'Article',
+            headline: blog.title,
+            datePublished: blog.publishedAt,
+            dateModified: blog.publishedAt,
+            inLanguage: copy.htmlLang,
+            description: blog.excerpt,
+            image: OG_IMAGE,
+            author: pub,
+            publisher: pub,
+            speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', 'article p'] },
+          },
+          ...(blog.faq?.length
+            ? [
+                {
+                  '@type': 'FAQPage',
+                  mainEntity: blog.faq.map((f) => ({
+                    '@type': 'Question',
+                    name: f.q,
+                    acceptedAnswer: { '@type': 'Answer', text: f.a },
+                  })),
+                },
+              ]
+            : []),
+        ],
       }
     : guide
       ? {

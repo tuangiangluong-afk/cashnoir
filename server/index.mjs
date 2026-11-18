@@ -6,7 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { buildDailyContract } from './daily.mjs';
-import { handleAuthAndProfileRoutes } from './auth-profiles.mjs';
+import { handleAuthAndProfileRoutes, getAuthUser } from './auth-profiles.mjs';
+import { callOpenRouter, openRouterKeys } from './openrouter.mjs';
 import { localizeServerError, requestLocale } from './i18n.mjs';
 import { handleAdminRoutes, getSystemConfig, syncOverridesWithSupabase } from './admin.mjs';
 import { getLeaderboardFromSupabase, saveLeaderboardEntryToSupabase, isSupabaseConfigured } from './supabase.mjs';
@@ -336,13 +337,30 @@ const contactByIp = new Map();
 const MAX_SUBMITS_PER_DAY = 2;
 
 // Anti-drain tokens LLM : 20 messages/jour en gratuit quand Stripe est actif.
-const FREE_DAILY_NPC_LIMIT = Number(process.env.FREE_DAILY_NPC_LIMIT || 60);
-const PASS_DAILY_NPC_LIMIT = Number(process.env.PASS_DAILY_NPC_LIMIT || 400);
+const FREE_DAILY_NPC_LIMIT = Number(process.env.FREE_DAILY_NPC_LIMIT || 40);
+const PASS_DAILY_NPC_LIMIT = Number(process.env.PASS_DAILY_NPC_LIMIT || 300);
+// Budget en dollars (coût réel renvoyé par OpenRouter) : au-delà, tout le monde passe au vendeur scripté.
+const DAILY_BUDGET_USD = Number(process.env.DAILY_BUDGET_USD || 3);
+let npcCostToday = 0;
 // Interrupteur d'urgence : nombre total de répliques IA servies par jour, tous joueurs confondus.
 const GLOBAL_DAILY_NPC_LIMIT = Number(process.env.GLOBAL_DAILY_NPC_LIMIT || 5000);
 const npcDailyByIp = new Map();
 let npcDayStamp = '';
 let npcGlobalToday = 0;
+
+// Un crédit = une réplique envoyée au vendeur (texte, offre, bluff, pression, loupe, UV : tout passe par là).
+// Le compteur suit le compte Google quand il est connecté, sinon l'IP ; l'IP seule a un plafond 3 fois plus large (réseaux partagés).
+function quotaKeys(req) {
+  const user = getAuthUser(req, verifyToken);
+  return { user: user ? `u:${user.id}|${today()}` : null, ip: `${clientIp(req)}|${today()}` };
+}
+function quotaOf(req) {
+  const pass = hasValidPassCookie(req);
+  const limit = pass ? PASS_DAILY_NPC_LIMIT : FREE_DAILY_NPC_LIMIT;
+  const k = quotaKeys(req);
+  const used = Math.max(npcDailyByIp.get(k.user ?? k.ip) || 0, k.user ? Math.floor((npcDailyByIp.get(k.ip) || 0) / 3) : 0);
+  return { tier: pass ? 'pass' : 'free', used: Math.min(used, limit), limit, remaining: Math.max(0, limit - used) };
+}
 
 function hasValidPassCookie(req) {
   const cookie = req.headers.cookie || '';
@@ -435,6 +453,7 @@ export async function handleRequest(req, res) {
       const sys = getSystemConfig();
       const providers = {
         ollama: true,
+        openrouter: openRouterKeys().length > 0,
         gemini: Boolean(process.env.GEMINI_API_KEY),
         groq: Boolean(process.env.GROQ_API_KEY),
         deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
@@ -443,8 +462,10 @@ export async function handleRequest(req, res) {
       const activeProvider =
         configuredProvider !== 'auto' && (configuredProvider === 'ollama' || providers[configuredProvider])
           ? configuredProvider
-          : providers.gemini
-            ? 'gemini'
+          : providers.openrouter
+            ? 'openrouter'
+            : providers.gemini
+              ? 'gemini'
             : providers.groq
               ? 'groq'
               : providers.deepseek
@@ -805,6 +826,12 @@ export async function handleRequest(req, res) {
       }
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/quota') {
+      if (npcDayStamp !== today()) { npcDayStamp = today(); npcDailyByIp.clear(); npcGlobalToday = 0; npcCostToday = 0; }
+      sendJson(res, 200, quotaOf(req));
+      return;
+    }
+
     /* ---------------- Proxy LLM (clés jamais côté navigateur) ---------------- */
     if (req.method === 'POST' && url.pathname === '/api/npc') {
       const stripeActive = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
@@ -815,12 +842,13 @@ export async function handleRequest(req, res) {
         npcDayStamp = dayKey;
         npcDailyByIp.clear();
         npcGlobalToday = 0;
+        npcCostToday = 0;
       }
-      const ipDayKey = `${clientIp(req)}|${dayKey}`;
-      const used = npcDailyByIp.get(ipDayKey) || 0;
+      const qk = quotaKeys(req);
       const hasPassNow = hasValidPassCookie(req);
-      const ipLimit = hasPassNow ? PASS_DAILY_NPC_LIMIT : FREE_DAILY_NPC_LIMIT;
-      if (used >= ipLimit) {
+      const q0 = quotaOf(req);
+      const ipUsed = npcDailyByIp.get(qk.ip) || 0;
+      if (q0.remaining <= 0 || ipUsed >= q0.limit * 3) {
         sendJson(res, 402, {
           error: hasPassNow
             ? `Usage raisonnable atteint (${PASS_DAILY_NPC_LIMIT} répliques/jour). Reviens demain.`
@@ -831,12 +859,18 @@ export async function handleRequest(req, res) {
         });
         return;
       }
-      if (npcGlobalToday >= GLOBAL_DAILY_NPC_LIMIT) {
+      if (npcGlobalToday >= GLOBAL_DAILY_NPC_LIMIT || npcCostToday >= DAILY_BUDGET_USD) {
         sendJson(res, 503, { error: 'Budget IA du jour épuisé. Reviens demain.', code: 'GLOBAL_BUDGET_REACHED' });
         return;
       }
-      npcDailyByIp.set(ipDayKey, used + 1);
+      // Crédit débité à l'envoi ; rendu plus bas si aucune IA n'a pu répondre (le joueur ne paie pas une panne).
+      npcDailyByIp.set(qk.ip, ipUsed + 1);
+      if (qk.user) npcDailyByIp.set(qk.user, (npcDailyByIp.get(qk.user) || 0) + 1);
       npcGlobalToday += 1;
+      const refund = () => {
+        npcDailyByIp.set(qk.ip, Math.max(0, (npcDailyByIp.get(qk.ip) || 1) - 1));
+        if (qk.user) npcDailyByIp.set(qk.user, Math.max(0, (npcDailyByIp.get(qk.user) || 1) - 1));
+      };
 
       const body = await readJson(req);
       const { provider, systemPrompt, messages } = body;
@@ -858,6 +892,25 @@ export async function handleRequest(req, res) {
           role: m?.role === 'player' ? 'user' : 'assistant',
           content: String(m?.content ?? '').slice(0, 2_000),
         }));
+
+      if (provider === 'openrouter') {
+        if (openRouterKeys().length === 0) {
+          refund();
+          sendJson(res, 503, { error: 'OPENROUTER_API_KEY non configurée sur le serveur.' });
+          return;
+        }
+        // Le Pass passe d'abord par les modèles payants (plus réguliers), le gratuit par les modèles gratuits.
+        const out = await callOpenRouter({ systemPrompt, turns, preferPaid: hasPassNow });
+        if (!out) {
+          refund();
+          sendJson(res, 503, { error: 'Les vendeurs IA sont saturés. Réessaie dans un instant.', code: 'AI_BUSY' });
+          return;
+        }
+        npcCostToday += out.costUsd;
+        recordNpcTurn(npcRun, out.raw);
+        sendJson(res, 200, { raw: out.raw, quota: quotaOf(req) });
+        return;
+      }
 
       if (provider === 'gemini') {
         const key = process.env.GEMINI_API_KEY;

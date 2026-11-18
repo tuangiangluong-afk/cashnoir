@@ -167,6 +167,8 @@ export function MarketingSite({
     ? GUIDES.find((g) => g.slug === subPath.replace('/guides/', ''))
     : null;
   const isBlogIndex = subPath === '/blog';
+  const isGuidesIndex = subPath === '/guides';
+  const isVsIndex = subPath === '/vs';
   const isTerms = subPath === '/terms';
   const isPrivacy = subPath === '/privacy';
 
@@ -189,6 +191,12 @@ export function MarketingSite({
       desc = activeGuide.metaDesc;
     } else if (isBlogIndex) {
       title = `${copy.blogIndexTitle} — CASH NOIR`;
+      desc = copy.metaDesc;
+    } else if (isGuidesIndex) {
+      title = `${copy.navGuides} — CASH NOIR`;
+      desc = copy.metaDesc;
+    } else if (isVsIndex) {
+      title = `${copy.navVs} — CASH NOIR`;
       desc = copy.metaDesc;
     } else if (isTerms) {
       title = 'Terms of Service — CASH NOIR (WeLink Tech SAS)';
@@ -215,15 +223,39 @@ export function MarketingSite({
     upsertHeadLink('alternate', { hreflang: 'es', href: `${base}/es${cleanSub}` });
     upsertHeadLink('alternate', { hreflang: 'x-default', href: `${base}${cleanSub || '/'}` });
 
+    const pageFaqs = activeBlog?.faq?.length
+      ? activeBlog.faq
+      : activeVs?.faq?.length
+        ? activeVs.faq
+        : activeGuide?.faq?.length
+          ? activeGuide.faq
+          : FAQ;
+
     const schemaPayload = activeBlog
       ? {
           '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: activeBlog.title,
-          datePublished: activeBlog.publishedAt,
-          inLanguage: copy.htmlLang,
-          description: activeBlog.excerpt,
-          publisher: { '@type': 'Organization', name: 'CASH NOIR' },
+          '@graph': [
+            {
+              '@type': 'Article',
+              headline: activeBlog.title,
+              datePublished: activeBlog.publishedAt,
+              inLanguage: copy.htmlLang,
+              description: activeBlog.excerpt,
+              publisher: { '@type': 'Organization', name: 'CASH NOIR' },
+            },
+            ...(activeBlog.faq?.length
+              ? [
+                  {
+                    '@type': 'FAQPage',
+                    mainEntity: activeBlog.faq.map((f) => ({
+                      '@type': 'Question',
+                      name: f.q,
+                      acceptedAnswer: { '@type': 'Answer', text: f.a },
+                    })),
+                  },
+                ]
+              : []),
+          ],
         }
       : {
           '@context': 'https://schema.org',
@@ -239,7 +271,7 @@ export function MarketingSite({
             },
             {
               '@type': 'FAQPage',
-              mainEntity: FAQ.map((f) => ({
+              mainEntity: pageFaqs.map((f) => ({
                 '@type': 'Question',
                 name: f.q,
                 acceptedAnswer: { '@type': 'Answer', text: f.a },
@@ -256,12 +288,143 @@ export function MarketingSite({
       document.head.appendChild(ld);
     }
     ld.textContent = JSON.stringify(schemaPayload);
-  }, [locale, subPath, copy, activeBlog, activeVs, activeGuide, isBlogIndex]);
+  }, [locale, subPath, copy, activeBlog, activeVs, activeGuide, isBlogIndex, isGuidesIndex, isVsIndex]);
 
   const localePath = (sub: string) => {
     const clean = sub.startsWith('/') ? sub : `/${sub}`;
+    if (clean === '/play' || clean.startsWith('/play/')) return clean;
     if (locale === 'en') return clean;
     return clean === '/' ? `/${locale}` : `/${locale}${clean}`;
+  };
+
+  const renderInlineEmphasis = (chunk: string, keyPrefix: string) =>
+    chunk.split(/(\*[^*\n]+\*)/g).map((seg, i) =>
+      seg.startsWith('*') && seg.endsWith('*') && seg.length > 2 ? (
+        <em key={`${keyPrefix}-em-${i}`} className="italic text-zinc-100">
+          {seg.slice(1, -1)}
+        </em>
+      ) : (
+        seg
+      ),
+    );
+
+  const renderRichText = (text: string) => {
+    const parts = text.split(/(\[[^\]]+\]\(\/[^)]+\))/g);
+    return parts.map((part, idx) => {
+      const m = part.match(/^\[([^\]]+)\]\((\/[^)]+)\)$/);
+      if (!m) return renderInlineEmphasis(part, `t-${idx}`);
+      const [, label, rawPath] = m;
+      const href = localePath(rawPath);
+      return (
+        <a
+          key={`${rawPath}-${idx}`}
+          href={href}
+          onClick={(e) => {
+            if (rawPath === '/play' || rawPath.startsWith('/play/')) {
+              e.preventDefault();
+              if (rawPath === '/play') onPlay();
+              else onNavigate(rawPath);
+              return;
+            }
+            e.preventDefault();
+            onNavigate(href);
+          }}
+          className="text-amber-300 underline decoration-amber-400/50 underline-offset-4 hover:text-amber-200"
+        >
+          {renderInlineEmphasis(label, `l-${idx}`)}
+        </a>
+      );
+    });
+  };
+
+  const renderComparisonTable = (table?: { headers: string[]; rows: string[][] }) => {
+    if (!table || !table.headers.length || !table.rows.length) return null;
+    return (
+      <div className="overflow-x-auto border border-white/10">
+        <table className="w-full text-left font-mono text-xs">
+          <thead className="border-b border-white/10 bg-black/60 text-amber-300 uppercase">
+            <tr>
+              {table.headers.map((h) => (
+                <th key={h} className="p-3">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {table.rows.map((row, idx) => (
+              <tr key={idx}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className={ci === 0 ? 'p-3 font-semibold text-zinc-100' : 'p-3 text-zinc-300'}>
+                    {renderRichText(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderPageFaq = (faq?: { q: string; a: string }[]) => {
+    if (!faq || !faq.length) return null;
+    return (
+      <section className="border-t border-white/10 pt-8 space-y-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">FAQ</p>
+        <div className="space-y-3">
+          {faq.map((f) => (
+            <div key={f.q} className="border border-white/10 bg-zinc-900/40 p-4 space-y-1.5">
+              <h3 className="font-mono text-xs font-bold text-zinc-100">{f.q}</h3>
+              <p className="text-sm leading-relaxed text-zinc-300">{renderRichText(f.a)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
+  const renderRelatedBlock = (
+    related: { label: string; path: string; kind: 'blog' | 'vs' | 'guide' }[] | undefined,
+    excludePath: string,
+  ) => {
+    const fallback = [
+      ...GUIDES.slice(0, 2).map((g) => ({ label: g.title, path: `/guides/${g.slug}`, kind: 'guide' as const })),
+      ...VERSUS.slice(0, 2).map((v) => ({ label: `CASH NOIR vs ${v.competitor}`, path: `/vs/${v.slug}`, kind: 'vs' as const })),
+      ...BLOGS.slice(0, 2).map((b) => ({ label: b.title, path: `/blog/${b.slug}`, kind: 'blog' as const })),
+    ]
+      .filter((x) => x.path !== excludePath)
+      .slice(0, 4);
+    const items = (related && related.length > 0 ? related : fallback).filter((x) => x.path !== excludePath);
+    if (!items.length) return null;
+    return (
+      <aside className="border-t border-white/10 pt-8 space-y-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+          {locale === 'fr' ? 'Dossiers & Guides Liés' : locale === 'es' ? 'Dossiers y Guías Relacionados' : 'Related Intelligence & Guides'}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map((item) => {
+            const href = localePath(item.path);
+            return (
+              <a
+                key={item.path}
+                href={href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(href);
+                }}
+                className="border border-white/10 bg-zinc-900/50 p-3.5 transition-colors hover:border-amber-400/50 group"
+              >
+                <span className="block font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                  {item.kind}
+                </span>
+                <span className="mt-1 block text-sm font-medium text-zinc-200 group-hover:text-amber-300">
+                  {item.label} →
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      </aside>
+    );
   };
 
   const switchLocale = (nextLoc: Locale) => {
@@ -310,20 +473,20 @@ export function MarketingSite({
                 {copy.navBlog}
               </a>
               <a
-                href={localePath('/vs/papers-please')}
+                href={localePath('/vs')}
                 onClick={(e) => {
                   e.preventDefault();
-                  onNavigate(localePath('/vs/papers-please'));
+                  onNavigate(localePath('/vs'));
                 }}
                 className="hover:text-amber-300 transition-colors"
               >
                 {copy.navVs}
               </a>
               <a
-                href={localePath('/guides/negociation-ia-temps-reel')}
+                href={localePath('/guides')}
                 onClick={(e) => {
                   e.preventDefault();
-                  onNavigate(localePath('/guides/negociation-ia-temps-reel'));
+                  onNavigate(localePath('/guides'));
                 }}
                 className="hover:text-amber-300 transition-colors"
               >
@@ -390,17 +553,24 @@ export function MarketingSite({
               {activeBlog.title}
             </h1>
             <p className="text-base leading-relaxed text-zinc-400">{activeBlog.excerpt}</p>
+            {activeBlog.directAnswer && (
+              <p className="border-l-2 border-amber-400 pl-4 text-sm leading-relaxed text-zinc-200">
+                {renderRichText(activeBlog.directAnswer)}
+              </p>
+            )}
           </header>
+          {renderComparisonTable(activeBlog.table)}
           <div className="space-y-8">
             {activeBlog.sections.map((s) => (
               <section key={s.heading} className="space-y-2.5">
                 <h2 className="font-mono text-base font-bold uppercase tracking-wider text-amber-300">
                   {s.heading}
                 </h2>
-                <p className="text-base leading-relaxed text-zinc-300">{s.body}</p>
+                <p className="text-base leading-relaxed text-zinc-300">{renderRichText(s.body)}</p>
               </section>
             ))}
           </div>
+          {renderPageFaq(activeBlog.faq)}
           <button
             type="button"
             onClick={onPlay}
@@ -408,6 +578,7 @@ export function MarketingSite({
           >
             {copy.ctaPrimary} →
           </button>
+          {renderRelatedBlock(activeBlog.related, `/blog/${activeBlog.slug}`)}
         </article>
       )}
 
@@ -457,7 +628,7 @@ export function MarketingSite({
               {activeVs.title}
             </h1>
             <p className="border-l-2 border-amber-400 pl-4 text-base leading-relaxed text-zinc-200">
-              {activeVs.directAnswer}
+              {renderRichText(activeVs.directAnswer)}
             </p>
           </div>
           <div className="overflow-x-auto border border-white/10">
@@ -480,7 +651,8 @@ export function MarketingSite({
               </tbody>
             </table>
           </div>
-          <p className="text-base leading-relaxed text-zinc-300">{activeVs.verdict}</p>
+          <p className="text-base leading-relaxed text-zinc-300">{renderRichText(activeVs.verdict)}</p>
+          {renderPageFaq(activeVs.faq)}
           <button
             type="button"
             onClick={onPlay}
@@ -488,6 +660,42 @@ export function MarketingSite({
           >
             {copy.vsTestBtn}
           </button>
+          {renderRelatedBlock(activeVs.related, `/vs/${activeVs.slug}`)}
+        </main>
+      )}
+
+      {/* INDEX VERSUS */}
+      {isVsIndex && (
+        <main className="mx-auto max-w-5xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
+          <div className="space-y-2 border-b border-white/10 pb-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+              {copy.navVs} · CASH NOIR
+            </p>
+            <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wider sm:text-5xl">
+              {locale === 'fr' ? 'Comparatifs CASH NOIR' : locale === 'es' ? 'Comparativas CASH NOIR' : 'CASH NOIR Comparisons & Alternatives'}
+            </h1>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {VERSUS.map((v) => (
+              <a
+                key={v.slug}
+                href={localePath(`/vs/${v.slug}`)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(localePath(`/vs/${v.slug}`));
+                }}
+                className="border border-white/10 bg-zinc-900/40 p-5 transition-colors hover:border-amber-400/50 group"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+                  CASH NOIR vs {v.competitor}
+                </p>
+                <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl tracking-wide text-zinc-100 group-hover:text-amber-300">
+                  {v.title}
+                </h2>
+                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{v.metaDesc}</p>
+              </a>
+            ))}
+          </div>
         </main>
       )}
 
@@ -502,15 +710,22 @@ export function MarketingSite({
               {activeGuide.title}
             </h1>
             <p className="text-base text-zinc-400">{activeGuide.metaDesc}</p>
+            {activeGuide.directAnswer && (
+              <p className="border-l-2 border-amber-400 pl-4 text-sm leading-relaxed text-zinc-200">
+                {renderRichText(activeGuide.directAnswer)}
+              </p>
+            )}
           </div>
+          {renderComparisonTable(activeGuide.table)}
           <div className="space-y-6">
             {activeGuide.steps.map((st) => (
               <div key={st.title} className="border-l-2 border-amber-400/70 pl-4 space-y-1">
                 <h2 className="font-mono text-sm font-bold text-zinc-100">{st.title}</h2>
-                <p className="text-sm leading-relaxed text-zinc-300">{st.detail}</p>
+                <p className="text-sm leading-relaxed text-zinc-300">{renderRichText(st.detail)}</p>
               </div>
             ))}
           </div>
+          {renderPageFaq(activeGuide.faq)}
           <button
             type="button"
             onClick={onPlay}
@@ -518,6 +733,42 @@ export function MarketingSite({
           >
             {copy.guideApplyBtn}
           </button>
+          {renderRelatedBlock(activeGuide.related, `/guides/${activeGuide.slug}`)}
+        </main>
+      )}
+
+      {/* INDEX GUIDES */}
+      {isGuidesIndex && (
+        <main className="mx-auto max-w-5xl px-4 py-12 space-y-10 sm:px-6 sm:py-16">
+          <div className="space-y-2 border-b border-white/10 pb-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+              {copy.navGuides} · CASH NOIR
+            </p>
+            <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wider sm:text-5xl">
+              {locale === 'fr' ? 'Guides Tactiques & Dossiers' : locale === 'es' ? 'Guías Tácticas y Dossiers' : 'Tactical Guides & Field Manuals'}
+            </h1>
+          </div>
+          <div className="divide-y divide-white/10">
+            {GUIDES.map((g) => (
+              <a
+                key={g.slug}
+                href={localePath(`/guides/${g.slug}`)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(localePath(`/guides/${g.slug}`));
+                }}
+                className="block py-6 group"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+                  {g.steps.length} {locale === 'fr' ? 'étapes' : locale === 'es' ? 'pasos' : 'steps'}
+                </p>
+                <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-wide text-zinc-100 group-hover:text-amber-300 transition-colors">
+                  {g.title}
+                </h2>
+                <p className="mt-2 text-sm text-zinc-400 max-w-3xl">{g.metaDesc}</p>
+              </a>
+            ))}
+          </div>
         </main>
       )}
 
@@ -615,7 +866,7 @@ export function MarketingSite({
       )}
 
       {/* HOME MARKETING (/) */}
-      {!activeBlog && !isBlogIndex && !activeVs && !activeGuide && !isTerms && !isPrivacy && (
+      {!activeBlog && !isBlogIndex && !activeVs && !isVsIndex && !activeGuide && !isGuidesIndex && !isTerms && !isPrivacy && (
         <main>
           <section className="relative overflow-hidden border-b border-white/10">
             <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-12 lg:py-20">
@@ -1482,13 +1733,10 @@ export function MarketingSite({
             <a href={localePath('/blog')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/blog')); }} className="hover:text-zinc-200">
               {copy.navBlog}
             </a>
-            <a href={localePath('/vs/papers-please')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/vs/papers-please')); }} className="hover:text-zinc-200">
-              vs Papers, Please
+            <a href={localePath('/vs')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/vs')); }} className="hover:text-zinc-200">
+              {copy.navVs}
             </a>
-            <a href={localePath('/vs/dealers-life')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/vs/dealers-life')); }} className="hover:text-zinc-200">
-              vs Dealer&apos;s Life
-            </a>
-            <a href={localePath('/guides/negociation-ia-temps-reel')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/guides/negociation-ia-temps-reel')); }} className="hover:text-zinc-200">
+            <a href={localePath('/guides')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/guides')); }} className="hover:text-zinc-200">
               {copy.navGuides}
             </a>
             <a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate('/privacy'); }} className="hover:text-zinc-200">

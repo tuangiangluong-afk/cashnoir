@@ -1,4 +1,4 @@
-# CASH NOIR
+# CASH NOIR — Real-Time AI Black-Market Interrogation Game
 
 > CASH NOIR (published by WeLink Tech SAS) is a browser-based neo-noir pawn shop and black-market negotiation rogue-like where every seller across the counter is an autonomous real-time AI character with live emotions (Fear, Anger, Suspicion), personal secrets, and hidden floor prices.
 
@@ -14,20 +14,40 @@
   - **10 Cumulative Ascension Levels**: Tested across 300 Monte-Carlo 40-day runs (<1% survival at Ascension X)
   - **Deterministic Deal Autopsy & Godfather Advice**: Turn-by-turn breakdown of anger spikes, lowballs, and winning leverage
   - **Living Night Arbitrage**: Unlimited Quick Sale (-5% Heat) vs Underground Auctions (+20% max value, 1/night before -25% saturation, requires -$250 cleaning or +18% Heat)
-  - **Viral 1200x630 PNG Share Cards**: Automatically captures the exact punchline that broke the seller's price
+  - **Viral 1200×630 PNG Share Cards**: Automatically captures the exact punchline that broke the seller's price
   - **36 Permanent Codex Relics** across 6 sets + **Daily Global Contract** (one attempt per 24h, server-verified leaderboard)
 
 ## Canonical Pages
-- [Home (English)](https://cashnoir.app/): Main landing page and live counter preview
-- [Accueil (Français)](https://cashnoir.app/fr): Version française officielle
-- [Inicio (Español)](https://cashnoir.app/es): Versión oficial en español
-- [Play CASH NOIR](https://cashnoir.app/play): Launch the game (Google OAuth required)
-- [Daily 24h Contract](https://cashnoir.app/play/daily): Daily global seed & verified leaderboard
-- [Tactical Journal & Blog](https://cashnoir.app/blog): Deep-dive essays on AI negotiation & black-market mechanics
-- [CASH NOIR vs Papers, Please](https://cashnoir.app/vs/papers-please): Comparison of document inspection vs live AI interrogation
-- [CASH NOIR vs Dealer's Life 2](https://cashnoir.app/vs/dealers-life): Comparison of scripted pawn-shop sliders vs autonomous LLM agents
-- [CASH NOIR vs Disco Elysium](https://cashnoir.app/vs/disco-elysium): Comparison of narrative RPGs vs real-time psychological negotiation
-- [Guide: Crack an AI Agent Without Making Them Explode](https://cashnoir.app/guides/negociation-ia-temps-reel): Step-by-step tactical guide
-- [Guide: The 36 Codex Relics & 6 Permanent Perks](https://cashnoir.app/guides/codex-reliques-mythiques): Complete collectible & perk breakdown
-- [Privacy Policy](https://cashnoir.app/privacy): GDPR policy (WeLink Tech SAS)
-- [Terms of Service](https://cashnoir.app/terms): Terms of use (WeLink Tech SAS)
+- [Home (EN)](https://cashnoir.app/) | [Accueil (FR)](https://cashnoir.app/fr) | [Inicio (ES)](https://cashnoir.app/es)
+- [Play Game](https://cashnoir.app/play)
+- [Daily Contract](https://cashnoir.app/play/daily)
+- [Blog & Tactics](https://cashnoir.app/blog)
+  - [Best Games Like Papers, Please (2026)](https://cashnoir.app/blog/best-games-like-papers-please-2026)
+  - [Best AI Interrogation NPC Games](https://cashnoir.app/blog/best-ai-interrogation-npc-games)
+  - [Best Pawn Shop & Black-Market Games](https://cashnoir.app/blog/best-pawn-shop-black-market-games)
+  - [Best Free Browser Roguelike Strategy Games](https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games)
+  - [Best Noir Detective & Lie Detection Games](https://cashnoir.app/blog/best-noir-detective-lie-detection-games)
+  - [Why Dialogue Trees Are Dead](https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine)
+  - [Balancing Ascension X Across 300 Monte-Carlo Runs](https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs)
+  - [Deterministic Deal Autopsy & Psychology](https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology)
+- [Versus Comparisons](https://cashnoir.app/vs)
+  - [vs Papers, Please](https://cashnoir.app/vs/papers-please)
+  - [vs Dealer's Life 2](https://cashnoir.app/vs/dealers-life)
+  - [vs Disco Elysium](https://cashnoir.app/vs/disco-elysium)
+  - [vs Suck Up!](https://cashnoir.app/vs/suck-up)
+  - [vs Beholder](https://cashnoir.app/vs/beholder)
+  - [vs Contraband Police](https://cashnoir.app/vs/contraband-police)
+  - [vs Potionomics](https://cashnoir.app/vs/potionomics)
+  - [vs Not Tonight](https://cashnoir.app/vs/not-tonight)
+  - [vs Death and Taxes](https://cashnoir.app/vs/death-and-taxes)
+  - [vs AI Dungeon](https://cashnoir.app/vs/ai-dungeon)
+  - [vs Her Story](https://cashnoir.app/vs/her-story)
+- [Tactical Guides](https://cashnoir.app/guides)
+  - [Real-Time AI Negotiation Guide](https://cashnoir.app/guides/negociation-ia-temps-reel)
+  - [Codex Relics & Permanent Perks](https://cashnoir.app/guides/codex-reliques-mythiques)
+  - [Ascension I to X Survival Guide](https://cashnoir.app/guides/ascension-i-to-x-survival-guide)
+  - [Boris Kovalenko Season 1 Dossier](https://cashnoir.app/guides/boris-kovalenko-season-1-dossier)
+  - [Night Arbitrage: Quick Sale vs Auctions](https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions)
+  - [Saga Vault Dilemma Guide](https://cashnoir.app/guides/saga-vault-dilemma-guide)
+  - [Daily Contract 24h Leaderboard Meta](https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta)
+- [Privacy Policy](https://cashnoir.app/privacy) | [Terms of Service](https://cashnoir.app/terms)

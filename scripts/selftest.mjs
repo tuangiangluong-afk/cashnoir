@@ -139,5 +139,31 @@ try {
     srv2.kill();
   }
 }
+// OpenRouter : gratuit d'abord, repli sur les modèles payants puis sur la 2e clé, jamais d'exception.
+{
+  process.env.OPENROUTER_API_KEY = 'k1';
+  process.env.OPENROUTER_API_KEY_FALLBACK = 'k2';
+  const { callOpenRouter, openRouterPlan } = await import('../server/openrouter.mjs');
+  const ok = (content, cost = 0) => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }], usage: { cost } }) });
+  const bad = (status) => ({ ok: false, status, json: async () => ({}) });
+  const plan = openRouterPlan(['k1', 'k2']);
+  check('openrouter : gratuits avant payants, clé 1 avant clé 2', plan[0].free && plan.findIndex((p) => !p.free) > 0 && plan[0].keyIndex === 0 && plan.at(-1).keyIndex === 1);
+  check('openrouter : le Pass passe par les modèles payants d’abord', !openRouterPlan(['k1'], true)[0].free);
+  const seen = [];
+  const r1 = await callOpenRouter({ systemPrompt: 's', turns: [], fetchImpl: async (_u, o) => { seen.push(JSON.parse(o.body).model); return seen.length < 2 ? bad(429) : ok('{"dialogue":"ok"}'); }, now: () => 1e12 });
+  check('openrouter : un modèle gratuit saturé (429) → modèle suivant', r1?.raw.includes('dialogue') && seen.length === 2, JSON.stringify(seen));
+  const auth = [];
+  const r2 = await callOpenRouter({ systemPrompt: 's', turns: [], fetchImpl: async (_u, o) => { const k = o.headers.Authorization; auth.push(k); return k.endsWith('k1') ? bad(402) : ok('{"a":1}', 0.0001); }, now: () => 2e12 });
+  check('openrouter : clé 1 refusée (402) → clé 2, coût remonté', r2?.costUsd === 0.0001 && auth.at(-1).endsWith('k2') && auth.filter((a) => a.endsWith('k1')).length === 1, JSON.stringify(auth));
+  const r3 = await callOpenRouter({ systemPrompt: 's', turns: [], fetchImpl: async () => { throw new Error('réseau'); }, now: () => 3e12 });
+  check('openrouter : panne totale → null (le serveur rend le crédit), sans exception', r3 === null);
+  const r4 = await callOpenRouter({ systemPrompt: 's', turns: [], fetchImpl: async () => ok('pas du json'), now: () => 4e12 });
+  check('openrouter : réponse sans JSON ignorée', r4 === null);
+}
+{
+  const { localizeServerError } = await import('../server/i18n.mjs');
+  const msgs = ['Les vendeurs IA sont saturés. Réessaie dans un instant.', 'Budget IA du jour épuisé. Reviens demain.', 'Usage raisonnable atteint (300 répliques/jour). Reviens demain.', 'Quota gratuit atteint (40 répliques/jour). Débloque le Pass Syndicat pour négocier en illimité.'];
+  check('erreurs crédits/IA : traduites en anglais et espagnol', msgs.every((m) => ['en', 'es'].every((l) => localizeServerError(m, l) !== m)));
+}
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);
