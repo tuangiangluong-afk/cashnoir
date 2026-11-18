@@ -60,6 +60,14 @@ function page(locale, sub) {
     body = `<article><h1>${esc(guide.title)}</h1><p>${esc(guide.metaDesc)}</p><ol>${guide.steps
       .map((s) => `<li><h2>${esc(s.title)}</h2><p>${esc(s.detail)}</p></li>`)
       .join('')}</ol></article>`;
+  } else if (sub === '/terms') {
+    title = 'Terms of Service — CASH NOIR (WeLink Tech SAS)';
+    desc = 'Terms of Service for CASH NOIR, operated by WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France.';
+    body = `<h1>Terms of Service — CASH NOIR</h1><p>Operated by WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France. Contact: hello@cashnoir.app.</p>`;
+  } else if (sub === '/privacy') {
+    title = 'Privacy Policy — CASH NOIR (WeLink Tech SAS)';
+    desc = 'Privacy Policy and GDPR compliance for CASH NOIR, operated by WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France.';
+    body = `<h1>Privacy Policy — CASH NOIR</h1><p>Data controller: WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France. Contact: hello@cashnoir.app. Google OAuth scopes are limited to openid, email and profile for cloud saves.</p>`;
   } else if (kind === 'blog') {
     title = `${copy.blogIndexTitle} — CASH NOIR`;
     body = `<h1>${esc(copy.blogIndexTitle)}</h1><ul>${blogs.map(
@@ -165,6 +173,8 @@ const write = (urlPath, html) => {
 write('/play', template);
 write('/play/daily', template);
 write('/admin', template);
+write('/terms', page('en', '/terms'));
+write('/privacy', page('en', '/privacy'));
 // '/' en dernier : il écrase dist/index.html, qui sert de gabarit lu plus haut.
 for (const locale of ['fr', 'es', 'en']) for (const sub of [...subs].reverse()) write(urlFor(locale, sub), page(locale, sub));
 

@@ -157,6 +157,8 @@ export function MarketingSite({
     ? GUIDES.find((g) => g.slug === subPath.replace('/guides/', ''))
     : null;
   const isBlogIndex = subPath === '/blog';
+  const isTerms = subPath === '/terms';
+  const isPrivacy = subPath === '/privacy';
 
   // Dynamic SEO / AEO / GEO Head Tags + Hreflang (EN default on /) + JSON-LD
   useEffect(() => {
@@ -178,6 +180,12 @@ export function MarketingSite({
     } else if (isBlogIndex) {
       title = `${copy.blogIndexTitle} — CASH NOIR`;
       desc = copy.metaDesc;
+    } else if (isTerms) {
+      title = 'Terms of Service — CASH NOIR (WeLink Tech SAS)';
+      desc = 'Terms of Service for CASH NOIR, operated by WeLink Tech SAS, Paris / Clichy, France.';
+    } else if (isPrivacy) {
+      title = 'Privacy Policy — CASH NOIR (WeLink Tech SAS)';
+      desc = 'Privacy Policy and GDPR compliance for CASH NOIR, operated by WeLink Tech SAS, Paris / Clichy, France.';
     }
 
     document.documentElement.lang = copy.htmlLang;
@@ -503,8 +511,101 @@ export function MarketingSite({
         </main>
       )}
 
+      {/* TERMS OF SERVICE (/terms) */}
+      {isTerms && (
+        <main className="mx-auto max-w-3xl px-4 py-12 space-y-8 sm:px-6 sm:py-16 text-sm leading-relaxed text-zinc-300">
+          <div className="space-y-2 border-b border-white/10 pb-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+              LEGAL · WELINK TECH SAS
+            </p>
+            <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
+              TERMS OF SERVICE
+            </h1>
+            <p className="font-mono text-xs text-zinc-500">Last updated: November 2026 · cashnoir.app</p>
+          </div>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">1. Publisher & Operator</h2>
+            <p>
+              CASH NOIR (<strong>cashnoir.app</strong>) is published and operated by <strong>WeLink Tech SAS</strong>, a French registered corporation with headquarters at <strong>6 Rue des Bateliers, 92110 Clichy, France</strong>. Contact: <a href="mailto:hello@cashnoir.app" className="text-amber-400 underline">hello@cashnoir.app</a>.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">2. Access & Gameplay</h2>
+            <p>
+              CASH NOIR is an interactive AI-driven negotiation game. Free access is provided with daily limits; optional paid tiers (Syndicate Pass) unlock extended play, cloud saves and full campaign access. All in-game items, characters, currencies and criminal storylines are purely fictional.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">3. Accounts & Billing</h2>
+            <p>
+              Cloud progression uses Google OAuth authentication solely to identify your profile. Paid subscriptions are processed securely by Stripe and can be cancelled at any time.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">4. Acceptable Use</h2>
+            <p>
+              Automated scraping, prompt-injection abuse, leaderboard tampering or attempting to bypass server rate limits may result in immediate account suspension.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">5. Governing Law</h2>
+            <p>
+              These Terms are governed strictly by French Law. Any dispute falls under the exclusive jurisdiction of the competent courts of Nanterre, France.
+            </p>
+          </section>
+        </main>
+      )}
+
+      {/* PRIVACY POLICY (/privacy) */}
+      {isPrivacy && (
+        <main className="mx-auto max-w-3xl px-4 py-12 space-y-8 sm:px-6 sm:py-16 text-sm leading-relaxed text-zinc-300">
+          <div className="space-y-2 border-b border-white/10 pb-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-amber-400">
+              GDPR · WELINK TECH SAS
+            </p>
+            <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide text-zinc-100 sm:text-5xl">
+              PRIVACY POLICY
+            </h1>
+            <p className="font-mono text-xs text-zinc-500">Last updated: November 2026 · cashnoir.app</p>
+          </div>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">1. Data Controller</h2>
+            <p>
+              Personal data on <strong>cashnoir.app</strong> is processed by <strong>WeLink Tech SAS</strong>, <strong>6 Rue des Bateliers, 92110 Clichy, France</strong>, in strict compliance with the EU General Data Protection Regulation (GDPR). Data Protection contact: <a href="mailto:hello@cashnoir.app" className="text-amber-400 underline">hello@cashnoir.app</a>.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">2. Data Collected</h2>
+            <p>
+              When you sign in with Google OAuth, we only request basic profile scopes (<code>openid</code>, <code>email</code>, <code>profile</code>) to store your player ID, display name, cloud save state and Syndicate Pass entitlement. We never access your contacts, Drive, or private Google data, and we never sell or share your personal data to train public LLMs.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">3. Cookies & Local Storage</h2>
+            <p>
+              We use strictly necessary <code>httpOnly</code> session cookies for authentication and browser <code>localStorage</code> for offline game saves. No third-party ad-tracking cookies are used.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">4. Retention & Your Rights</h2>
+            <p>
+              Under GDPR, you have the right to access, rectify, export or permanently delete your account and cloud save data at any time by emailing <a href="mailto:hello@cashnoir.app" className="text-amber-400 underline">hello@cashnoir.app</a>.
+            </p>
+          </section>
+        </main>
+      )}
+
       {/* HOME MARKETING (/) */}
-      {!activeBlog && !isBlogIndex && !activeVs && !activeGuide && (
+      {!activeBlog && !isBlogIndex && !activeVs && !activeGuide && !isTerms && !isPrivacy && (
         <>
           <section className="relative overflow-hidden border-b border-white/10">
             <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-12 lg:py-20">
@@ -1370,6 +1471,12 @@ export function MarketingSite({
             </a>
             <a href={localePath('/guides/negociation-ia-temps-reel')} onClick={(e) => { e.preventDefault(); onNavigate(localePath('/guides/negociation-ia-temps-reel')); }} className="hover:text-zinc-200">
               {copy.navGuides}
+            </a>
+            <a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigate('/privacy'); }} className="hover:text-zinc-200">
+              Privacy
+            </a>
+            <a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate('/terms'); }} className="hover:text-zinc-200">
+              Terms
             </a>
             <a href="/llms.txt" className="hover:text-zinc-200">
               llms.txt
