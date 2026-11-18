@@ -298,15 +298,23 @@ export function MarketingSite({
   };
 
   const renderInlineEmphasis = (chunk: string, keyPrefix: string) =>
-    chunk.split(/(\*[^*\n]+\*)/g).map((seg, i) =>
-      seg.startsWith('*') && seg.endsWith('*') && seg.length > 2 ? (
-        <em key={`${keyPrefix}-em-${i}`} className="italic text-zinc-100">
-          {seg.slice(1, -1)}
-        </em>
-      ) : (
-        seg
-      ),
-    );
+    chunk.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g).map((seg, i) => {
+      if (seg.startsWith('**') && seg.endsWith('**') && seg.length > 4) {
+        return (
+          <strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-zinc-100">
+            {seg.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (seg.startsWith('*') && seg.endsWith('*') && seg.length > 2) {
+        return (
+          <em key={`${keyPrefix}-em-${i}`} className="italic text-zinc-100">
+            {seg.slice(1, -1)}
+          </em>
+        );
+      }
+      return seg;
+    });
 
   const renderRichText = (text: string) => {
     const parts = text.split(/(\[[^\]]+\]\(\/[^)]+\))/g);

@@ -31,13 +31,22 @@ const richHtml = (locale, text) =>
       const href = p === '/play' || p.startsWith('/play/') ? p : urlFor(locale, p);
       return `<a href="${esc(href)}">${label}</a>`;
     })
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-const relatedHtml = (locale, related) =>
-  related?.length
-    ? `<aside><h2>Related</h2><ul>${related
+const DEFAULT_RELATED = [
+  { label: 'Best Games Like Papers, Please 2026', path: '/blog/best-games-like-papers-please-2026' },
+  { label: 'Best AI Interrogation NPC Games', path: '/blog/best-ai-interrogation-npc-games' },
+  { label: 'Ascension I to X Survival Guide', path: '/guides/ascension-i-to-x-survival-guide' },
+  { label: 'CASH NOIR vs Suck Up!', path: '/vs/suck-up' },
+];
+const relatedHtml = (locale, related, currentSub) => {
+  const items = (related?.length ? related : DEFAULT_RELATED).filter((r) => r.path !== currentSub);
+  return items.length
+    ? `<aside><h2>Related</h2><ul>${items
         .map((r) => `<li><a href="${esc(urlFor(locale, r.path))}">${esc(r.label)}</a></li>`)
         .join('')}</ul></aside>`
     : '';
+};
 const tableHtml = (locale, table) =>
   table?.headers?.length && table?.rows?.length
     ? `<table><thead><tr>${table.headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${table.rows
@@ -78,7 +87,7 @@ function page(locale, sub) {
       blog.directAnswer ? `<p><strong>${richHtml(locale, blog.directAnswer)}</strong></p>` : ''
     }${tableHtml(locale, blog.table)}${blog.sections
       .map((s) => `<h2>${esc(s.heading)}</h2><p>${richHtml(locale, s.body)}</p>`)
-      .join('')}${faqHtml(locale, blog.faq)}${relatedHtml(locale, blog.related)}</article>`;
+      .join('')}${faqHtml(locale, blog.faq)}${relatedHtml(locale, blog.related, sub)}</article>`;
   } else if (vs) {
     title = `${vs.title} — CASH NOIR`;
     desc = vs.metaDesc;
@@ -86,7 +95,7 @@ function page(locale, sub) {
       vs.competitor,
     )}</th></tr>${vs.rows
       .map((r) => `<tr><th>${esc(r.criteria)}</th><td>${esc(r.cashNoir)}</td><td>${esc(r.other)}</td></tr>`)
-      .join('')}</table><p>${richHtml(locale, vs.verdict)}</p>${faqHtml(locale, vs.faq)}${relatedHtml(locale, vs.related)}</article>`;
+      .join('')}</table><p>${richHtml(locale, vs.verdict)}</p>${faqHtml(locale, vs.faq)}${relatedHtml(locale, vs.related, sub)}</article>`;
   } else if (guide) {
     title = `${guide.title} — CASH NOIR`;
     desc = guide.metaDesc;
@@ -94,7 +103,7 @@ function page(locale, sub) {
       guide.directAnswer ? `<p><strong>${richHtml(locale, guide.directAnswer)}</strong></p>` : ''
     }${tableHtml(locale, guide.table)}<ol>${guide.steps
       .map((s) => `<li><h2>${esc(s.title)}</h2><p>${richHtml(locale, s.detail)}</p></li>`)
-      .join('')}</ol>${faqHtml(locale, guide.faq)}${relatedHtml(locale, guide.related)}</article>`;
+      .join('')}</ol>${faqHtml(locale, guide.faq)}${relatedHtml(locale, guide.related, sub)}</article>`;
   } else if (kind === 'guides') {
     title = `${copy.navGuides} — CASH NOIR`;
     body = `<h1>${esc(copy.navGuides)}</h1><ul>${GUIDE_PAGES.map((g) => {
