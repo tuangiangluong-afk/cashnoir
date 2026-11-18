@@ -278,18 +278,33 @@ const FAQ: Record<Locale, { q: string; a: string }[]> = {
   ],
 };
 
+import {
+  EXPANSION_BLOG_I18N,
+  EXPANSION_GUIDE_I18N,
+  EXPANSION_VERSUS_I18N,
+} from './seoExpansionI18n.ts';
+
 /** Dossier de blog dans la langue demandée (le texte français d'ici remplace celui de seoContent.ts). */
 export function localizeBlog(a: BlogArticle, locale: Locale): BlogArticle {
+  if (locale === 'en') return a;
+  const exp = EXPANSION_BLOG_I18N[a.slug]?.[locale];
+  if (exp) return { ...a, ...exp };
   const t = BLOG[a.slug]?.[locale];
   return t ? { ...a, title: t.title, excerpt: t.excerpt, updatedLabel: t.updatedLabel, keywords: t.keywords, sections: t.sections } : a;
 }
 
 export function localizeVersus(v: VersusPage, locale: Locale): VersusPage {
+  if (locale === 'en') return v;
+  const exp = EXPANSION_VERSUS_I18N[v.slug]?.[locale];
+  if (exp) return { ...v, ...exp };
   const t = locale === 'fr' ? undefined : VERSUS[v.slug]?.[locale];
   return t ? { ...v, ...t } : v;
 }
 
 export function localizeGuide(g: GuidePage, locale: Locale): GuidePage {
+  if (locale === 'en') return g;
+  const exp = EXPANSION_GUIDE_I18N[g.slug]?.[locale];
+  if (exp) return { ...g, ...exp };
   const t = GUIDES[g.slug]?.[locale];
   return t ? { ...g, title: t.title, metaDesc: t.metaDesc, steps: t.steps } : g;
 }

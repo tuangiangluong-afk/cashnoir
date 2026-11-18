@@ -282,96 +282,558 @@
   </url>
 
   <!-- SEO/AEO Expansion (EN) -->
-  <url>
-    <loc>https://cashnoir.app/blog/best-games-like-papers-please-2026</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/best-ai-interrogation-npc-games</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/best-pawn-shop-black-market-games</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/best-noir-detective-lie-detection-games</loc>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/suck-up</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/beholder</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/contraband-police</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/potionomics</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/not-tonight</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/death-and-taxes</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/ai-dungeon</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/vs/her-story</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/guides/ascension-i-to-x-survival-guide</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/guides/boris-kovalenko-season-1-dossier</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/guides/saga-vault-dilemma-guide</loc>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta</loc>
-    <priority>0.8</priority>
-  </url>
+
+  <!-- Multilingual Expansion Pages (EN / FR / ES) -->
   <url>
     <loc>https://cashnoir.app/vs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs" />
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://cashnoir.app/guides</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/best-games-like-papers-please-2026</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/best-games-like-papers-please-2026</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/best-games-like-papers-please-2026</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-games-like-papers-please-2026" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-games-like-papers-please-2026" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/best-ai-interrogation-npc-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/best-ai-interrogation-npc-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/best-ai-interrogation-npc-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-ai-interrogation-npc-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-ai-interrogation-npc-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/best-pawn-shop-black-market-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/best-pawn-shop-black-market-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/best-pawn-shop-black-market-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-pawn-shop-black-market-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-pawn-shop-black-market-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/best-free-browser-roguelike-strategy-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/best-free-browser-roguelike-strategy-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-free-browser-roguelike-strategy-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-free-browser-roguelike-strategy-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/best-noir-detective-lie-detection-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/best-noir-detective-lie-detection-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/best-noir-detective-lie-detection-games</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/best-noir-detective-lie-detection-games" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/best-noir-detective-lie-detection-games" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/why-dialogue-trees-are-dead-emotion-engine</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/why-dialogue-trees-are-dead-emotion-engine</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/why-dialogue-trees-are-dead-emotion-engine" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/balancing-ascension-x-300-monte-carlo-runs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/balancing-ascension-x-300-monte-carlo-runs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/balancing-ascension-x-300-monte-carlo-runs" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/blog/deterministic-deal-autopsy-negotiation-psychology</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/blog/deterministic-deal-autopsy-negotiation-psychology</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/blog/deterministic-deal-autopsy-negotiation-psychology" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/suck-up</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/suck-up" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/suck-up</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/suck-up" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/suck-up</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/suck-up" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/suck-up" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/beholder</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/beholder" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/beholder</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/beholder" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/beholder</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/beholder" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/beholder" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/contraband-police</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/contraband-police" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/contraband-police</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/contraband-police" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/contraband-police</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/contraband-police" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/contraband-police" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/potionomics</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/potionomics" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/potionomics</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/potionomics" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/potionomics</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/potionomics" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/potionomics" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/not-tonight</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/not-tonight" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/not-tonight</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/not-tonight" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/not-tonight</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/not-tonight" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/not-tonight" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/death-and-taxes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/death-and-taxes" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/death-and-taxes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/death-and-taxes" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/death-and-taxes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/death-and-taxes" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/death-and-taxes" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/ai-dungeon</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/ai-dungeon" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/ai-dungeon</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/ai-dungeon" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/ai-dungeon</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/ai-dungeon" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/ai-dungeon" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/vs/her-story</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/her-story" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/vs/her-story</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/her-story" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/vs/her-story</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/vs/her-story" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/vs/her-story" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/guides/ascension-i-to-x-survival-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides/ascension-i-to-x-survival-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides/ascension-i-to-x-survival-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/ascension-i-to-x-survival-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/ascension-i-to-x-survival-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/guides/boris-kovalenko-season-1-dossier</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides/boris-kovalenko-season-1-dossier</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides/boris-kovalenko-season-1-dossier</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/boris-kovalenko-season-1-dossier" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/boris-kovalenko-season-1-dossier" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides/night-arbitrage-quick-sale-vs-auctions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides/night-arbitrage-quick-sale-vs-auctions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/night-arbitrage-quick-sale-vs-auctions" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/guides/saga-vault-dilemma-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides/saga-vault-dilemma-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides/saga-vault-dilemma-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/saga-vault-dilemma-guide" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/saga-vault-dilemma-guide" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/fr/guides/daily-contract-24h-leaderboard-meta</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cashnoir.app/es/guides/daily-contract-24h-leaderboard-meta</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://cashnoir.app/fr/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://cashnoir.app/es/guides/daily-contract-24h-leaderboard-meta" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cashnoir.app/guides/daily-contract-24h-leaderboard-meta" />
     <priority>0.8</priority>
   </url>
 </urlset>
