@@ -25,6 +25,25 @@ const template = readFileSync(join(dist, 'index.html'), 'utf8');
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const urlFor = (locale, sub) => (locale === 'en' ? sub || '/' : `/${locale}${sub}`);
+const richHtml = (locale, text) =>
+  esc(text).replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, (_, label, p) => {
+    const href = p === '/play' || p.startsWith('/play/') ? p : urlFor(locale, p);
+    return `<a href="${esc(href)}">${label}</a>`;
+  });
+const relatedHtml = (locale, related) =>
+  related?.length
+    ? `<aside><h2>Related</h2><ul>${related
+        .map((r) => `<li><a href="${esc(urlFor(locale, r.path))}">${esc(r.label)}</a></li>`)
+        .join('')}</ul></aside>`
+    : '';
+
+const trimMeta = (s, max) => {
+  const clean = String(s).replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max - 1);
+  const sp = cut.lastIndexOf(' ');
+  return `${sp > max * 0.6 ? cut.slice(0, sp) : cut}…`;
+};
 
 function page(locale, sub) {
   const copy = SITE_COPY[locale];
@@ -44,22 +63,42 @@ function page(locale, sub) {
     title = `${blog.title} — CASH NOIR`;
     desc = blog.excerpt;
     body = `<article><h1>${esc(blog.title)}</h1><p>${esc(blog.excerpt)}</p>${blog.sections
-      .map((s) => `<h2>${esc(s.heading)}</h2><p>${esc(s.body)}</p>`)
-      .join('')}</article>`;
+      .map((s) => `<h2>${esc(s.heading)}</h2><p>${richHtml(locale, s.body)}</p>`)
+      .join('')}${relatedHtml(locale, blog.related)}</article>`;
   } else if (vs) {
     title = `${vs.title} — CASH NOIR`;
     desc = vs.metaDesc;
-    body = `<article><h1>${esc(vs.title)}</h1><p>${esc(vs.directAnswer)}</p><table><tr><th></th><th>CASH NOIR</th><th>${esc(
+    body = `<article><h1>${esc(vs.title)}</h1><p>${richHtml(locale, vs.directAnswer)}</p><table><tr><th></th><th>CASH NOIR</th><th>${esc(
       vs.competitor,
     )}</th></tr>${vs.rows
       .map((r) => `<tr><th>${esc(r.criteria)}</th><td>${esc(r.cashNoir)}</td><td>${esc(r.other)}</td></tr>`)
-      .join('')}</table><p>${esc(vs.verdict)}</p></article>`;
+      .join('')}</table><p>${richHtml(locale, vs.verdict)}</p>${relatedHtml(locale, vs.related)}</article>`;
   } else if (guide) {
     title = `${guide.title} — CASH NOIR`;
     desc = guide.metaDesc;
     body = `<article><h1>${esc(guide.title)}</h1><p>${esc(guide.metaDesc)}</p><ol>${guide.steps
-      .map((s) => `<li><h2>${esc(s.title)}</h2><p>${esc(s.detail)}</p></li>`)
-      .join('')}</ol></article>`;
+      .map((s) => `<li><h2>${esc(s.title)}</h2><p>${richHtml(locale, s.detail)}</p></li>`)
+      .join('')}</ol>${relatedHtml(locale, guide.related)}</article>`;
+  } else if (kind === 'guides') {
+    title = `${copy.navGuides} — CASH NOIR`;
+    body = `<h1>${esc(copy.navGuides)}</h1><ul>${GUIDE_PAGES.map((g) => {
+      const lg = localizeGuide(g, locale);
+      return `<li><a href="${urlFor(locale, `/guides/${lg.slug}`)}">${esc(lg.title)}</a> — ${esc(lg.metaDesc)}</li>`;
+    }).join('')}</ul>`;
+  } else if (kind === 'vs') {
+    title = `${copy.navVs} — CASH NOIR`;
+    body = `<h1>${esc(copy.navVs)}</h1><ul>${VERSUS_PAGES.map((v) => {
+      const lv = localizeVersus(v, locale);
+      return `<li><a href="${urlFor(locale, `/vs/${lv.slug}`)}">${esc(lv.title)}</a> — ${esc(lv.metaDesc)}</li>`;
+    }).join('')}</ul>`;
+  } else if (sub === '/play') {
+    title = 'Play CASH NOIR — Real-Time AI Interrogation Counter';
+    desc = 'Enter the backroom counter in CASH NOIR. Sign in with Google to interrogate 100 autonomous AI sellers, inspect relics and survive midnight rent.';
+    body = `<h1>Play CASH NOIR — Backroom Counter</h1><h2>Sign in with Google to open the counter</h2><p>${esc(desc)}</p>`;
+  } else if (sub === '/play/daily') {
+    title = 'Daily 24h Contract — CASH NOIR Global Seed';
+    desc = 'One global seed per 24 hours. Negotiate against today’s target in CASH NOIR and post your verified margin on the global leaderboard.';
+    body = `<h1>CASH NOIR Daily 24h Contract</h1><h2>One seed, one shot, global leaderboard</h2><p>${esc(desc)}</p>`;
   } else if (sub === '/terms') {
     title = 'Terms of Service — CASH NOIR (WeLink Tech SAS)';
     desc = 'Terms of Service for CASH NOIR, operated by WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France.';
@@ -114,7 +153,7 @@ function page(locale, sub) {
             {
               '@type': 'Article',
               headline: guide.title,
-              datePublished: '2026-11-15',
+              datePublished: guide.publishedAt || '2026-11-15',
               dateModified: todayIso,
               inLanguage: copy.htmlLang,
               description: guide.metaDesc,
@@ -172,18 +211,20 @@ function page(locale, sub) {
           ],
         };
 
+  const finalTitle = trimMeta(title, 58);
+  const finalDesc = trimMeta(desc, 152);
   const canonical = `${BASE}${urlFor(locale, sub)}`;
   const head = [
-    `<title>${esc(title)}</title>`,
-    `<meta name="description" content="${esc(desc)}" />`,
+    `<title>${esc(finalTitle)}</title>`,
+    `<meta name="description" content="${esc(finalDesc)}" />`,
     `<link rel="canonical" href="${canonical}" />`,
     `<link rel="ard" href="/.well-known/ard.json" />`,
     ...['en', 'fr', 'es'].map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE}${urlFor(l, sub)}" />`),
     `<link rel="alternate" hreflang="x-default" href="${BASE}${urlFor('en', sub)}" />`,
     `<meta property="og:type" content="${blog ? 'article' : 'website'}" />`,
     `<meta property="og:site_name" content="CASH NOIR" />`,
-    `<meta property="og:title" content="${esc(title)}" />`,
-    `<meta property="og:description" content="${esc(desc)}" />`,
+    `<meta property="og:title" content="${esc(finalTitle)}" />`,
+    `<meta property="og:description" content="${esc(finalDesc)}" />`,
     `<meta property="og:url" content="${canonical}" />`,
     `<meta property="og:image" content="${OG_IMAGE}" />`,
     `<meta name="twitter:card" content="summary" />`,
@@ -202,6 +243,8 @@ function page(locale, sub) {
 const subs = [
   '',
   '/blog',
+  '/guides',
+  '/vs',
   ...BLOG_ARTICLES.map((a) => `/blog/${a.slug}`),
   ...VERSUS_PAGES.map((v) => `/vs/${v.slug}`),
   ...GUIDE_PAGES.map((g) => `/guides/${g.slug}`),
@@ -215,9 +258,9 @@ const write = (urlPath, html) => {
   written.add(urlPath.replace(/\/$/, '') || '/');
 };
 
-// Le client de jeu garde la coquille SPA (routes profondes servies sans rewrite côté hébergeur).
-write('/play', template);
-write('/play/daily', template);
+// Le client de jeu garde la coquille SPA, avec métadonnées complètes pour /play et /play/daily.
+write('/play', page('en', '/play'));
+write('/play/daily', page('en', '/play/daily'));
 write('/admin', template);
 write('/terms', page('en', '/terms'));
 write('/privacy', page('en', '/privacy'));

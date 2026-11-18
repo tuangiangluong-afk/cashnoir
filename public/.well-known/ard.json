@@ -4,38 +4,41 @@
   "name": "CASH NOIR",
   "description": "Real-time AI black-market interrogation and pawn-shop negotiation rogue-like by WeLink Tech SAS.",
   "url": "https://cashnoir.app",
-  "publisher": {
-    "name": "WeLink Tech SAS",
-    "address": "6 Rue des Bateliers, 92110 Clichy, France",
-    "contact": "mailto:hello@cashnoir.app"
-  },
-  "documentation": [
+  "entries": [
     {
-      "type": "llms_txt",
-      "url": "https://cashnoir.app/llms.txt",
-      "format": "text/markdown"
-    },
-    {
-      "type": "sitemap",
-      "url": "https://cashnoir.app/sitemap.xml",
-      "format": "application/xml"
-    }
-  ],
-  "resources": [
-    {
-      "name": "Marketing Home (EN/FR/ES)",
+      "id": "home",
+      "name": "CASH NOIR Home (EN/FR/ES)",
+      "kind": "page",
       "url": "https://cashnoir.app/",
-      "alternates": ["https://cashnoir.app/fr", "https://cashnoir.app/es"]
+      "description": "Landing page and live AI negotiation counter demo."
     },
     {
-      "name": "Tactical Guides (HowTo)",
-      "url": "https://cashnoir.app/guides/negociation-ia-temps-reel"
+      "id": "llms-txt",
+      "name": "LLMs Reference",
+      "kind": "documentation",
+      "url": "https://cashnoir.app/llms.txt",
+      "description": "Structured Markdown summary of CASH NOIR mechanics and canonical URLs."
     },
     {
+      "id": "sitemap",
+      "name": "XML Sitemap",
+      "kind": "sitemap",
+      "url": "https://cashnoir.app/sitemap.xml",
+      "description": "Complete multilingual sitemap with hreflang alternates."
+    },
+    {
+      "id": "guides",
+      "name": "Tactical Guides",
+      "kind": "documentation",
+      "url": "https://cashnoir.app/guides/negociation-ia-temps-reel",
+      "description": "Step-by-step HowTo guides on AI interrogation and Codex relics."
+    },
+    {
+      "id": "leaderboard-api",
       "name": "Daily Leaderboard API",
+      "kind": "api",
       "url": "https://cashnoir.app/api/leaderboard",
-      "method": "GET",
-      "format": "application/json"
+      "description": "Public JSON endpoint returning verified 24h Daily Contract scores."
     }
   ]
 }
