@@ -1095,7 +1095,7 @@ export async function handleRequest(req, res) {
       form.set('mode', 'payment');
       form.set('line_items[0][price]', price);
       form.set('line_items[0][quantity]', '1');
-      form.set('success_url', `${ALLOWED_ORIGIN}/?pass=claim&session_id={CHECKOUT_SESSION_ID}`);
+      form.set('success_url', `${ALLOWED_ORIGIN}/api/pass/claim?session_id={CHECKOUT_SESSION_ID}`);
       form.set('cancel_url', `${ALLOWED_ORIGIN}/?pass=cancel`);
 
       const upstream = await fetch('https://api.stripe.com/v1/checkout/sessions', {

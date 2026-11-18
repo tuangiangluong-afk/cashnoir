@@ -1067,6 +1067,11 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const sid = params.get('session_id');
+    if (params.get('pass') === 'claim' && sid) {
+      window.location.replace(`/api/pass/claim?session_id=${encodeURIComponent(sid)}`);
+      return;
+    }
     if (params.has('pass')) {
       window.history.replaceState({}, '', window.location.pathname);
     }
