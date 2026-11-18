@@ -215,6 +215,7 @@ const secureFlag = (req) =>
 const passClaims = new Map();
 const MAX_CLAIMS_PER_SESSION = 3;
 const PASS_DURATION_MS = 30 * 24 * 3600 * 1000;
+let cachedStripePriceMode = null;
 
 // Modèles Ollama autorisés : on ne laisse pas le navigateur choisir n'importe quoi.
 const OLLAMA_MODELS = (process.env.OLLAMA_MODELS || 'gemma4:latest,llama3.1,llama3.2,mistral,qwen2.5')
@@ -1091,8 +1092,22 @@ export async function handleRequest(req, res) {
         return;
       }
 
+      let mode = cachedStripePriceMode;
+      if (!mode) {
+        try {
+          const pRes = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(price)}`, {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          const pData = await pRes.json();
+          mode = pData?.type === 'recurring' ? 'subscription' : 'payment';
+          cachedStripePriceMode = mode;
+        } catch {
+          mode = 'subscription';
+        }
+      }
+
       const form = new URLSearchParams();
-      form.set('mode', 'payment');
+      form.set('mode', mode);
       form.set('line_items[0][price]', price);
       form.set('line_items[0][quantity]', '1');
       form.set('success_url', `${ALLOWED_ORIGIN}/api/pass/claim?session_id={CHECKOUT_SESSION_ID}`);
@@ -1138,7 +1153,10 @@ export async function handleRequest(req, res) {
         { headers: { Authorization: `Bearer ${key}` } },
       );
       const session = await upstream.json().catch(() => ({}));
-      if (!upstream.ok || session?.payment_status !== 'paid') {
+      const isPaid =
+        session?.payment_status === 'paid' ||
+        (session?.mode === 'subscription' && session?.status === 'complete');
+      if (!upstream.ok || !isPaid) {
         sendJson(res, 402, { error: 'Paiement non confirmé par Stripe.' });
         return;
       }
@@ -1217,7 +1235,11 @@ export async function handleRequest(req, res) {
           sendJson(res, 503, { error: 'SESSION_SECRET non configuré : Pass non émis.' });
           return;
         }
-        if (event.data?.object?.payment_status && event.data.object.payment_status !== 'paid') {
+        const obj = event.data?.object;
+        const isPaid =
+          obj?.payment_status === 'paid' ||
+          (obj?.mode === 'subscription' && obj?.status === 'complete');
+        if (obj?.payment_status && !isPaid) {
           sendJson(res, 200, { received: true, ignored: 'unpaid' });
           return;
         }
