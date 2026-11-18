@@ -211,5 +211,72 @@ try {
   check('ticket natif : expiré refusé', (await redeemNativeTicket(tk({ jti: 'b'.repeat(24) }), vt, 3000, store)) === null);
   check('ticket natif : mauvais type / jti invalide / illisible refusés', (await redeemNativeTicket(tk({ kind: 'oauth_session', jti: 'c'.repeat(24) }), vt, 1000, store)) === null && (await redeemNativeTicket(tk({ jti: 'x' }), vt, 1000, store)) === null && (await redeemNativeTicket('zzz', vt, 1000, store)) === null);
 }
+// OAuth Google anti-CSRF : validation par state signé (résilience Safari iOS sans cookies)
+{
+  const { handleAuthAndProfileRoutes } = await import('../server/auth-profiles.mjs');
+  const { createHmac } = await import('node:crypto');
+  const sec = 'test_secret_oauth_32_bytes_long!';
+  const issue = (p) => {
+    const b = Buffer.from(JSON.stringify(p)).toString('base64url');
+    return `${b}.${createHmac('sha256', sec).update(b).digest('hex')}`;
+  };
+  const verify = (t) => {
+    if (!t || !t.includes('.')) return null;
+    const [b, s] = t.split('.');
+    if (createHmac('sha256', sec).update(b).digest('hex') !== s) return null;
+    try { return JSON.parse(Buffer.from(b, 'base64url').toString('utf8')); } catch { return null; }
+  };
+
+  let capturedLocation = '';
+  let capturedCookie = '';
+  const fakeRes = {
+    writeHead: (_c, h) => { capturedLocation = h.Location || ''; capturedCookie = h['Set-Cookie'] || ''; },
+    end: () => {},
+  };
+  process.env.GOOGLE_CLIENT_ID = 'test_cid';
+  process.env.GOOGLE_CLIENT_SECRET = 'test_csec';
+
+  await handleAuthAndProfileRoutes({
+    req: { method: 'GET', headers: {} },
+    res: fakeRes,
+    url: new URL('http://localhost/api/auth/google'),
+    origin: 'http://localhost',
+    allowedOrigin: 'http://localhost',
+    allowedOrigins: ['http://localhost'],
+    sessionSecret: sec,
+    issueToken: issue,
+    verifyToken: verify,
+    sendJson: () => {},
+  });
+
+  const stateInAuthUrl = new URL(capturedLocation).searchParams.get('state');
+  check('oauth init : state signé présent dans authUrl', Boolean(stateInAuthUrl && verify(stateInAuthUrl)));
+
+  let callbackCode = 0;
+  let callbackData = null;
+  const mockCallback = async (queryState, cookieHeader) => {
+    callbackCode = 0; callbackData = null;
+    await handleAuthAndProfileRoutes({
+      req: { method: 'GET', headers: cookieHeader ? { cookie: cookieHeader } : {} },
+      res: { writeHead: (c) => { callbackCode = c; }, end: () => {} },
+      url: new URL(`http://localhost/api/auth/google/callback?code=mock_code&state=${encodeURIComponent(queryState)}`),
+      origin: 'http://localhost',
+      allowedOrigin: 'http://localhost',
+      allowedOrigins: ['http://localhost'],
+      sessionSecret: sec,
+      issueToken: issue,
+      verifyToken: verify,
+      sendJson: (r, c, d) => { callbackCode = c; callbackData = d; },
+    });
+  };
+
+  // 1) Safari iOS sans cookie : state signé valide -> passe le filtre anti-CSRF (échoue plus loin sur l'échange token Google avec fetch réseau mocké)
+  await mockCallback(stateInAuthUrl, '');
+  check('oauth callback : state signé accepté même sans cookie fence_oauth_tx', callbackCode !== 403);
+
+  // 2) Faux state altéré sans cookie -> rejeté 403
+  await mockCallback(stateInAuthUrl + 'corrupted', '');
+  check('oauth callback : state corrompu rejeté 403', callbackCode === 403);
+}
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);

@@ -267,13 +267,11 @@ export async function handleAuthAndProfileRoutes({
       return true;
     }
 
-    const state = crypto.randomBytes(24).toString('hex');
     const codeVerifier = b64url(crypto.randomBytes(32));
     const codeChallenge = b64url(crypto.createHash('sha256').update(codeVerifier).digest());
 
     const txToken = issueToken({
       kind: 'oauth_tx',
-      state,
       codeVerifier,
       redirectUri: callbackBase,
       native: url.searchParams.get('native') === '1',
@@ -285,7 +283,7 @@ export async function handleAuthAndProfileRoutes({
     authUrl.searchParams.set('redirect_uri', callbackBase);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'openid email profile');
-    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('state', txToken);
     authUrl.searchParams.set('code_challenge', codeChallenge);
     authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('prompt', 'select_account');
@@ -306,20 +304,43 @@ export async function handleAuthAndProfileRoutes({
       return true;
     }
 
+    const oauthError = url.searchParams.get('error');
+    if (oauthError) {
+      res.writeHead(302, {
+        Location: `${allowedOrigin}/?auth=cancel`,
+        'Cache-Control': 'no-store',
+      });
+      res.end();
+      return true;
+    }
+
     const code = url.searchParams.get('code') || '';
     const state = url.searchParams.get('state') || '';
     const cookies = parseCookies(req);
-    const tx = cookies.fence_oauth_tx ? verifyToken(cookies.fence_oauth_tx) : null;
 
-    if (
-      !code ||
-      !state ||
-      !tx ||
-      tx.kind !== 'oauth_tx' ||
-      !(tx.exp > Date.now()) ||
-      String(tx.state).length !== state.length ||
-      !crypto.timingSafeEqual(Buffer.from(String(tx.state)), Buffer.from(state))
+    // Résilience multi-navigateur (Safari iOS / ITP / Navigation Privée / Cookies tiers) :
+    // 1) Si le state est le jeton HMAC signé : on le vérifie directement
+    // 2) Si le state est un format opaque et que le cookie fence_oauth_tx est présent : on vérifie le cookie
+    const txFromState = state ? verifyToken(state) : null;
+    const txFromCookie = cookies.fence_oauth_tx ? verifyToken(cookies.fence_oauth_tx) : null;
+
+    let tx = null;
+    if (txFromState && txFromState.kind === 'oauth_tx' && txFromState.exp > Date.now()) {
+      tx = txFromState;
+    } else if (
+      txFromCookie &&
+      txFromCookie.kind === 'oauth_tx' &&
+      txFromCookie.exp > Date.now() &&
+      (
+        !txFromCookie.state ||
+        (String(txFromCookie.state).length === state.length &&
+          crypto.timingSafeEqual(Buffer.from(String(txFromCookie.state)), Buffer.from(state)))
+      )
     ) {
+      tx = txFromCookie;
+    }
+
+    if (!code || !state || !tx) {
       sendJson(res, 403, { error: 'Transaction OAuth invalide ou expirée (anti-CSRF).' });
       return true;
     }
