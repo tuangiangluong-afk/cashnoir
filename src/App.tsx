@@ -53,6 +53,7 @@ import {
   localizeArcNote,
 } from './data/noirLocalization';
 import { track } from './services/telemetry';
+import { trackEvent, trackPageView } from './services/analytics';
 import { renderShareCard, shareCardImage } from './services/shareCard';
 import { dealDebrief, runAdvice, EMPTY_RUN_STATS, type RunStats } from './data/debrief';
 import { activeCombos, comboCompletedBy, hasCombo } from './data/combos';
@@ -585,7 +586,6 @@ export default function App() {
   } | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [devBypass, setDevBypass] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>('idle');
   const cloudReadyRef = useRef(false);
 
@@ -682,6 +682,15 @@ export default function App() {
         setOauthConfigured(Boolean(data.oauthConfigured));
         if (!data.authenticated || !data.user) return;
         setAuthUser(data.user);
+        try {
+          const known = localStorage.getItem('fence_known_user');
+          if (known !== data.user.id) {
+            localStorage.setItem('fence_known_user', data.user.id);
+            trackEvent('sign_up', { method: 'google', user_id: data.user.id });
+          } else {
+            trackEvent('login', { method: 'google', user_id: data.user.id });
+          }
+        } catch {}
 
         const profRes = await fetch('/api/profile', { credentials: 'include' });
         if (!profRes.ok || cancelled) return;
@@ -735,6 +744,17 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // Tracking GA4 / GTM : vues de page + achat Pass Syndicat confirmé au retour Stripe
+  useEffect(() => {
+    trackPageView(routePath);
+    if (typeof window !== 'undefined') {
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get('checkout') === 'success' || qs.get('pass') === 'success') {
+        trackEvent('purchase', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9 });
+      }
+    }
+  }, [routePath]);
 
   // Synchronisation dynamique de l'écosystème (nouveaux objets & suspects créés en BO)
   useEffect(() => {
@@ -2989,6 +3009,7 @@ export default function App() {
       });
       const mode = await shareCardImage(blob, text);
       if (mode === 'downloaded') await navigator.clipboard.writeText(text).catch(() => {});
+      trackEvent('share', { method: mode, discount_pct: discount, item_name: currentCase.item.name });
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2000);
       return;
@@ -3280,8 +3301,7 @@ export default function App() {
     );
   }
 
-  if (!authUser && !devBypass) {
-    const isLocal = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+  if (!authUser) {
     return (
       <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md border border-white/15 bg-[#0b0c10] p-6 sm:p-8 space-y-6 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
@@ -3295,9 +3315,25 @@ export default function App() {
                 CASH <span className="text-amber-400">NOIR</span>
               </span>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400/90">
-              03:14 AM
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center border border-white/10 font-mono text-[10px]">
+                {(['en', 'fr', 'es'] as Locale[]).map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => switchLanguage(loc)}
+                    className={`px-1.5 py-0.5 uppercase transition-colors ${
+                      gameLocale === loc ? 'bg-white/10 text-amber-300 font-bold' : 'text-zinc-500 hover:text-zinc-200'
+                    }`}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400/90">
+                03:14 AM
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -3320,6 +3356,7 @@ export default function App() {
             type="button"
             onClick={() => {
               if (oauthConfigured) {
+                trackEvent('login_attempt', { method: 'google' });
                 window.location.href = '/api/auth/google';
               } else {
                 setError(tt('Google OAuth non configuré sur ce serveur.', 'Google OAuth is not configured on this server.', 'Google OAuth no está configurado en este servidor.'));
@@ -3342,23 +3379,17 @@ export default function App() {
             </p>
           )}
 
-          {isLocal && !oauthConfigured && (
-            <button
-              type="button"
-              onClick={() => setDevBypass(true)}
-              className="w-full border border-white/10 py-2 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:text-zinc-200"
-            >
-              {tt('Mode Dev Local (OAuth absent)', 'Local Dev Mode (OAuth off)', 'Modo Dev Local (sin OAuth)')}
-            </button>
-          )}
-
           <div className="flex items-center justify-between border-t border-white/10 pt-4 font-mono text-[10px] text-zinc-500">
             <button type="button" onClick={() => navigateTo('/')} className="hover:text-zinc-300">
               ← {tt('Retour accueil', 'Back to home', 'Volver al inicio')}
             </button>
             <div className="flex gap-3">
-              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigateTo('/privacy'); }} className="hover:text-zinc-300">Privacy</a>
-              <a href="/terms" onClick={(e) => { e.preventDefault(); navigateTo('/terms'); }} className="hover:text-zinc-300">Terms</a>
+              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigateTo('/privacy'); }} className="hover:text-zinc-300">
+                {tt('Confidentialité', 'Privacy', 'Privacidad')}
+              </a>
+              <a href="/terms" onClick={(e) => { e.preventDefault(); navigateTo('/terms'); }} className="hover:text-zinc-300">
+                {tt('Conditions', 'Terms', 'Términos')}
+              </a>
             </div>
           </div>
         </div>

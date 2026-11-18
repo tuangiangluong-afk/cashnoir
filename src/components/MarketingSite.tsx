@@ -1,5 +1,6 @@
 import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../data/seoI18n';
 import { localizeSeasonName, localizeSeasonEpisode, localizeFaction } from '../data/noirLocalization';
+import { trackEvent } from '../services/analytics';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2, FileText } from 'lucide-react';
 import {
@@ -89,6 +90,7 @@ export function MarketingSite({
 
   const startPassCheckout = async () => {
     setCheckoutBusy(true);
+    trackEvent('begin_checkout', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9, locale });
     try {
       const res = await fetch('/api/checkout', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
@@ -126,6 +128,7 @@ export function MarketingSite({
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
+        trackEvent('generate_lead', { form_id: 'contact_hello', locale });
         if (data.fallbackMailto) {
           window.location.href = `mailto:hello@cashnoir.app?subject=${encodeURIComponent(
             contactSubject || 'Contact CASH NOIR',
