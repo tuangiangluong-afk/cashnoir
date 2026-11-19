@@ -17,6 +17,7 @@
     "@capacitor/browser": "^8.0.5",
     "@capacitor/cli": "^8.6.2",
     "@capacitor/core": "^8.6.2",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.6.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",

@@ -241,3 +241,19 @@
 [data-native] [data-buy-pass] {
   display: none !important;
 }
+
+/* App native : pas de rebond, pas de loupe/menu au appui long, pas de sélection de texte hors champs. */
+[data-native],
+[data-native] body {
+  overscroll-behavior: none;
+}
+[data-native] body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+[data-native] input,
+[data-native] textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}

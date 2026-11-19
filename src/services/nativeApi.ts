@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 
@@ -11,8 +11,13 @@ const getToken = () => {
 
 /** Connexion Google : navigation classique sur le web, navigateur système + deep link `cashnoir://` en natif (Google bloque OAuth dans une WebView). */
 export function startGoogleLogin() {
-  if (isNative) void Browser.open({ url: `${API}/api/auth/google?native=1` });
+  if (isNative) void Browser.open({ url: `${API}/api/auth/google?native=1`, toolbarColor: '#050507', presentationStyle: 'popover' });
   else window.location.href = '/api/auth/google';
+}
+
+/** Pages légales du site : navigateur intégré en natif (le site marketing n'est pas embarqué dans l'app). */
+export function openSitePage(path: string) {
+  void Browser.open({ url: `${API}${path}`, toolbarColor: '#050507' });
 }
 
 export function clearNativeSession() {
@@ -22,6 +27,9 @@ export function clearNativeSession() {
 /** En natif uniquement : /api -> https://cashnoir.app/api, session en Bearer (cookies tiers bloqués par WKWebView). Sur le web/PWA : aucun effet. */
 if (isNative) {
   document.documentElement.setAttribute('data-native', '');
+  // L'app native ouvre directement le comptoir (le site marketing reste réservé au web).
+  if (window.location.pathname === '/') window.history.replaceState(null, '', '/play');
+  void SystemBars.setStyle({ style: SystemBarsStyle.Dark }).catch(() => {});
   const orig = window.fetch.bind(window);
   window.fetch = (input, init) => {
     if (typeof input !== 'string' || !input.startsWith('/api')) return orig(input, init);

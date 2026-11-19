@@ -52,7 +52,8 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
-import { startGoogleLogin, clearNativeSession } from './services/nativeApi';
+import { startGoogleLogin, clearNativeSession, isNative, openSitePage } from './services/nativeApi';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { track } from './services/telemetry';
 import { trackEvent, trackPageView } from './services/analytics';
 import { renderShareCard, shareCardImage } from './services/shareCard';
@@ -901,6 +902,10 @@ export default function App() {
   });
 
   const triggerHaptic = (ms: number | number[] = 15) => {
+    if (hapticsEnabled && isNative) {
+      void Haptics.impact({ style: (Array.isArray(ms) ? 40 : ms) > 20 ? ImpactStyle.Medium : ImpactStyle.Light }).catch(() => {});
+      return;
+    }
     if (hapticsEnabled && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate?.(ms);
@@ -3309,16 +3314,20 @@ export default function App() {
   // Porte d'entrée obligatoire : compte Google OAuth requis avant d'accéder au comptoir (pas de connexion directe anonyme en prod).
   if (!authChecked) {
     return (
-      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-6 font-mono text-xs text-zinc-500">
-        CASH NOIR · {tt('Vérification de session…', 'Checking session…', 'Verificando sesión…')}
+      <div role="status" aria-label={tt('Vérification de session…', 'Checking session…', 'Verificando sesión…')} className="min-h-[100dvh] bg-[#050507] flex items-center justify-center">
+        {/* Même logo que l'écran de lancement natif : transition sans rupture. */}
+        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" className="h-12 w-12 animate-pulse">
+          <path d="M14.5 5L5 16L14.5 27" stroke="#f4f4f5" strokeWidth="2.4" strokeLinecap="square" />
+          <path d="M17.5 5L27 16L17.5 27V5Z" fill="#fbbf24" />
+        </svg>
       </div>
     );
   }
 
   if (!authUser) {
     return (
-      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md border border-white/15 bg-[#0b0c10] p-6 sm:p-8 space-y-6 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
+      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 max-sm:items-end max-sm:pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
+        <div className="w-full max-w-md space-y-6 p-2 sm:border sm:border-white/15 sm:bg-[#0b0c10] sm:p-8 sm:shadow-[0_0_60px_rgba(0,0,0,0.9)]">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2.5">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5 shrink-0">
@@ -3394,14 +3403,16 @@ export default function App() {
           )}
 
           <div className="flex items-center justify-between border-t border-white/10 pt-4 font-mono text-[11px] text-zinc-500">
-            <button type="button" onClick={() => navigateTo('/')} className="hover:text-zinc-300">
-              ← {tt('Retour accueil', 'Back to home', 'Volver al inicio')}
-            </button>
+            {isNative ? <span /> : (
+              <button type="button" onClick={() => navigateTo('/')} className="hover:text-zinc-300">
+                ← {tt('Retour accueil', 'Back to home', 'Volver al inicio')}
+              </button>
+            )}
             <div className="flex gap-3">
-              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigateTo('/privacy'); }} className="hover:text-zinc-300">
+              <a href="/privacy" onClick={(e) => { e.preventDefault(); if (isNative) openSitePage('/privacy'); else navigateTo('/privacy'); }} className="hover:text-zinc-300">
                 {tt('Confidentialité', 'Privacy', 'Privacidad')}
               </a>
-              <a href="/terms" onClick={(e) => { e.preventDefault(); navigateTo('/terms'); }} className="hover:text-zinc-300">
+              <a href="/terms" onClick={(e) => { e.preventDefault(); if (isNative) openSitePage('/terms'); else navigateTo('/terms'); }} className="hover:text-zinc-300">
                 {tt('Conditions', 'Terms', 'Términos')}
               </a>
             </div>
@@ -3415,7 +3426,7 @@ export default function App() {
     <div
       className={`${
         tab === 'counter' || tab === 'daily' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
-      } bg-[#09090b] text-zinc-100 flex flex-col sm:pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
+      } bg-[#09090b] text-zinc-100 flex flex-col pt-[env(safe-area-inset-top)] sm:pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
     >
       {/* Top Bar : Responsive iOS/Android & Desktop */}
       <header className="relative z-30 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 bg-[#090a0f]/95 px-2.5 py-1.5 sm:px-6 w-full max-w-full overflow-hidden">
