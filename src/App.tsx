@@ -3455,8 +3455,8 @@ export default function App() {
 
         {/* Centre / HÉROS : Caisse & Danger (Mise en avant percutante du cash) */}
         <div className="flex items-center gap-2.5 sm:gap-6 bg-black/60 border border-white/5 rounded-full px-3 sm:px-4 py-1">
-          <div className="flex items-baseline gap-1.5 font-mono">
-            <span className="hidden sm:inline text-[11px] uppercase tracking-widest text-zinc-500">{t.cash}</span>
+          <div className="flex flex-col items-center gap-0.5 leading-none font-mono sm:flex-row sm:items-baseline sm:gap-1.5">
+            <span className="text-[11px] uppercase tracking-widest text-zinc-400">{t.cash}</span>
             <span className="text-base sm:text-xl font-bold tracking-tight text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.2)]">
               {gameLocale === 'en' ? `$${formatMoney(cash, gameLocale)}` : `${formatMoney(cash, gameLocale)} $`}
             </span>
@@ -3468,22 +3468,22 @@ export default function App() {
             type="button"
             onClick={() => setTab('night')}
             title={gameLocale === 'en' ? 'Tonight’s rent (tap for the ledger)' : gameLocale === 'es' ? 'Alquiler de esta noche (ver el libro)' : 'Loyer de ce soir (voir le registre)'}
-            className={`flex items-baseline gap-1 font-mono text-[11px] uppercase tracking-wider ${cash < dailyRent ? 'text-red-400' : 'text-zinc-400'} hover:text-amber-300`}
+            className={`flex flex-col items-center gap-0.5 leading-none font-mono text-[11px] uppercase tracking-wider sm:flex-row sm:items-baseline sm:gap-1 ${cash < dailyRent ? 'text-red-400' : 'text-zinc-300'} hover:text-amber-300`}
           >
-            <span className="hidden sm:inline">{gameLocale === 'en' ? 'Rent' : gameLocale === 'es' ? 'Alquiler' : 'Loyer'}</span>
+            <span className="text-zinc-400">{gameLocale === 'en' ? 'Rent' : gameLocale === 'es' ? 'Alquiler' : 'Loyer'}</span>
             <span className="font-semibold">{gameLocale === 'en' ? `$${formatMoney(dailyRent, gameLocale)}` : `${formatMoney(dailyRent, gameLocale)} $`}</span>
           </button>
 
           <div className="h-3.5 w-px bg-white/10 max-[359px]:hidden" />
 
           <div
-            className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider max-[359px]:hidden ${
-              cityHeat >= 70 ? 'text-red-400 animate-pulse font-bold' : cityHeat >= 50 ? 'text-amber-400' : 'text-zinc-500'
+            className={`flex flex-col items-center gap-0.5 leading-none font-mono text-[11px] uppercase tracking-wider max-[359px]:hidden sm:flex-row sm:gap-1.5 ${
+              cityHeat >= 70 ? 'text-red-400 animate-pulse font-bold' : cityHeat >= 50 ? 'text-amber-400' : 'text-zinc-300'
             }`}
             title={tt(`Pression policière : ${cityHeat} %`, `Police pressure: ${cityHeat}%`, `Presión policial: ${cityHeat} %`)}
           >
-            <Flame className="h-3.5 w-3.5" />
-            <span>{cityHeat}%</span>
+            <span className="text-zinc-400 sm:hidden">{tt('Flics', 'Heat', 'Policía')}</span>
+            <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5" />{cityHeat}%</span>
           </div>
 
           {jokerIds.length > 0 && (
@@ -4543,9 +4543,9 @@ export default function App() {
             {/* ==================== HAUT : HUD & CARNET DE COMPTOIR ==================== */}
             <div className="pointer-events-none relative z-30 flex flex-col gap-1.5 p-2 sm:p-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:pt-4 lg:contents">
               {/* Gauche : HUD sobre typographique avec fond sombre protecteur */}
-              <div className="pointer-events-auto flex w-full max-w-md flex-col gap-1.5 sm:gap-2.5 rounded-sm border border-white/10 bg-black/85 p-2 sm:p-3 backdrop-blur-md drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] lg:col-start-1 lg:row-start-1 lg:max-w-none lg:self-start">
+              <div className="pointer-events-auto flex w-full max-w-md flex-col gap-1.5 sm:gap-2.5 rounded-sm border border-white/20 bg-[#15161c]/95 p-2 sm:p-3 backdrop-blur-md drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] lg:col-start-1 lg:row-start-1 lg:max-w-none lg:self-start">
                 <div className="flex items-center justify-between gap-2 sm:items-baseline sm:gap-4">
-                  <button type="button" onClick={() => setShowClientSheet(true)} className="shrink-0 self-center lg:hidden" aria-label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')}>
+                  <button type="button" onClick={() => setShowClientSheet(true)} className="shrink-0 self-center max-sm:hidden lg:hidden" aria-label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')}>
                     <img
                       src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                       alt=""
@@ -4593,8 +4593,8 @@ export default function App() {
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5 sm:hidden font-mono text-[11px] uppercase tracking-wider">
-                      <span className="max-w-full text-zinc-400 truncate">
+                    <div className="flex flex-col gap-1 sm:hidden font-mono text-[11px]">
+                      <span className="max-w-full text-zinc-300 truncate">
                         {currentCase.age} {gameLocale === 'en' ? 'Y.O.' : gameLocale === 'es' ? 'AÑOS' : 'ANS'} · {localizeArchetype(currentCase.displayArchetype ?? currentCase.archetype, gameLocale)}
                       </span>
                       <button
@@ -4603,7 +4603,8 @@ export default function App() {
                           triggerHaptic(10);
                           setShowItemSheet(true);
                         }}
-                        className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-black/60 px-2 py-0.5 text-left active:scale-95 transition-transform max-w-full"
+                        aria-label={tt('Examiner l’objet', 'Inspect the item', 'Examinar el objeto')}
+                        className="flex w-full items-center gap-1.5 rounded-md border border-amber-500/40 bg-black/60 px-2 py-1 text-left active:scale-95 transition-transform"
                       >
                         <img
                           src={`/assets/items/${itemKindFor(localizeItemName(currentCase.item.name, gameLocale))}.webp`}
@@ -4611,7 +4612,7 @@ export default function App() {
                           className="h-5 w-7 object-contain mix-blend-lighten shrink-0"
                           onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                         />
-                        <span className="truncate text-[11px] font-semibold text-amber-300">
+                        <span className="min-w-0 flex-1 line-clamp-2 text-[12px] leading-tight font-semibold text-amber-300">
                           {currentCase.arcStep === 2 && !inventory.some((i) => i.arcItemKey === currentCase.requiresItemKey)
                             ? tt(`Recherche : ${localizeItemName(currentCase.item.name, gameLocale)}`, `Searching: ${localizeItemName(currentCase.item.name, gameLocale)}`, `Buscando: ${localizeItemName(currentCase.item.name, gameLocale)}`)
                             : localizeItemName(currentCase.item.name, gameLocale)}
@@ -4619,8 +4620,8 @@ export default function App() {
                         <span className="shrink-0 text-[11px] font-mono text-zinc-400">
                           ~{mny(currentCase.streetValue)}
                         </span>
-                        <span className="shrink-0 text-[11px] font-mono font-bold text-amber-400 underline flex items-center gap-0.5 ml-auto">
-                          <Search className="h-2.5 w-2.5 inline" /> {inspected || uvScanned ? '✓' : tt('Examiner', 'Inspect', 'Examinar')}
+                        <span className="shrink-0 text-[12px] font-mono font-bold text-amber-400 flex items-center gap-0.5">
+                          {inspected || uvScanned ? '✓' : <Search className="h-4 w-4" />}
                         </span>
                       </button>
                     </div>
@@ -5507,7 +5508,7 @@ export default function App() {
             </div>
 
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
-            <div className="felt sticky bottom-0 z-30 border-t-2 border-[#3d2c1e] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
+            <div className="felt sticky bottom-0 z-30 border-t-2 border-amber-900/70 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
                 {outcome !== 'active' && !currentCase.special && !currentCase.isDailyContract && (() => {
                   const castD = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
@@ -6027,8 +6028,13 @@ export default function App() {
                               ? `${currentCase.name} ...`
                               : t.inputPlaceholder
                           }
-                          className="min-w-0 flex-1 bg-transparent text-base sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60"
+                          className="min-w-0 flex-1 bg-transparent text-base sm:text-sm text-white placeholder:text-zinc-400 focus:outline-none disabled:opacity-60"
                         />
+                        {quota && (
+                          <button type="button" onClick={() => setShowQuotaInfo((v) => !v)} aria-label={tt(`${quota.remaining} négos IA restantes`, `${quota.remaining} AI haggles left`, `${quota.remaining} regateos IA`)} className={`sm:hidden shrink-0 flex items-center gap-1 px-1 font-mono text-[11px] ${quota.remaining <= 5 ? 'text-amber-300' : 'text-zinc-400'}`}>
+                            <MessageSquare className="h-3.5 w-3.5" />{quota.remaining}
+                          </button>
+                        )}
                         <button
                           type="submit"
                           disabled={loading || !input.trim()}
@@ -6043,7 +6049,7 @@ export default function App() {
                         </button>
                       </form>
                       {quota && (
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 font-mono text-[11px] text-zinc-400 max-sm:justify-center">
+                        <div className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 font-mono text-[11px] text-zinc-400 max-sm:justify-center ${quota.remaining > 10 && !showQuotaInfo ? 'max-sm:hidden' : ''}`}>
                           <button type="button" onClick={() => setShowQuotaInfo((v) => !v)} className={`inline-flex items-center gap-1 ${quota.remaining <= 5 ? 'text-amber-300' : ''}`} aria-expanded={showQuotaInfo}>
                             <MessageSquare className="h-3 w-3" />
                             {quota.remaining > 0
@@ -6929,7 +6935,7 @@ export default function App() {
         {([
           { id: 'counter', icon: MessageSquare, label: tt('Comptoir', 'Counter', 'Mostrador'), badge: `${Math.min(clientsServedToday + 1, maxClientsPerDay)}/${maxClientsPerDay}`, go: goCounter },
           { id: 'night', icon: Package, label: tt('Coffre', 'Vault', 'Caja'), badge: inventory.length > 0 ? String(inventory.length) : '', go: () => setTab('night') },
-          { id: 'daily', icon: Clock, label: formatCountdown(countdown, true), badge: '', go: () => openDailyContract() },
+          { id: 'daily', icon: Clock, label: tt('Contrat', 'Daily', 'Contrato'), badge: '', go: () => openDailyContract() },
           { id: 'shop', icon: Building2, label: t.tabEmpire, badge: '', go: () => setTab('shop') },
           { id: 'pantheon', icon: Trophy, label: t.tabPantheon, badge: '', go: () => setTab('pantheon') },
         ] as const).map((it) => {
@@ -6943,7 +6949,7 @@ export default function App() {
                 triggerHaptic(10);
                 it.go();
               }}
-              className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 active:bg-white/5 ${active ? 'text-amber-300' : 'text-zinc-500'}`}
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 active:bg-white/5 ${active ? 'text-amber-300' : 'text-zinc-400'}`}
             >
               <Icon className="h-5 w-5" />
               <span className="max-w-full truncate px-0.5 text-[11px] font-medium">{it.label}</span>
