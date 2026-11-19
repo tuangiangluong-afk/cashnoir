@@ -9,7 +9,8 @@
     "selftest": "node scripts/selftest.mjs",
     "econ": "node scripts/run-ts.mjs scripts/econ-sim.ts",
     "build": "tsc -b && vite build && node scripts/prerender.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "native:sync": "npm run build && cap sync && find android/app/src/main/assets/public ios/App/App/public -path '*/assets/*' -name '*.png' -not -path '*/icons/*' -delete"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
