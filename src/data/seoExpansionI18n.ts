@@ -1876,6 +1876,454 @@ export const EXPANSION_BLOG_I18N: Record<string, Partial<Record<'fr' | 'es', Blo
         }
       ]
     }
+  },
+  "gta-6-fence-mechanics-black-market-economy": {
+    "fr": {
+      "slug": "gta-6-fence-mechanics-black-market-economy",
+      "publishedAt": "2026-11-14",
+      "updatedLabel": "Nov 2026",
+      "readTime": "8 min",
+      "title": "GTA 6 et recel : simulateurs de marché noir expliqués",
+      "excerpt": "Découvrez pourquoi les mondes ouverts banalisent le recel et comment les simulateurs de marché noir instaurent une véritable tension criminelle.",
+      "directAnswer": "Les jeux en monde ouvert comme GTA réduisent l'écoulement du butin à de simples points de repère pour un gain instantané. Les simulateurs dédiés font du recel le point culminant : interrogatoires poussés, expertise médico-légale et indice de recherche dynamique. CASH NOIR remplace ces marchands automatiques par des négociations IA non scriptées où le moindre faux pas entraîne une arrestation fédérale.",
+      "keywords": [
+            "gta 6 fence mechanics",
+            "black market crime simulator",
+            "games like gta crime economy",
+            "cash noir gta 6",
+            "underworld fence simulator"
+      ],
+      "table": {
+            "headers": [
+                  "Jeu / Système",
+                  "Mécanique de recel",
+                  "Impact économique",
+                  "Interrogatoire / Négociation"
+            ],
+            "rows": [
+                  [
+                        "GTA V / GTA Online",
+                        "Vente automatisée sur des points fixes de la carte",
+                        "Liquidités propres immédiates sans aucun risque",
+                        "Aucun dialogue ni négociation sur les prix"
+                  ],
+                  [
+                        "Red Dead Redemption 2",
+                        "Receleurs statiques (Seamus / Emerald Ranch)",
+                        "Taux de décote fixes sur les objets volés",
+                        "Simples répliques d'accueil préenregistrées"
+                  ],
+                  [
+                        "Mafia III / Empire of Sin",
+                        "Collecte de rackets basée sur les territoires",
+                        "Revenus macroéconomiques par quartier",
+                        "Curseurs de menus sans confrontation directe"
+                  ],
+                  [
+                        "CASH NOIR",
+                        "Interrogatoire IA libre et dynamique au comptoir",
+                        "Arbitrage nocturne, indice de recherche et loyer",
+                        "Voix/texte en direct avec 3 jauges psychologiques"
+                  ]
+            ]
+      },
+      "sections": [
+            {
+                  "heading": "L'angle mort du game design criminel en monde ouvert",
+                  "body": "Grand Theft Auto a sublimé le spectacle violent de l'acquisition : forcer des coffres, semer des hélicoptères du SWAT et faire sauter des convois blindés. Pourtant, une fois les sirènes tues, la simulation criminelle retombe dans un fantasme économique simpliste. Dans GTA V et GTA Online, écouler des bons au porteur ou de la contrebande exotique se résume à rouler jusqu'à une icône d'entrepôt pour toucher des fonds électroniques. Dans le véritable milieu criminel, la dynamique s'inverse : voler des biens matériels est dérisoire comparé au calvaire de blanchir de la marchandise brûlante sans déclencher d'écoutes policières ni éveiller les tueurs d'un cartel. En effaçant la friction psychologique des réseaux de prêteurs sur gages et des intermédiaires véreux, les blockbusters occultent la phase la plus anxiogène du polar noir. Alors que les joueurs réclament une plus grande profondeur systémique, l'industrie se tourne vers des simulateurs ciblés pour bâtir de véritables mécaniques de recel. Dans l'architecture rogue-like de [CASH NOIR](/play), le braquage n'est qu'un prologue ; la véritable lutte pour sa survie se joue au comptoir face à des vendeurs désespérés et des flics sous couverture."
+            },
+            {
+                  "heading": "Pourquoi les receleurs sur la carte brisent l'immersion",
+                  "body": "Même Red Dead Redemption 2, loué pour son souci maniaque du détail, réduit le recel à de plates formalités commerciales. Seamus recycle ses répliques scriptées à Emerald Ranch en rachetant des montres de gousset en platine à un tarif prédéfini. Aucun risque de coup de filet des Pinkerton en civil, aucun soupçon si un bijou de famille gravé est lié à un meurtre à Saint Denis, et un levier de négociation inexistant pour écouler des diligences entières. Cette liquidité automatique coupe les actes du joueur de leurs retombées narratives. Une véritable économie clandestine exige des contreparties douées d'un instinct de survie, d'intentions cachées et de prix planchers. Quand chaque marchand agit comme un distributeur passif et inépuisable, la contrebande perd tout son danger organique. La simulation moderne impose de comprendre [pourquoi les arbres de dialogue sont morts](/blog/why-dialogue-trees-are-dead-emotion-engine) afin de mesurer comment des choix statiques anéantissent la tension. Un vrai receleur doit sonder la provenance, flairer la panique et menacer de contacter la pègre face à des numéros de série maculés de sang."
+            },
+            {
+                  "heading": "Réalité médico-légale du butin chaud et pièges d'infiltrés",
+                  "body": "Tenir une officine clandestine requiert des vérifications techniques rigoureuses avant le moindre déboursement. Les simulateurs de marché noir déplacent ainsi le gameplay du maniement des armes vers l'expertise médico-légale. Dans CASH NOIR, le joueur inspecte chaque pièce litigieuse à l'aide d'outils dédiés : une loupe d'orfèvre pour déceler les poinçons limés, une lampe UV pour faire ressortir les sceaux altérés ou de faux résidus de sang, et un scanner radio branché sur les fréquences d'urgence de la police. La provenance du butin est instable : une Rolex anonyme paraît irréprochable, mais recouper les ondes radio révèle qu'un vol à main armée a eu lieu deux rues plus loin il y a vingt minutes. Proposer un prix dérisoire à un inspecteur infiltré déclenche une descente dévastatrice. Dompter ces étapes d'analyse distingue les receleurs prospères des taulards, muant chaque transaction en un contre-interrogatoire tendu. Pour résister aux paliers supérieurs, il est vital d'assimiler les [stratégies de survie face aux infiltrés](/blog/survivre-au-jour-5-infiltres) où un détail manqué garantit une arrestation nocturne."
+            },
+            {
+                  "heading": "Arbitrage nocturne vivant : Ventes Flash contre Enchères",
+                  "body": "Sur le marché noir, la liquidité n'est jamais propre ni instantanée. Écouler un inventaire illicite force des arbitrages économiques impitoyables entre exposition opérationnelle et marge brute. Dans les roguelikes de prêt sur gage, l'échéance du loyer à minuit impose des rentrées de fonds non négociables, créant un étau systémique. CASH NOIR illustre ce dilemme via une double boucle de liquidation : le joueur peut lancer une Vente Flash illimitée pour effacer 5 % d'indice de recherche au prix d'une forte décote, ou confier des cargaisons de luxe aux Enchères Clandestines pour vendre jusqu'à 20 % au-dessus du marché. Cette seconde option impose toutefois des contraintes rudes : une seule mise en vente sécurisée par nuit avant qu'une saturation du marché n'inflige une pénalité de 25 %, couplée à des frais de blanchiment obligatoires de 250 $ ou un bond immédiat de 18 % de l'indice de recherche. Les habitués s'appuient sur le [guide de l'arbitrage nocturne](/guides/night-arbitrage-quick-sale-vs-auctions) pour jauger si conserver du butin justifie le risque de saisie."
+            },
+            {
+                  "heading": "Comment l'IA non scriptée réinvente la négociation criminelle",
+                  "body": "L'avenir des mécaniques économiques criminelles se détourne radicalement des menus textuels à choix multiples. Dans CASH NOIR, cent figures de la pègre réparties sur dix syndicats jaugent vos transactions via des moteurs psychologiques évaluant en temps réel la Peur, la Colère et le Soupçon. Loin de sélectionner « Persuader » sur une roue d'actions, le joueur tape ou formule ses répliques de vive voix, exploitant secrets déterrés, failles émotionnelles et lignes rouges découvertes au fil des rencontres. Bousculez trop vivement un coursier acculé comme Boris Kovalenko et sa jauge de Colère s'embrase, rompant définitivement le dialogue ; hésitez, et son Soupçon explose, provoquant son départ immédiat. À l'issue des débats, une autopsie détaillée du deal décortique chaque bascule de prix et toute erreur tactique. Pour les joueurs en quête de maîtrise absolue, la rigueur opérationnelle s'éprouve via le [contrat quotidien sur le classement mondial](/guides/daily-contract-24h-leaderboard-meta), prouvant que ce duel psychologique au comptoir surpasse n'importe quelle course-poursuite."
+            }
+      ],
+      "faq": [
+            {
+                  "q": "GTA 6 proposera-t-il un système de recel dynamique ?",
+                  "a": "Bien que Rockstar ait breveté des systèmes améliorant la réactivité des PNJ et de la police, les cadors du monde ouvert privilégient généralement des dépôts automatisés pour favoriser l'action motorisée plutôt que de longues négociations économiques."
+            },
+            {
+                  "q": "En quoi un simulateur de marché noir diffère-t-il de GTA ?",
+                  "a": "GTA envisage le recel comme une conversion d'argent immédiate et sans risque sur des points fixes. Les simulateurs dédiés en font le cœur du jeu, obligeant à vérifier les numéros de série, gérer la police et négocier face à des IA non scriptées."
+            },
+            {
+                  "q": "Comment CASH NOIR simule-t-il le marché noir ?",
+                  "a": "CASH NOIR modélise le recel via des négociations en langage naturel, des outils d'analyse (lampes UV, scanners radio), des jauges émotionnelles (Peur, Colère, Soupçon) et un arbitrage nocturne entre ventes bradées et enchères clandestines à haut risque."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Meilleurs jeux comme GTA pour l'économie criminelle",
+                  "path": "/blog/best-games-like-gta-crime-economy-simulators",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR vs GTA RP : Négociation",
+                  "path": "/vs/gta-rp",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Arbitrage nocturne : Ventes Flash vs Enchères",
+                  "path": "/guides/night-arbitrage-quick-sale-vs-auctions",
+                  "kind": "guide"
+            },
+            {
+                  "label": "Pourquoi les arbres de dialogue sont morts",
+                  "path": "/blog/why-dialogue-trees-are-dead-emotion-engine",
+                  "kind": "blog"
+            }
+      ]
+},
+    "es": {
+      "slug": "gta-6-fence-mechanics-black-market-economy",
+      "publishedAt": "2026-11-14",
+      "updatedLabel": "Nov 2026",
+      "readTime": "8 min",
+      "title": "GTA 6 y el Mercado Negro: Mecánicas de Perista al Detalle",
+      "excerpt": "Descubre por qué los sandbox criminales trivializan vender botín robado y cómo los simuladores de mercado negro recrean el peligro del hampa.",
+      "directAnswer": "En sagas como GTA, colocar botín robado se reduce a conducir hacia iconos amarillos para cobrar al instante. Los simuladores dedicados convierten la venta ilegal en el verdadero clímax táctico: interrogatorios, peritaje forense y presión policial dinámica. Títulos como CASH NOIR sustituyen tenderos automáticos por IA impredecible donde un traspié desata redadas o represalias sindicales.",
+      "keywords": [
+            "gta 6 fence mechanics",
+            "black market crime simulator",
+            "games like gta crime economy",
+            "cash noir gta 6",
+            "underworld fence simulator"
+      ],
+      "table": {
+            "headers": [
+                  "Juego / Sistema",
+                  "Mecánica de perista",
+                  "Consecuencia económica",
+                  "Interrogatorio / Negociación"
+            ],
+            "rows": [
+                  [
+                        "GTA V / GTA Online",
+                        "Venta automatizada en puntos fijos del mapa",
+                        "Liquidez limpia e instantánea sin riesgo",
+                        "Cero diálogo o regateo de precios"
+                  ],
+                  [
+                        "Red Dead Redemption 2",
+                        "Peristas estáticos (Seamus / Emerald Ranch)",
+                        "Tasas de descuento fijas por objeto",
+                        "Líneas de voz genéricas de saludo"
+                  ],
+                  [
+                        "Mafia III / Empire of Sin",
+                        "Recaudación de negocios por distrito",
+                        "Ingresos macro automáticos por turno",
+                        "Ajustes de menú sin tensión directa"
+                  ],
+                  [
+                        "CASH NOIR",
+                        "Interrogatorio por IA libre tras el mostrador",
+                        "Arbitraje nocturno, Heat y alquiler al límite",
+                        "Voz y texto libre con 3 medidores psicológicos"
+                  ]
+            ]
+      },
+      "sections": [
+            {
+                  "heading": "La mitad olvidada del diseño criminal en mundos abiertos",
+                  "body": "Grand Theft Auto perfeccionó la pirotecnia de la adquisición ilícita: asaltar cámaras acorazadas, burlar helicópteros del SWAT y reventar furgones blindados. Sin embargo, en cuanto se apagan las sirenas, la simulación criminal degenera en fantasía económica. En GTA V y GTA Online, liquidar bonos al portador o contrabando militar consiste simplemente en conducir hacia el icono de un almacén y recibir saldo bancario al instante. El verdadero crimen organizado opera en el polo opuesto: robar activos físicos es trivial comparado con colocar mercancía caliente sin activar pinchazos telefónicos ni sicarios del cartel. Al extirpar la fricción psicológica de las casas de empeño clandestinas y los intermediarios turbios, los superventas esquivan la fase más electrizante de la narrativa noir. Ante la demanda de mayor densidad sistémica en futuros mundos abiertos, la industria mira hacia simuladores especializados para descubrir el auténtico peritaje ilegal. En arquitecturas roguelike como [CASH NOIR](/play), el golpe es un mero prólogo; la verdadera batalla por la supervivencia se libra tras el mostrador contra vendedores desesperados y agentes encubiertos."
+            },
+            {
+                  "heading": "Por qué los peristas con icono en el mapa rompen la inmersión",
+                  "body": "Incluso Red Dead Redemption 2, aclamado por su obsesivo nivel de detalle orgánico, degrada el empeño criminal a intercambios inertes. Seamus repite frases enlatadas en Emerald Ranch mientras compra relojes de bolsillo de platino robados a tarifas tabuladas. No existe la amenaza de una emboscada encubierta de los Pinkerton, ni sospechas de que una reliquia grabada figure en una investigación por homicidio en Saint Denis, ni margen de maniobra al liquidar carretas enteras. Esta liquidez automática destruye el vínculo entre las acciones del jugador y sus repercusiones narrativas. Una economía clandestina creíble exige contrapartes con instinto de conservación, planes ocultos e inflexibilidad de precios. Cuando cada comprador actúa como un cajero automático infinito, el contrabando pierde su peligro intrínseco. El diseño moderno requiere analizar [por qué los árboles de diálogo están muertos](/blog/why-dialogue-trees-are-dead-emotion-engine) para comprender cómo las opciones estáticas neutralizan la tensión. Un perista auténtico debe rastrear procedencias, oler la desesperación y amenazar con alertar a los sindicatos si le ofrecen piezas con números de serie ensangrentados."
+            },
+            {
+                  "heading": "La realidad forense del botín caliente y las trampas encubiertas",
+                  "body": "Gestionar una casa de empeño criminal exige verificación técnica rigurosa antes de soltar un solo fajo de billetes. Los simuladores de mercado negro trasladan el foco desde la puntería hacia la investigación forense. En CASH NOIR, el inventario disputado se examina con instrumental técnico: una lupa para detectar sellos de fábrica limados, una lámpara UV que delata precintos vulnerados o salpicaduras de sangre falsificadas, y un escáner policial que intercepta emisiones de radio en tiempo real. Cada pieza llega con un historial volátil; un Rolex sin estuche puede parecer impoluto, pero cotejar la frecuencia policial revela si hace veinte minutos ocurrió un asalto a mano armada a dos calles. Intentar estafar con una oferta ridícula a un detective encubierto desencadena redadas devastadoras. Dominar estos filtros forenses separa a los prestamistas prósperos de los presidiarios, convirtiendo cada compra en un interrogatorio estratégico. Sobrevivir a la máxima presión exige interiorizar [estrategias de supervivencia contra infiltrados](/blog/survivre-au-jour-5-infiltres), donde un detalle falso por alto garantiza un asalto policial a medianoche."
+            },
+            {
+                  "heading": "Arbitraje nocturno: venta rápida frente a subastas clandestinas",
+                  "body": "La liquidez en el hampa nunca es limpia ni inmediata. Deshacerse del inventario ilícito impone sacrificios salvajes entre exposición operativa y margen neto. En los roguelikes de empeño especializado, los plazos del alquiler a medianoche exigen efectivo ineludible, estrangulando tus finanzas. CASH NOIR sintetiza esta encrucijada mediante un doble circuito de liquidación: puedes cerrar una Venta Rápida ilimitada para purgar un 5% de Heat a cambio de precios de saldo, o consignar botines de lujo en Subastas Clandestinas para obtener hasta un 20% sobre el valor de mercado. Sin embargo, la vía de la subasta acarrea una fricción implacable: se limita a un único lote seguro por noche antes de que la saturación castigue las pujas con un 25% de penalización directa, sumado a una tasa obligatoria de blanqueo de 250 $ o un pico inmediato del 18% en el Heat policial. Para dominar este dilema, la [guía de arbitraje nocturno](/guides/night-arbitrage-quick-sale-vs-auctions) resulta vital al calcular si retener contrabando hasta el amanecer compensa el riesgo de incautación."
+            },
+            {
+                  "heading": "Cómo la negociación por IA sin guion resuelve el dilema del perista",
+                  "body": "El futuro de las mecánicas económicas criminales descarta los menús de texto ramificados. En CASH NOIR, un centenar de personalidades del hampa distribuidas en diez sindicatos evalúan las transacciones mediante motores psicológicos en tiempo real que procesan Miedo, Ira y Sospecha. En lugar de seleccionar «Persuadir» en una rueda de opciones, el jugador escribe o habla con total libertad, explotando secretos revelados, debilidades anímicas y líneas rojas descubiertas tras múltiples negociaciones. Presionar en exceso a un emisario al límite como Boris Kovalenko disparará su medidor de Ira y romperá el trato para siempre; mostrar titubeos elevará su Sospecha, provocando una fuga fulminante. Al cerrar un regateo, la Autopsia del Trato disecciona cada quiebro en el precio y cada error táctico cometido. Quienes aspiran a la maestría diaria compiten en el [contrato diario de la clasificación global](/guides/daily-contract-24h-leaderboard-meta), demostrando que este pulso psicológico frente a frente ofrece un calado criminal mucho más visceral que cualquier fuga en coche."
+            }
+      ],
+      "faq": [
+            {
+                  "q": "¿Tendrá GTA 6 mecánicas dinámicas de perista?",
+                  "a": "Aunque Rockstar ha patentado sistemas para enriquecer la percepción de los PNJ y la respuesta policial, los grandes títulos de mundo abierto suelen agilizar la venta mediante pisos francos o contactos automatizados para priorizar la acción al volante por encima del regateo económico prolongado."
+            },
+            {
+                  "q": "¿En qué se diferencia un simulador de perista de GTA?",
+                  "a": "GTA concibe la venta de botín como un cobro instantáneo y sin riesgo en marcas fijas del mapa. Los simuladores especializados la convierten en su núcleo jugable, obligando a peritar números de serie, gestionar el acoso policial y negociar contra personalidades controladas por IA."
+            },
+            {
+                  "q": "¿Cómo simula CASH NOIR la economía clandestina del perista?",
+                  "a": "CASH NOIR recrea este oficio mediante negociación en lenguaje natural libre, instrumental forense (luces UV y escáneres policiales), medidores anímicos en vivo (Miedo, Ira, Sospecha) y sistemas de arbitraje que enfrentan liquidaciones rápidas con descuento a subastas clandestinas de alto riesgo."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Los mejores juegos estilo GTA con economía criminal",
+                  "path": "/blog/best-games-like-gta-crime-economy-simulators",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR frente a la negociación en GTA RP",
+                  "path": "/vs/gta-rp",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Arbitraje nocturno: Venta rápida vs. Subastas",
+                  "path": "/guides/night-arbitrage-quick-sale-vs-auctions",
+                  "kind": "guide"
+            },
+            {
+                  "label": "Por qué los árboles de diálogo están muertos",
+                  "path": "/blog/why-dialogue-trees-are-dead-emotion-engine",
+                  "kind": "blog"
+            }
+      ]
+}
+  },
+  "best-games-like-gta-crime-economy-simulators": {
+    "fr": {
+      "slug": "best-games-like-gta-crime-economy-simulators",
+      "publishedAt": "2026-11-18",
+      "updatedLabel": "Nov 2026",
+      "readTime": "8 min",
+      "title": "Meilleurs jeux comme GTA : pègre et économie criminelle",
+      "excerpt": "En quête d'une vraie économie criminelle hors de GTA ? Comparez Cartel Tycoon, Empire of Sin et CASH NOIR pour le recel, le blanchiment et la négociation.",
+      "directAnswer": "Si Grand Theft Auto excelle dans le chaos en monde ouvert, les joueurs en quête d'une authentique économie criminelle doivent se tourner vers la gestion spécialisée. Cartel Tycoon gère le blanchiment macroéconomique et la logistique, Drug Dealer Simulator 2 couvre la distribution de rue, et CASH NOIR simule le recel sous haute tension avec négociation IA libre.",
+      "keywords": [
+            "jeux comme gta economie criminelle",
+            "simulateur pègre marché noir",
+            "jeux de gestion crime 2026",
+            "jeux mafia marche noir",
+            "simulateur de crime cash noir"
+      ],
+      "table": {
+            "headers": [
+                  "Titre",
+                  "Axe économique",
+                  "Pression des syndicats",
+                  "Moteur d'interaction"
+            ],
+            "rows": [
+                  [
+                        "GTA Online",
+                        "Acquisition d'actifs & gains de braquages",
+                        "Police & joueurs rivaux en session",
+                        "Achats via menus figés & livraisons"
+                  ],
+                  [
+                        "Cartel Tycoon",
+                        "Chaînes logistiques & blanchiment d'argent",
+                        "Raids de la DEA & guerres de territoire",
+                        "Routage logistique et plaques tournantes"
+                  ],
+                  [
+                        "Empire of Sin",
+                        "Gestion de rackets sous la Prohibition",
+                        "Diplomatie des familles & pots-de-vin",
+                        "Combat tactique au tour par tour + menus"
+                  ],
+                  [
+                        "Drug Dealer Simulator 2",
+                        "Synthèse de produits & distribution de rue",
+                        "Barrages policiers & quotas de cartel",
+                        "Livraison physique à la première personne & discrétion"
+                  ],
+                  [
+                        "CASH NOIR",
+                        "Recel de butin chaud & arbitrage nocturne",
+                        "Loyer de minuit, Menace & 10 syndicats",
+                        "Négociation IA libre + 3 jauges émotionnelles en direct"
+                  ]
+            ]
+      },
+      "sections": [
+            {
+                  "heading": "La soif d'une véritable économie de la pègre au-delà de GTA",
+                  "body": "Grand Theft Auto demeure le roi incontesté du chaos urbain, mais ses rouages économiques restent tristement superficiels. Dans Los Santos, amasser des millions grâce à des braquages scénarisés ou des livraisons de fret se résume ensuite à cliquer sur des catalogues virtuels pour s'offrir des bolides ou des bunkers. Aucune friction financière tangible à l'horizon : l'argent sale se transforme instantanément en soldes bancaires intouchables, les syndicats rivaux sont incapables de saboter vos filières par le chantage, et vous n'avez jamais à marchander avec un indic fébrile devant une vitre blindée. Pour les joueurs passionnés par les véritables mécaniques du grand banditisme — écouler des bijoux de famille volés, blanchir des liasses suspectes via des commerces de façade et esquiver les audits fiscaux fédéraux —, GTA laisse un vide béant. Ce manque a suscité l'essor d'un sous-genre tactique axé sur le crime organisé, où survivre aux dettes d'un cartel exige de maîtriser l'[économie du marché noir et blanchiment](/blog/economie-marche-noir-blanchiment) bien plus que le tir de précision."
+            },
+            {
+                  "heading": "Logistique macroscopique contre recel de terrain",
+                  "body": "La gestion criminelle se scinde en deux échelons opérationnels bien distincts : la macro-logistique et le micro-recel. Des titres comme Cartel Tycoon se concentrent sur le routage macroéconomique systémique. On y bâtit des aérodromes, établit des filières de contrebande à travers des frontières sud-américaines fictives et réinjecte des cargaisons d'argent sale dans le circuit légal via des fermes ou des compagnies de taxis. Bien que captivante, cette approche gestionnaire détache le joueur de la tension viscérale inhérente au trafic de rue. À l'inverse, le recel direct confronte l'opérateur à des malfrats désespérés et des agents infiltrés. Dans le rogue-like sur navigateur CASH NOIR, l'économie se joue au comptoir sur [/play](/play). Lampe UV et scanner de police en main, vous inspectez les marchandises douteuses, évaluez le niveau de Menace qu'elles drainent et liquidez vos stocks lors d'arbitrages nocturnes tendus pour payer le loyer avant les représailles du cartel."
+            },
+            {
+                  "heading": "Le dilemme du blanchiment et de la Menace",
+                  "body": "Au sein d'un empire criminel digne de ce nom, acquérir de la marchandise volée ou des stupéfiants bruts est un jeu d'enfant ; dégager une marge sans attirer l'attention des agences fédérales est le véritable écueil des parrains. Empire of Sin aborde le problème via les speakeasies de Chicago et des plafonds de revenus pour les casinos, bien que les pots-de-vin mathématiques désamorcent souvent la panique. Une économie criminelle prenante requiert des choix irréversibles. Conserver des biens haut de gamme peut rapporter des primes monumentales auprès des syndicats plus tard, mais accumuler trop de Menace locale expose à des descentes de police impromptues à minuit. Les joueurs doivent peser le pour et le contre entre braderies rapides et recel patient à forte marge. Dans CASH NOIR, cette dynamique est formalisée dans le [guide du dilemme de la chambre forte](/guides/saga-vault-dilemma-guide), où barricader des objets d'histoire dans son coffre garantit des gains futurs au péril de sa trésorerie immédiate, obligeant à jongler entre usuriers, loyers et inspecteurs corrompus."
+            },
+            {
+                  "heading": "Les meilleurs simulateurs de pègre classés pour 2026",
+                  "body": "Si vous recherchez des guerres de territoires purement macroéconomiques, Cartel Tycoon offre le moteur logistique le plus aiguisé, punissant les piles d'argent liquide non blanchies par des saisies de la DEA. Si vous préférez la distribution de narcotiques sur le bitume avec infiltration physique, Drug Dealer Simulator 2 comble vos attentes grâce à sa chimie de rue et ses réseaux de coursiers. Pour l'ambiance des gangsters des années 1920, Empire of Sin conjugue bilans comptables de bars clandestins et affrontements tactiques, malgré une diplomatie parfois rigide. Aux côtés de ces références s'impose CASH NOIR, qui délaisse les trajets routiers rébarbatifs et les feuilles de calcul isométriques au profit du marchandage psychologique. Face à plus de 100 personnalités criminelles issues de 10 factions, les joueurs exploitent un comptoir d'usure impitoyable qui met à l'épreuve leurs instincts de prédateur. Ceux voulant plonger sans téléchargement peuvent tester leur efficacité de liquidation sur la [méta du classement des contrats quotidiens](/guides/daily-contract-24h-leaderboard-meta)."
+            },
+            {
+                  "heading": "Pourquoi la micro-négociation surpasse les curseurs abstraits",
+                  "body": "L'écueil de la plupart des jeux de crime réside dans leur dépendance aux curseurs abstraits et aux arbres de dialogue prévisibles. On sélectionne l'option B pour graisser la patte d'un flic ou on clique sur un bouton pour refourguer des diamants volés avec une décote automatique de 40 %. Or, les transactions du marché noir sont imprévisibles, tendues et dictées par l'analyse des micro-comportements humains. Plutôt que d'enfermer le joueur dans des choix fixes, CASH NOIR déploie une interaction en langage naturel où l'on formule librement ses répliques à l'écrit ou à la voix. Le moteur calcule en temps réel trois jauges : Peur, Colère et Soupçon, forçant à capitaliser sur les faiblesses psychologiques de l'interlocuteur avant qu'un indic ne sorte son arme. Analyser ses maladresses via le [guide d'autopsie déterministe des transactions](/blog/deterministic-deal-autopsy-negotiation-psychology) prouve qu'un bras de fer psychologique au comptoir suscite bien plus d'adrénaline que n'importe quelle course contre la montre de GTA."
+            }
+      ],
+      "faq": [
+            {
+                  "q": "Quel jeu propose l'économie criminelle la plus réaliste ?",
+                  "a": "Cartel Tycoon excelle dans la logistique macro et le blanchiment d'argent sale, tandis que CASH NOIR offre la simulation de recel la plus réaliste au niveau micro en traquant la psychologie des receleurs, la pression policière et l'arbitrage au marché noir sans dialogues pré-scriptés."
+            },
+            {
+                  "q": "Pourra-t-on gérer un marché noir dans GTA 6 ?",
+                  "a": "Bien que Rockstar ait laissé entendre l'arrivée de mécaniques de prêteur sur gages et de recel plus poussées à Vice City, la formule GTA repose traditionnellement sur des achats via menus fixes, des braquages scriptés et des livraisons, plutôt que sur de la négociation libre ou du blanchiment dynamique."
+            },
+            {
+                  "q": "Quelle est la place de CASH NOIR dans le jeu de simulation criminelle ?",
+                  "a": "CASH NOIR est un rogue-like simulant une boutique de prêt sur gages au marché noir. Le joueur y négocie librement par écrit ou à la voix avec des criminels gérés par IA, analysant des jauges émotionnelles en direct pour écouler du butin, blanchir des fonds et survivre aux syndicats sur navigateur web."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Mécaniques de recel dans GTA 6 expliquées",
+                  "path": "/blog/gta-6-fence-mechanics-black-market-economy",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR contre GTA RP",
+                  "path": "/vs/gta-rp",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Guide de survie Ascension I à X",
+                  "path": "/guides/ascension-i-to-x-survival-guide",
+                  "kind": "guide"
+            },
+            {
+                  "label": "Guide d'autopsie déterministe des deals",
+                  "path": "/blog/deterministic-deal-autopsy-negotiation-psychology",
+                  "kind": "blog"
+            }
+      ]
+},
+    "es": {
+      "slug": "best-games-like-gta-crime-economy-simulators",
+      "publishedAt": "2026-11-18",
+      "updatedLabel": "Nov 2026",
+      "readTime": "8 min",
+      "title": "Mejores juegos tipo GTA de economía criminal y mercado negro",
+      "excerpt": "¿Buscas economías criminales más allá de GTA? Compara Cartel Tycoon, Empire of Sin y CASH NOIR para blanquear dinero y cerrar pactos en el mercado negro.",
+      "directAnswer": "Aunque Grand Theft Auto domina el caos en mundo abierto, quienes buscan mecánicas de crimen financiero realistas deben recurrir a simuladores especializados. Cartel Tycoon domina la macrologística y el blanqueo, Drug Dealer Simulator 2 recrea la distribución callejera y CASH NOIR simula el empeño clandestino mediante negociación libre con IA bajo una intensa presión psicológica.",
+      "keywords": [
+            "juegos como gta economia criminal",
+            "simuladores de negocios criminales",
+            "juegos de gestion criminal 2026",
+            "juegos de mafia y mercado negro",
+            "simulador de crimen cash noir"
+      ],
+      "table": {
+            "headers": [
+                  "Título",
+                  "Enfoque económico",
+                  "Presión del sindicato",
+                  "Motor de interacción"
+            ],
+            "rows": [
+                  [
+                        "GTA Online",
+                        "Compra de activos y botines de golpes",
+                        "Policía y jugadores rivales en la sesión",
+                        "Menús fijos de compra y misiones de entrega"
+                  ],
+                  [
+                        "Cartel Tycoon",
+                        "Cadenas logísticas y blanqueo de capitales",
+                        "Incursiones de la DEA y guerras territoriales",
+                        "Rutas de suministro y centros de blanqueo"
+                  ],
+                  [
+                        "Empire of Sin",
+                        "Gestión de tapaderas durante la Ley Seca",
+                        "Diplomacia con familias rivales y sobornos policiales",
+                        "Combate táctico por turnos y menús de gestión"
+                  ],
+                  [
+                        "Drug Dealer Simulator 2",
+                        "Síntesis de producto y distribución callejera",
+                        "Controles policiales y cuotas para el cártel",
+                        "Entregas físicas en primera persona y sigilo"
+                  ],
+                  [
+                        "CASH NOIR",
+                        "Receptación de botín caliente y arbitraje nocturno",
+                        "Alquiler a medianoche, nivel de búsqueda y 10 sindicatos",
+                        "Negociación libre con IA y 3 indicadores emocionales en vivo"
+                  ]
+            ]
+      },
+      "sections": [
+            {
+                  "heading": "El anhelo de una economía criminal real más allá de GTA",
+                  "body": "Grand Theft Auto sigue siendo el monarca indiscutible del caos urbano, pero sus dinámicas financieras son notoriamente superficiales. En Los Santos obtienes millones a través de golpes orquestados o transporte de cargamentos, pero gastar esa fortuna se reduce a hacer clic en menús estáticos de navegador para comprar deportivos o búnkeres. No existe una fricción monetaria genuina: el dinero sucio se transforma de inmediato en saldo digital seguro, las mafias rivales no sabotean tus redes mediante extorsiones sutiles y jamás tienes que regatear con un confidente paranoico al otro lado de un cristal blindado. Para quienes buscan los entresijos reales del submundo —receptar reliquias robadas, lavar dividendos ilícitos mediante negocios pantalla y torear las auditorías policiales—, GTA deja un vacío evidente. Ese vacío ha impulsado un pujante subgénero de gestión táctica del delito, donde sobrevivir a los implacables acreedores de un cártel exige entender [la economía del mercado negro y el blanqueo](/blog/economie-marche-noir-blanchiment) mucho antes que dominar el rifle de francotirador."
+            },
+            {
+                  "heading": "Macrologística frente a receptación a pie de calle",
+                  "body": "La gestión delictiva se bifurca en dos vertientes operativas: la macrologística y el menudeo de empeño. Obras como Cartel Tycoon ponen el foco en la distribución macroeconómica sistémica. Construyes pistas de aterrizaje, diseñas rutas de contrabando entre fronteras ficticias de Sudamérica y transformas lanchas repletas de fajos sucios en depósitos bancarios mediante negocios legales, desde granjas hasta flotas de taxis. Pese a su indiscutible profundidad estratégica, este enfoque aleja al jugador de la adrenalina íntima de la mala vida. Por el contrario, la receptación callejera te sitúa cara a cara frente a ladrones desesperados y topos encubiertos. En el roguelike para navegador CASH NOIR, las transacciones se resuelven en persona tras el mostrador en [/play](/play). Examinas cargamentos turbios con lámparas ultravioleta y receptores policiales, determinas si un objeto arrastra demasiada persecución y liquidas el stock mediante arbitraje nocturno para pagar el alquiler antes de que el sindicato venga a por ti."
+            },
+            {
+                  "heading": "El dilema del blanqueo de dinero y el nivel de búsqueda",
+                  "body": "En el hampa real, acaparar mercancía robada o sustancias prohibidas es la parte sencilla; colocar el género con margen sin encender las alarmas federales es donde caen los grandes capos. Títulos como Empire of Sin abordan esto mediante bares clandestinos en Chicago y topes de recaudación en casinos, aunque sus tablas fijas de sobornos atenúan la incertidumbre. Una economía clandestina cautivadora exige dilemas irreversibles. Retener contrabando valioso garantiza sumas astronómicas más adelante, pero acumular excesiva presión local atrae redadas nocturnas letales. Quien gestiona un inventario comprometido debe calibrar si prefiere una liquidación rápida o un empeño paciente de alto rendimiento. En CASH NOIR, esta disyuntiva se vertebra en la [guía del dilema de la cámara acorazada](/guides/saga-vault-dilemma-guide), donde almacenar piezas argumentales en tu cámara desbloquea pagos formidables a cambio de anular tu liquidez inmediata, forzándote a hacer malabares entre usureros, facturas y detectives untados."
+            },
+            {
+                  "heading": "Los mejores simuladores del hampa clasificados para 2026",
+                  "body": "Si buscas guerras territoriales a gran escala, Cartel Tycoon despliega el motor logístico más implacable, castigando el dinero no blanqueado con embargos de la DEA. Si te atrae el tráfico de sustancias a ras de suelo y la infiltración física, Drug Dealer Simulator 2 brinda una química convincente y una sólida red de distribución. Si prefieres la estética de los años veinte, Empire of Sin combina libros contables de tabernas con refriegas tácticas, si bien sus pactos diplomáticos pecan de previsibles. Junto a ellos destaca CASH NOIR, que suprime las interminables trayectorias al volante y las hojas de cálculo isométricas para centrarse en el regateo psicológico. Con más de 100 personalidades criminales divididas en 10 facciones, sus operaciones de compraventa pondrán a prueba tu instinto depredador. Si buscas emociones tácticas al instante sin descargas masivas de gigabytes, entra en el [meta de la clasificación de contratos diarios](/guides/daily-contract-24h-leaderboard-meta) y mide tu capacidad de liquidación contra jugadores de todo el mundo."
+            },
+            {
+                  "heading": "Por qué la micronegociación supera a los paneles macroeconómicos",
+                  "body": "El talón de Aquiles de la mayoría de juegos sobre delincuencia radica en depender de barras de ajuste y árboles de diálogo encorsetados. Seleccionas la opción B para sobornar al agente o pulsas un botón para malvender diamantes robados con un descuento prefijado del 40%. Los negocios del mercado negro son inestables, viscerales y dependen de descifrar las microexpresiones ajenas. En lugar de limitar la interacción a rutas predefinidas, CASH NOIR implementa un procesamiento de lenguaje natural libre donde escribes o hablas directamente con los vendedores. Su motor subyacente calcula en tiempo real medidores de Miedo, Ira y Sospecha, instándote a hurgar en sus debilidades emocionales o dar un paso atrás antes de que un confidente desenfunde. Analizar tus fallos mediante la [guía de autopsia determinista de tratos](/blog/deterministic-deal-autopsy-negotiation-psychology) demuestra que descifrar la ventaja psicológica al otro lado del mostrador genera mucha más tensión que cualquier cuenta atrás de entrega en GTA."
+            }
+      ],
+      "faq": [
+            {
+                  "q": "¿Qué juego tiene la economía criminal más realista?",
+                  "a": "Cartel Tycoon destaca por su realista macrologística y blanqueo de dinero sucio, mientras que CASH NOIR ofrece la simulación más auténtica de receptación callejera al medir la psicología del vendedor, la presión policial y el arbitraje clandestino sin árboles de diálogo predefinidos."
+            },
+            {
+                  "q": "¿Se podrá gestionar un negocio del mercado negro en GTA 6?",
+                  "a": "Aunque Rockstar ha insinuado mecánicas más profundas de casas de empeño en Vice City, los GTA tradicionales dependen de compras en menús estáticos, recompensas fijas de golpes y misiones de reparto, lejos de una negociación de precios abierta o un blanqueo dinámico."
+            },
+            {
+                  "q": "¿Cómo encaja CASH NOIR en el género de simulación criminal?",
+                  "a": "CASH NOIR es un simulador roguelike de empeños del mercado negro donde los jugadores escriben o hablan libremente con criminales manejados por IA, analizando medidores emocionales en tiempo real para colocar botín ilícito, lavar fondos y sobrevivir a sindicatos rivales directamente en el navegador."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Explicación de las mecánicas de receptación en GTA 6",
+                  "path": "/blog/gta-6-fence-mechanics-black-market-economy",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR vs. GTA RP",
+                  "path": "/vs/gta-rp",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Guía de supervivencia de Ascensión I a X",
+                  "path": "/guides/ascension-i-to-x-survival-guide",
+                  "kind": "guide"
+            },
+            {
+                  "label": "Guía de autopsia determinista de tratos",
+                  "path": "/blog/deterministic-deal-autopsy-negotiation-psychology",
+                  "kind": "blog"
+            }
+      ]
+}
   }
 };
 
@@ -3181,6 +3629,160 @@ export const EXPANSION_VERSUS_I18N: Record<string, Partial<Record<'fr' | 'es', V
         }
       ]
     }
+  },
+  "gta-rp": {
+    "fr": {
+      "slug": "gta-rp",
+      "competitor": "GTA RP",
+      "title": "CASH NOIR vs GTA RP : Jeu de rôle criminel face à l'IA",
+      "metaDesc": "Comparez CASH NOIR à GTA RP : évitez les listes d'attente et gérez votre prêteur sur gages clandestin avec des criminels IA sur votre navigateur.",
+      "directAnswer": "Si GTA RP offre un jeu de rôle social inégalé sur de vastes serveurs, il impose des installations lourdes et de longues files d'attente. CASH NOIR condense la pègre criminelle en un roguelike direct sur navigateur. Vous y interrogez des criminels autonomes pilotés par IA, sans script, par la voix, le texte et l'expertise médico-légale.",
+      "rows": [
+            {
+                  "criteria": "Plateforme & Accessibilité",
+                  "cashNoir": "PWA instantanée sur navigateur sur /play avec Google OAuth ; aucune installation ni file d'attente.",
+                  "other": "Client PC volumineux, jeu de base GTA V, lanceur FiveM et temps d'attente interminables."
+            },
+            {
+                  "criteria": "Moteur d'interaction",
+                  "cashNoir": "Négociation libre par texte ou voix face à des vendeurs IA dotés de jauges de Peur, Colère et Suspicion en direct.",
+                  "other": "Chat vocal en direct avec d'autres joueurs incarnant policiers, criminels ou civils."
+            },
+            {
+                  "criteria": "Intégration & Liste blanche",
+                  "cashNoir": "Zéro friction : commencez immédiatement à négocier avec la pègre directement dans votre navigateur.",
+                  "other": "Candidatures écrites strictes, entretiens Discord, dons pour priorité et validation des administrateurs."
+            },
+            {
+                  "criteria": "Système économique",
+                  "cashNoir": "Économie roguelike calibrée sur 40 jours avec loyer de minuit, Arbitrage Nocturne Vivant et 10 niveaux d'Ascension.",
+                  "other": "Économies persistantes soumises aux réinitialisations, au farm répétitif et à l'inflation des joueurs."
+            },
+            {
+                  "criteria": "Inspection médico-légale",
+                  "cashNoir": "Outils d'expertise manuels : loupe, lampe UV et scanner radio de la police pour repérer les flics infiltrés.",
+                  "other": "Commandes textuelles /me et inventaires statiques sans réelle profondeur d'analyse physique."
+            },
+            {
+                  "criteria": "Dossiers de la pègre & Factions",
+                  "cashNoir": "100 personnages uniques répartis en 10 factions, avec secrets progressifs et points de rupture individuels.",
+                  "other": "Gangs formés par des joueurs dont l'activité dépend des disponibilités humaines et des fuseaux horaires."
+            }
+      ],
+      "verdict": "GTA RP reste la référence absolue du jeu de rôle multijoueur à grande échelle, des guerres de factions émergentes et des récits communautaires profonds. Si vous disposez d'un PC haut de gamme, d'heures à consacrer aux files d'attente et d'un goût prononcé pour le drama social à micro ouvert avec des dizaines d'inconnus, les serveurs dédiés offrent une scène collective inégalée.\n\nLorsque vous cherchez une tension criminelle immédiate et sans script sans dépendre des horaires d'autrui, CASH NOIR propose un combat de négociation à l'état pur. Accessible instantanément via [jouer](/play), il met vos instincts psychologiques à l'épreuve face à des figures corrompues grâce à un [dialogue en temps réel sans arbres prédéfinis](/blog/why-dialogue-trees-are-dead-emotion-engine). Assurez votre survie avant minuit grâce à l'[Arbitrage Nocturne Vivant](/guides/night-arbitrage-quick-sale-vs-auctions) ou défiez le classement mondial avec le [Contrat Quotidien Mondial](/play/daily).",
+      "faq": [
+            {
+                  "q": "Faut-il un microphone pour jouer à CASH NOIR comme dans GTA RP ?",
+                  "a": "Non. Contrairement aux serveurs GTA RP où un micro fonctionnel et des communications vocales claires sont obligatoires pour le roleplay, CASH NOIR offre une liberté totale d'interaction. Vous pouvez parler directement aux vendeurs grâce à la reconnaissance vocale ou taper vos bluffs, menaces et contre-propositions au clavier sans rien perdre en réactivité."
+            },
+            {
+                  "q": "Les personnages IA de CASH NOIR réagissent-ils comme de vrais joueurs dans GTA RP ?",
+                  "a": "CASH NOIR exploite un traitement du langage naturel sur mesure couplé à des états émotionnels dynamiques. Les personnages analysent précisément vos formulations pour détecter mensonges ou provocations, répercutés en direct sur des jauges de Peur, Colère et Suspicion. Même s'ils n'ont pas la spontanéité erratique des humains, ils ne brisent jamais leur rôle et ne quittent pas la partie en plein interrogatoire."
+            },
+            {
+                  "q": "CASH NOIR est-il gratuit ?",
+                  "a": "Oui. CASH NOIR est entièrement gratuit, jouable directement dans votre navigateur sur ordinateur ou mobile. Vous pouvez lancer des runs roguelike de 40 jours ou participer au contrat quotidien sans acheter de jeu externe, sans payer de passe prioritaire pour serveur et sans passer d'entretien de sélection."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Pourquoi les arbres de dialogue sont morts",
+                  "path": "/blog/why-dialogue-trees-are-dead-emotion-engine",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR vs Suck Up!",
+                  "path": "/vs/suck-up",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Guide d'autopsie d'une transaction déterministe",
+                  "path": "/blog/deterministic-deal-autopsy-negotiation-psychology",
+                  "kind": "blog"
+            },
+            {
+                  "label": "Arbitrage nocturne & enchères clandestines",
+                  "path": "/guides/night-arbitrage-quick-sale-vs-auctions",
+                  "kind": "guide"
+            }
+      ]
+},
+    "es": {
+      "slug": "gta-rp",
+      "competitor": "GTA RP",
+      "title": "CASH NOIR vs GTA RP: Rol criminal o negociación con IA",
+      "metaDesc": "Compara CASH NOIR con GTA RP. Olvida colas y whitelists: dirige tu casa de empeño turbia negociando con criminales IA directo desde tu navegador web.",
+      "directAnswer": "Aunque GTA RP ofrece un drama social insuperable en servidores masivos, exige instalaciones pesadas, postulaciones por Discord e interminables colas. CASH NOIR sintetiza la tensión criminal de los bajos fondos en un roguelike web inmediato. Sin depender de otros jugadores, interrogas a criminales controlados por IA en tiempo real mediante voz o texto libre, deducción forense y manipulación psicológica.",
+      "rows": [
+            {
+                  "criteria": "Plataforma y accesibilidad",
+                  "cashNoir": "PWA instantánea en navegador desde /play con Google OAuth; sin instalaciones ni esperas en cola.",
+                  "other": "Cliente de PC pesado, juego base GTA V, lanzador FiveM y largas colas de acceso a servidores."
+            },
+            {
+                  "criteria": "Motor de interacción",
+                  "cashNoir": "Negociación libre por voz o texto frente a vendedores IA con medidores activos de Miedo, Ira y Sospecha.",
+                  "other": "Chat de voz en vivo con jugadores reales que interpretan roles de policía, criminal o civil."
+            },
+            {
+                  "criteria": "Admisión y listas blancas",
+                  "cashNoir": "Cero fricción: empieza a negociar con sindicatos del hampa de inmediato desde tu navegador.",
+                  "other": "Formularios estrictos, entrevistas en Discord, donaciones prioritarias y aprobación de administradores."
+            },
+            {
+                  "criteria": "Sistema económico",
+                  "cashNoir": "Economía roguelike milimétrica de 40 días con alquiler a medianoche, arbitraje nocturno y 10 ascensiones.",
+                  "other": "Economías persistentes sujetas a reinicios de admins, farmeo monótono e inflación entre jugadores."
+            },
+            {
+                  "criteria": "Inspección forense",
+                  "cashNoir": "Herramientas de mostrador activas: lupa, luz UV y escáner policial para desenmascarar infiltrados.",
+                  "other": "Comandos de texto /me e inspección en inventario plano sin análisis físico interactivo."
+            },
+            {
+                  "criteria": "Expedientes del hampa y facciones",
+                  "cashNoir": "100 personajes únicos en 10 facciones con secretos en expedientes y puntos de quiebre psicológico.",
+                  "other": "Bandas creadas por jugadores cuya actividad depende de agendas y zonas horarias humanas."
+            }
+      ],
+      "verdict": "GTA RP sigue siendo el estándar indiscutible para el rol masivo, las guerras de facciones emergentes y la narrativa comunitaria profunda. Si cuentas con un PC de gama alta, tiempo para esperar en colas y apetito por el drama social a micrófono abierto con decenas de participantes, los servidores dedicados brindan un escenario colectivo inigualable.\n\nCuando buscas tensión criminal inmediata y sin guiones, sin depender de los horarios de nadie, CASH NOIR ofrece puro combate dialéctico. Disponible al instante para [jugar](/play), desafía tus instintos psicológicos contra sospechosos turbios mediante [diálogo en tiempo real sin árboles de texto](/blog/why-dialogue-trees-are-dead-emotion-engine). Sobrevive a la medianoche exprimiendo el [arbitraje nocturno](/guides/night-arbitrage-quick-sale-vs-auctions) o pon a prueba tu astucia en la clasificación mundial con el [Contrato Global Diario](/play/daily).",
+      "faq": [
+            {
+                  "q": "¿Necesito micrófono para jugar a CASH NOIR como en GTA RP?",
+                  "a": "No. A diferencia de los servidores de GTA RP, donde un micrófono funcional y buena comunicación de voz son obligatorios para rolear, CASH NOIR ofrece total libertad de entrada. Puedes hablar con los vendedores mediante dictado por voz o escribir tus faroles, amenazas y contraofertas directamente en tu navegador con idéntica respuesta dinámica."
+            },
+            {
+                  "q": "¿Reaccionan los personajes de IA en CASH NOIR como los jugadores de GTA RP?",
+                  "a": "CASH NOIR emplea procesamiento de lenguaje natural avanzado con estados emocionales en vivo. Los personajes evalúan cada una de tus palabras ante faroles o faltas de respeto, reflejando Miedo, Ira y Sospecha en medidores dinámicos. Aunque carecen de la espontaneidad errática humana, jamás rompen el personaje, olvidan el lore ni abandonan el interrogatorio a mitad de partida."
+            },
+            {
+                  "q": "¿Es CASH NOIR gratuito?",
+                  "a": "Sí. CASH NOIR es totalmente gratuito directamente desde tu navegador web, tanto en escritorio como en móvil. Puedes disputar campañas roguelike estándar de 40 días o competir en el contrato diario sin adquirir clientes externos, pagar donaciones de prioridad en cola ni superar entrevistas de whitelist requeridas por las comunidades de GTA RP."
+            }
+      ],
+      "related": [
+            {
+                  "label": "Por qué han muerto los árboles de diálogo",
+                  "path": "/blog/why-dialogue-trees-are-dead-emotion-engine",
+                  "kind": "blog"
+            },
+            {
+                  "label": "CASH NOIR vs Suck Up!",
+                  "path": "/vs/suck-up",
+                  "kind": "vs"
+            },
+            {
+                  "label": "Guía de autopsia de tratos deterministas",
+                  "path": "/blog/deterministic-deal-autopsy-negotiation-psychology",
+                  "kind": "blog"
+            },
+            {
+                  "label": "Arbitraje nocturno y subastas clandestinas",
+                  "path": "/guides/night-arbitrage-quick-sale-vs-auctions",
+                  "kind": "guide"
+            }
+      ]
+}
   }
 };
 
