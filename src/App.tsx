@@ -3434,8 +3434,15 @@ export default function App() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigateTo('/')}
-            className="flex items-center gap-2 select-none text-left hover:opacity-85 transition-opacity"
+            onClick={() => {
+              if (isNative) {
+                triggerHaptic(10);
+                goCounter();
+              } else {
+                navigateTo('/');
+              }
+            }}
+            className="flex items-center gap-2 select-none text-left hover:opacity-85 transition-opacity active:scale-95"
             title="Accueil & histoire CASH NOIR"
           >
             <svg
@@ -3686,7 +3693,7 @@ export default function App() {
         const ghost = 'border border-white/15 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-zinc-200 hover:border-amber-400/60 hover:text-amber-300 disabled:opacity-40 transition-colors';
         const rentProgressPct = Math.min(100, Math.round((cash / dailyRent) * 100));
         return (
-          <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6 font-mono">
+          <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 pb-24 sm:p-6 sm:pb-6 font-mono">
             {/* Bannière Concept Art du Coffre */}
             <div className="relative h-28 sm:h-36 w-full overflow-hidden rounded-xl border border-white/10 shadow-2xl">
               <img
@@ -4283,7 +4290,7 @@ export default function App() {
 
       {/* TAB: SHOP / UPGRADES & MONETIZATION */}
       {tab === 'shop' && (
-        <main className="flex-1 max-w-4xl w-full mx-auto p-6 space-y-6">
+        <main className="flex-1 max-w-4xl w-full mx-auto p-4 pb-24 sm:p-6 sm:pb-6 space-y-6">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-amber-400">
               {t.arsenalTag}
@@ -5993,6 +6000,30 @@ export default function App() {
 
                     {/* Ligne 2 : 3 relances rapides tactiques + Saisie directe au clavier */}
                     <div className="flex flex-col gap-1.5 w-full">
+                      {/* Pastilles tactiques défilables à l'horizontale au pouce sur mobile */}
+                      <div className="flex sm:hidden w-full items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+                        {quickReplies().map((q) => (
+                          <button
+                            key={q.key}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => {
+                              triggerHaptic(10);
+                              q.run();
+                            }}
+                            className={`shrink-0 rounded-full border px-3 py-1 font-mono text-[11px] active:scale-95 transition-transform disabled:opacity-40 ${
+                              q.tone === 'amber'
+                                ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                                : q.tone === 'red'
+                                  ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                                  : 'border-white/15 bg-black/60 text-zinc-300'
+                            }`}
+                          >
+                            {q.label}
+                          </button>
+                        ))}
+                      </div>
+
                       <div className="max-lg:[@media(max-height:520px)]:hidden max-sm:hidden grid w-full grid-cols-2 gap-1.5 py-0.5 sm:flex sm:flex-wrap sm:items-center [&>*]:whitespace-normal [&>*]:text-left sm:[&>*]:whitespace-nowrap">
                         {quickReplies().map((q) => (
                           <button
@@ -6942,7 +6973,7 @@ export default function App() {
       })()}
 
       {/* Barre d'onglets mobile (façon iOS) : le comptoir reste plein écran, la navigation est à portée de pouce */}
-      <nav className="sticky bottom-0 z-40 flex shrink-0 border-t border-white/10 bg-[#0b0c11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden">
+      <nav className="sticky bottom-0 z-40 flex min-h-[56px] shrink-0 border-t border-white/10 bg-[#0b0c11]/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md sm:hidden">
         {([
           { id: 'counter', icon: MessageSquare, label: tt('Comptoir', 'Counter', 'Mostrador'), badge: `${Math.min(clientsServedToday + 1, maxClientsPerDay)}/${maxClientsPerDay}`, go: goCounter },
           { id: 'night', icon: Package, label: tt('Coffre', 'Vault', 'Caja'), badge: inventory.length > 0 ? String(inventory.length) : '', go: () => setTab('night') },

@@ -131,7 +131,7 @@ export function PantheonView({
   ].sort((a, b) => b.netWorth - a.netWorth);
 
   return (
-    <main className="min-h-screen bg-[#09090b] px-4 py-6 text-zinc-100 sm:px-6">
+    <main className="min-h-screen bg-[#09090b] px-4 pt-4 pb-24 text-zinc-100 sm:px-6 sm:py-6">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Navigation secondaire en 4 sous-onglets nets */}
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-3">
