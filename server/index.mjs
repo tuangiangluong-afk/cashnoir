@@ -10,7 +10,7 @@ import { handleAuthAndProfileRoutes, getAuthUser } from './auth-profiles.mjs';
 import { callOpenRouter, openRouterKeys } from './openrouter.mjs';
 import { callVertex, vertexAccounts } from './vertex.mjs';
 import { kvGet, kvSet } from './store.mjs';
-import { applyStripeEvent, passKey, isActive } from './entitlements.mjs';
+import { applyStripeEvent, passKey, isActive, bindPass } from './entitlements.mjs';
 import { localizeServerError, requestLocale } from './i18n.mjs';
 import { handleAdminRoutes, getSystemConfig, syncOverridesWithSupabase } from './admin.mjs';
 import { getLeaderboardFromSupabase, saveLeaderboardEntryToSupabase, isSupabaseConfigured } from './supabase.mjs';
@@ -396,9 +396,28 @@ function quotaOf(req) {
 // Résout le Pass une fois par requête : abonnement du compte (Stripe) s'il existe, sinon cookie signé. Résultat dans req._pass.
 async function resolvePass(req) {
   const user = getAuthUser(req, verifyToken);
-  const rec = user ? await kvGet(passKey(user.id)).catch(() => null) : null;
-  req._pass = rec ? isActive(rec) : cookiePassValid(req);
+  const claims = passCookieClaims(req);
+  const store = { get: (k) => kvGet(k, { fresh: true }), set: kvSet };
+  let rec = user ? await kvGet(passKey(user.id)).catch(() => null) : null;
+  // Guest who paid then signed in: the Pass moves to the account (every device, survives cookie loss).
+  if (user && !isActive(rec) && claims?.uid?.startsWith('g_')) {
+    rec = (await bindPass(store, claims.uid, user.id).catch(() => null)) || rec;
+  }
+  if (!rec && claims?.uid) {
+    rec = await kvGet(passKey(claims.uid)).catch(() => null);
+    if (rec?.movedTo) rec = await kvGet(passKey(rec.movedTo)).catch(() => null);
+  }
+  // A server record wins over the cookie: refunds and cancellations revoke at once.
+  req._pass = rec ? isActive(rec) : Boolean(claims);
+  req._passRec = rec;
   return req._pass;
+}
+
+function passCookieClaims(req) {
+  const cookie = req.headers.cookie || '';
+  const match = cookie.match(/(?:^|;\s*)syndicate_pass=([^;]+)/);
+  const claims = match ? verifyToken(decodeURIComponent(match[1])) : null;
+  return claims && claims.kind === 'pass' && claims.exp > Date.now() ? claims : null;
 }
 
 function hasValidPassCookie(req) {
@@ -406,10 +425,7 @@ function hasValidPassCookie(req) {
 }
 
 function cookiePassValid(req) {
-  const cookie = req.headers.cookie || '';
-  const match = cookie.match(/(?:^|;\s*)syndicate_pass=([^;]+)/);
-  const claims = match ? verifyToken(decodeURIComponent(match[1])) : null;
-  return Boolean(claims && claims.kind === 'pass' && claims.exp > Date.now());
+  return Boolean(passCookieClaims(req));
 }
 
 // Parties en cours : le serveur garde la marge, le client ne la fournit jamais.
@@ -1163,11 +1179,22 @@ export async function handleRequest(req, res) {
       form.set('line_items[0][quantity]', '1');
       form.set('success_url', `${ALLOWED_ORIGIN}/api/pass/claim?session_id={CHECKOUT_SESSION_ID}`);
       form.set('cancel_url', `${ALLOWED_ORIGIN}/?pass=cancel`);
+      form.set('allow_promotion_codes', 'true');
+      // Opt-in: Stripe rejects the session if Stripe Tax isn't activated in the dashboard.
+      if (process.env.STRIPE_AUTOMATIC_TAX === '1') {
+        form.set('automatic_tax[enabled]', 'true');
+        form.set('billing_address_collection', 'required');
+      }
       const buyer = getAuthUser(req, verifyToken);
-      if (buyer) {
-        form.set('client_reference_id', buyer.id);
-        form.set('metadata[uid]', buyer.id);
-        if (mode === 'subscription') form.set('subscription_data[metadata][uid]', buyer.id);
+      // Guests get a server-side id too, so webhooks (renewal, cancel, refund) can reach their Pass.
+      const uid = buyer ? buyer.id : `g_${crypto.randomUUID()}`;
+      form.set('client_reference_id', uid);
+      form.set('metadata[uid]', uid);
+      if (mode === 'subscription') {
+        form.set('subscription_data[metadata][uid]', uid);
+      } else {
+        form.set('customer_creation', 'always');
+        form.set('payment_intent_data[metadata][uid]', uid);
       }
 
       const upstream = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -1181,6 +1208,34 @@ export async function handleRequest(req, res) {
       const data = await upstream.json().catch(() => ({}));
       if (!upstream.ok || !data?.url) {
         sendJson(res, 502, { error: 'Stripe a refusé la création de la session.' });
+        return;
+      }
+      sendJson(res, 200, { url: data.url });
+      return;
+    }
+
+    /* ---------------- Portail client Stripe (résiliation, factures, CB) ---------------- */
+    if (req.method === 'POST' && url.pathname === '/api/pass/portal') {
+      const key = process.env.STRIPE_SECRET_KEY;
+      if (!key) {
+        sendJson(res, 503, { error: 'Stripe non configuré.' });
+        return;
+      }
+      await resolvePass(req);
+      const customer = req._passRec?.customer;
+      if (!customer) {
+        sendJson(res, 404, { error: 'Aucun abonnement trouvé pour ce compte.' });
+        return;
+      }
+      const form = new URLSearchParams({ customer, return_url: `${ALLOWED_ORIGIN}/play` });
+      const upstream = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      if (!upstream.ok || !data?.url) {
+        sendJson(res, 502, { error: 'Stripe a refusé l’ouverture du portail.' });
         return;
       }
       sendJson(res, 200, { url: data.url });
@@ -1225,19 +1280,21 @@ export async function handleRequest(req, res) {
       }
       passClaims.set(sessionId, claimed + 1);
       const claimUser = getAuthUser(req, verifyToken);
-      if (claimUser && session.client_reference_id === claimUser.id) {
+      const ref = String(session.client_reference_id || '');
+      if (ref.startsWith('g_') || (claimUser && ref === claimUser.id)) {
         await applyStripeEvent({ type: 'checkout.session.completed', data: { object: session } }, { get: kvGet, set: kvSet }).catch(() => {});
       }
 
       const passToken = issueToken({
         kind: 'pass',
         session: sessionId,
+        uid: ref || undefined,
         exp: Date.now() + PASS_DURATION_MS,
       });
       baseHeaders(res);
       res.writeHead(302, {
         'Set-Cookie': `syndicate_pass=${encodeURIComponent(passToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${PASS_DURATION_MS / 1000}${secureFlag(req)}`,
-        Location: '/?pass=ok',
+        Location: '/play?pass=ok',
       });
       res.end();
       return;
@@ -1252,6 +1309,8 @@ export async function handleRequest(req, res) {
       const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
       sendJson(res, 200, {
         pass: stripeEnabled ? valid : true,
+        manageable: Boolean(req._passRec?.customer),
+        status: req._passRec?.status || null,
         mode: stripeEnabled ? 'paid' : 'open',
         stripeEnabled,
       });

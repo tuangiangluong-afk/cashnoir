@@ -4,6 +4,7 @@ const GRACE = 2 * DAY; // marge pour un renouvellement légèrement en retard
 
 export const passKey = (uid) => `pass:${uid}`;
 export const subKey = (subId) => `sub:${subId}`;
+export const piKey = (pi) => `pi:${pi}`;
 export const isActive = (rec, now = Date.now()) => Boolean(rec && rec.until > now);
 
 const subIdOf = (o) => o?.subscription || o?.parent?.subscription_details?.subscription || (o?.object === 'subscription' ? o.id : '') || '';
@@ -22,7 +23,14 @@ export async function applyStripeEvent(event, store, now = Date.now()) {
     const paid = o.payment_status === 'paid' || (o.mode === 'subscription' && o.status === 'complete');
     if (!uid || !paid) return null;
     if (o.subscription) await store.set(subKey(o.subscription), { uid });
-    return save(uid, { until: now + (o.mode === 'subscription' ? 33 * DAY : 30 * DAY), sub: o.subscription || null, customer: o.customer || null, status: 'active' });
+    if (o.payment_intent) await store.set(piKey(o.payment_intent), { uid });
+    return save(uid, { until: now + (o.mode === 'subscription' ? 33 * DAY : 30 * DAY), sub: o.subscription || null, customer: o.customer || null, pi: o.payment_intent || null, status: 'active' });
+  }
+  if (event.type === 'charge.refunded') {
+    const piLink = o.payment_intent ? await store.get(piKey(o.payment_intent)) : null;
+    // Partial refund = goodwill gesture, access stays.
+    if (!piLink?.uid || !o.refunded) return null;
+    return save(piLink.uid, { until: now, status: 'refunded' });
   }
   const sub = subIdOf(o);
   const link = sub ? await store.get(subKey(sub)) : null;
@@ -42,4 +50,15 @@ export async function applyStripeEvent(event, store, now = Date.now()) {
     }
   }
   return null;
+}
+
+/** Moves a guest Pass onto a Google account so it follows the player to every device. */
+export async function bindPass(store, fromUid, toUid) {
+  const rec = await store.get(passKey(fromUid));
+  if (!rec || rec.movedTo || fromUid === toUid) return null;
+  await store.set(passKey(toUid), rec);
+  if (rec.sub) await store.set(subKey(rec.sub), { uid: toUid });
+  if (rec.pi) await store.set(piKey(rec.pi), { uid: toUid });
+  await store.set(passKey(fromUid), { movedTo: toUid });
+  return rec;
 }

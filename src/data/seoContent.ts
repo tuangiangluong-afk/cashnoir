@@ -291,7 +291,7 @@ export const SITE_COPY: Record<
     seasonHeroTitle: 'SAISON 1 : BORIS KOVALENKO, LE FANTÔME DES DOCKS',
     seasonHeroSub: 'Chaque saison de campagne a son boss narratif. Boris Kovalenko, mécanicien ukrainien des cargos fantômes, apparaît 12 % plus souvent au comptoir. Il détient la clé de l’ultimatum du Conteneur 47.',
     seasonHeroBadge: '★ Boss Narratif de Saison 1 (+12 % au comptoir)',
-    seasonHeroDossierTitle: 'Dossier d’Enquête Noir : Révélations progressives',
+    seasonHeroDossierTitle: 'Ce qu’il lâche à chaque visite',
     seasonHeroDossierSteps: [
       { step: '2ᵉ rencontre', title: 'Son Secret', desc: 'Ce qu’il cache à la police ou au milieu : reliques d’épaves en mer Noire, dettes de jeu ou fuite en cargo.' },
       { step: '3ᵉ rencontre', title: 'Sa Faille', desc: 'Le mot ou l’indice précis (pavillon libérien, garde-côte) qui le fait blêmir et brise son prix plancher secret.' },
@@ -440,7 +440,7 @@ export const SITE_COPY: Record<
     seasonHeroTitle: 'SEASON 1: BORIS KOVALENKO, THE GHOST OF THE DOCKS',
     seasonHeroSub: 'Every campaign season features a narrative climax boss. Boris Kovalenko, Ukrainian ghost-cargo mechanic, visits your counter 12% more often. He holds the key to the Container 47 port ultimatum.',
     seasonHeroBadge: '★ Season 1 Narrative Boss (+12% Counter Rate)',
-    seasonHeroDossierTitle: 'Progressive Noir Dossier: Step-by-Step Intel',
+    seasonHeroDossierTitle: 'What they give up each visit',
     seasonHeroDossierSteps: [
       { step: '2nd encounter', title: 'Their Secret', desc: 'What they hide from police or the syndicate: Black Sea shipwreck relics, racetrack debts, or midnight cargo flights.' },
       { step: '3rd encounter', title: 'Their Weak Spot', desc: 'The exact trigger or physical tell (Liberian flag, coast guard) that turns them pale and collapses their secret floor price.' },
@@ -589,7 +589,7 @@ export const SITE_COPY: Record<
     seasonHeroTitle: 'TEMPORADA 1: BORIS KOVALENKO, EL FANTASMA DE LOS MUELLES',
     seasonHeroSub: 'Cada temporada de campaña tiene su jefe narrativo. Boris Kovalenko, mecánico ucraniano de cargueros fantasma, visita tu mostrador un 12 % más a menudo. Tiene la clave del ultimátum del Contenedor 47.',
     seasonHeroBadge: '★ Jefe Narrativo Temporada 1 (+12 % en mostrador)',
-    seasonHeroDossierTitle: 'Expediente Negro Progresivo: Información paso a paso',
+    seasonHeroDossierTitle: 'Lo que suelta en cada visita',
     seasonHeroDossierSteps: [
       { step: '2º encuentro', title: 'Su Secreto', desc: 'Lo que oculta a la policía o al hampa: reliquias de pecios del mar Negro, deudas de juego o fuga en carguero.' },
       { step: '3º encuentro', title: 'Su Punto Débil', desc: 'La palabra o pista física exacta (pabellón liberiano, guardacostas) que lo hace palidecer y desploma su precio mínimo.' },

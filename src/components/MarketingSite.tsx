@@ -2,7 +2,7 @@ import { localizeBlog, localizeVersus, localizeGuide, localizeFaq } from '../dat
 import { localizeSeasonName, localizeSeasonEpisode, localizeFaction } from '../data/noirLocalization';
 import { trackEvent, updateAnalyticsConsent } from '../services/analytics';
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2, FileText } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Clock, Search, Flashlight, ShieldAlert, Skull, Star, Share2 } from 'lucide-react';
 import {
   SITE_COPY,
   BLOG_ARTICLES,
@@ -72,6 +72,7 @@ export function MarketingSite({
   const [teaserStep, setTeaserStep] = useState<'idle' | 'uv' | 'bluff'>('idle');
   const [dailyTop, setDailyTop] = useState<Array<{ pseudo: string; margin: number }>>([]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -90,20 +91,21 @@ export function MarketingSite({
 
   const startPassCheckout = async () => {
     setCheckoutBusy(true);
+    setCheckoutError('');
     trackEvent('begin_checkout', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9, locale });
     try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
+      const res = await fetch('/api/pass/checkout', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
-      if (data?.url) {
+      if (res.ok && data?.url) {
         window.location.href = data.url;
         return;
       }
-      onPlay();
+      // Never fall back to the free game: the buyer wanted to pay.
+      setCheckoutError(locale === 'fr' ? 'Paiement indisponible, réessaie dans un instant.' : locale === 'es' ? 'Pago no disponible, inténtalo de nuevo en un momento.' : 'Payment unavailable, try again in a moment.');
     } catch {
-      onPlay();
-    } finally {
-      setCheckoutBusy(false);
+      setCheckoutError(locale === 'fr' ? 'Serveur de paiement injoignable.' : locale === 'es' ? 'Servidor de pago inaccesible.' : 'Payment server unreachable.');
     }
+    setCheckoutBusy(false);
   };
 
   const [contactEmail, setContactEmail] = useState('');
@@ -1032,7 +1034,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-purple-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                     {copy.sagasEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1045,14 +1047,14 @@ export function MarketingSite({
               {/* Le Dilemme Irréversible : Carte Visuelle Interactive */}
               <div className="grid gap-6 lg:grid-cols-12 items-stretch">
                 {/* Exemple de pièce clé d'enquête */}
-                <div className="lg:col-span-5 border border-purple-500/30 bg-[#0e0d14] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_40px_rgba(168,85,247,0.08)] flex flex-col justify-between">
+                <div className="lg:col-span-5 border border-white/10 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-purple-300 uppercase tracking-wider min-w-0">
-                        <ShieldAlert className="h-4 w-4 shrink-0 text-purple-400" />
+                    <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-200 uppercase tracking-wider min-w-0">
+                        <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />
                         <span>{copy.sagasDilemmaTitle}</span>
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40">
+                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-200 border border-white/10">
                         {locale === 'en' ? 'North Docks' : locale === 'es' ? 'Muelles del Norte' : 'Docks du Nord'}
                       </span>
                     </div>
@@ -1079,12 +1081,12 @@ export function MarketingSite({
                     </div>
 
                     <div className="space-y-2 text-xs">
-                      <div className="rounded border border-emerald-500/30 bg-emerald-950/20 p-3 space-y-1">
-                        <p className="font-bold text-emerald-300 text-[11px] uppercase tracking-wider">
+                      <div className="border-l-2 border-zinc-600 pl-3 py-1 space-y-1">
+                        <p className="font-bold text-zinc-200 text-[11px] uppercase tracking-wider">
                           {copy.sagasDilemmaVault}
                         </p>
                       </div>
-                      <div className="rounded border border-red-500/30 bg-red-950/20 p-3 space-y-1">
+                      <div className="border-l-2 border-red-500 pl-3 py-1 space-y-1">
                         <p className="font-bold text-red-300 text-[11px] uppercase tracking-wider">
                           {copy.sagasDilemmaSell}
                         </p>
@@ -1095,9 +1097,9 @@ export function MarketingSite({
 
                 {/* Les 3 piliers narratifs des Sagas */}
                 <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono text-xs">
-                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
+                  <div className="border border-white/10 bg-[#07080b] p-5 space-y-2 flex flex-col justify-between">
                     <div className="space-y-2">
-                      <span className="text-[11px] uppercase text-purple-400 font-bold tracking-widest">
+                      <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest">
                         {locale === 'en' ? '100 Characters' : locale === 'es' ? '100 Personajes' : '100 Personnages'}
                       </span>
                       <h3 className="text-sm font-bold text-zinc-100">
@@ -1113,7 +1115,7 @@ export function MarketingSite({
                     </div>
                   </div>
 
-                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 flex flex-col justify-between">
+                  <div className="border border-white/10 bg-[#07080b] p-5 space-y-2 flex flex-col justify-between">
                     <div className="space-y-2">
                       <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest">
                         {locale === 'en' ? '10 Underworld Factions' : locale === 'es' ? '10 Facciones Clandestinas' : '10 Factions Criminelles'}
@@ -1131,9 +1133,9 @@ export function MarketingSite({
                     </div>
                   </div>
 
-                  <div className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2 sm:col-span-2">
+                  <div className="border border-white/10 bg-[#07080b] p-5 space-y-2 sm:col-span-2">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                      <span className="text-[11px] uppercase text-emerald-400 font-bold tracking-widest">
+                      <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest">
                         {locale === 'en' ? '30+ Physical Relics' : locale === 'es' ? '30+ Reliquias Físicas' : '30+ Reliques Physiques'}
                       </span>
                       <span className="text-zinc-400 text-[11px]">
@@ -1172,7 +1174,7 @@ export function MarketingSite({
               {/* Grille : Portrait du Boss de Saison + Dossier Noir en 3 Paliers */}
               <div className="grid gap-6 lg:grid-cols-12 items-stretch">
                 {/* Carte Personnage du Héros */}
-                <div className="lg:col-span-5 border border-amber-500/30 bg-gradient-to-b from-[#13110d] to-[#0a0b0e] p-5 rounded-xl space-y-4 font-mono shadow-[0_0_30px_rgba(245,158,11,0.06)] flex flex-col justify-between">
+                <div className="lg:col-span-5 border border-amber-500/30 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
                       <span className="text-[11px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
@@ -1233,59 +1235,41 @@ export function MarketingSite({
 
                   <div className="border-t border-amber-500/10 pt-3 text-[11px] text-amber-300/80 flex items-center justify-between">
                     <span>{locale === 'en' ? 'Counter boost: ~12% appearance' : locale === 'es' ? 'Aparición en mostrador: ~12%' : 'Boost comptoir : ~12% d’apparition'}</span>
-                    <span className="text-emerald-400 font-bold">+2 200 $ {locale === 'en' ? 'Bounty' : locale === 'es' ? 'Recompensa' : 'Prime'}</span>
+                    <span className="text-amber-400 font-bold">+2 200 $ {locale === 'en' ? 'Bounty' : locale === 'es' ? 'Recompensa' : 'Prime'}</span>
                   </div>
                 </div>
 
                 {/* Dossier Noir en 3 Paliers */}
                 <div className="lg:col-span-7 flex flex-col justify-between space-y-3 font-mono">
-                  <div className="border border-white/10 bg-[#0a0b0f] p-5 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                      <span className="text-xs uppercase text-zinc-200 font-bold tracking-widest flex items-center gap-1.5">
-                        <FileText className="h-4 w-4 text-violet-400" />
-                        {copy.seasonHeroDossierTitle}
-                      </span>
-                      <span className="text-[11px] text-zinc-400">
-                        {locale === 'en' ? 'Deterministic Memory' : locale === 'es' ? 'Memoria Determinista' : 'Mémoire Déterministe'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5 pt-1">
+                  <div className="border border-white/10 bg-[#0a0b0f] p-5">
+                    <p className="text-xs uppercase text-zinc-200 font-bold tracking-widest border-b border-white/10 pb-3">
+                      {copy.seasonHeroDossierTitle}
+                    </p>
+                    <ol className="divide-y divide-white/10">
                       {copy.seasonHeroDossierSteps.map((st, i) => (
-                        <div
-                          key={st.step}
-                          className={`p-3 rounded-lg border text-xs space-y-1 ${
-                            i === 0
-                              ? 'border-violet-500/30 bg-violet-950/20'
-                              : i === 1
-                              ? 'border-amber-500/30 bg-amber-950/20'
-                              : 'border-red-500/30 bg-red-950/20'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                              {st.step}
-                            </span>
-                            <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                              i === 0 ? 'text-violet-300' : i === 1 ? 'text-amber-300' : 'text-red-300'
-                            }`}>
-                              {st.title}
-                            </span>
+                        <li key={st.step} className="grid grid-cols-[2rem_1fr] gap-3 py-4 last:pb-0">
+                          <span className={`font-[family-name:var(--font-display)] text-2xl leading-none ${i === 2 ? 'text-red-400' : 'text-amber-400'}`}>
+                            {i + 2}
+                          </span>
+                          <div className="space-y-1">
+                            <p className="text-[11px] uppercase tracking-wider text-zinc-500">
+                              {st.step} · <span className="text-zinc-100 font-bold">{st.title}</span>
+                            </p>
+                            <p className="text-zinc-300 font-sans text-sm leading-relaxed">{st.desc}</p>
                           </div>
-                          <p className="text-zinc-300 font-sans text-xs leading-relaxed">{st.desc}</p>
-                        </div>
+                        </li>
                       ))}
-                    </div>
+                    </ol>
                   </div>
 
                   {/* Partage Viral de la Punchline Choc */}
-                  <div className="border border-emerald-500/30 bg-gradient-to-r from-[#0a120e] to-[#060b08] p-5 rounded-xl space-y-3 font-mono">
+                  <div className="border border-white/10 bg-[#0a0b0f] p-5 space-y-3 font-mono">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] uppercase text-emerald-400 font-bold tracking-widest flex items-center gap-1.5">
-                        <Share2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest flex items-center gap-1.5">
+                        <Share2 className="h-3.5 w-3.5 text-amber-400" />
                         {copy.viralShareEyebrow}
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-200 border border-white/10 font-bold">
                         {locale === 'en' ? 'PNG Card · −20% / Weapon Drawn' : locale === 'es' ? 'Tarjeta PNG · −20% / Arma Sacada' : 'Carte PNG · −20% / Arme Dégainée'}
                       </span>
                     </div>
@@ -1295,7 +1279,7 @@ export function MarketingSite({
                       <p className="mt-1 text-zinc-400 font-sans text-xs leading-relaxed">{copy.viralShareSub}</p>
                     </div>
 
-                    <div className="bg-black/70 p-3 rounded border border-emerald-500/20 text-xs text-emerald-300 italic">
+                    <div className="bg-black/70 p-3 rounded border border-white/10 text-xs text-zinc-200 italic">
                       {copy.viralShareQuote}
                     </div>
                   </div>
@@ -1324,7 +1308,7 @@ export function MarketingSite({
                 {copy.ascensionTiers.map((tier) => (
                   <div
                     key={tier.level}
-                    className="border border-white/10 bg-[#0a0b0f] p-5 rounded-xl space-y-3 relative overflow-hidden flex flex-col justify-between"
+                    className="border border-white/10 bg-[#0a0b0f] p-5 space-y-3 relative overflow-hidden flex flex-col justify-between"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1353,7 +1337,7 @@ export function MarketingSite({
               </div>
 
               {/* Barre de stats & simulation */}
-              <div className="border border-amber-500/20 bg-[#0e1017] p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+              <div className="border border-amber-500/20 bg-[#0e1017] p-4 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
                 <div className="flex items-center gap-2 text-zinc-300">
                   <span className="h-2 w-2 rounded-full bg-amber-400" />
                   <span>
@@ -1380,7 +1364,7 @@ export function MarketingSite({
             <div className="mx-auto max-w-6xl space-y-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                     {copy.autopsyEyebrow}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl text-zinc-100">
@@ -1395,14 +1379,14 @@ export function MarketingSite({
                 {copy.autopsyPoints.map((pt) => (
                   <div
                     key={pt.title}
-                    className="border border-white/10 bg-[#07080b] p-5 rounded-xl space-y-2.5 flex flex-col justify-between"
+                    className="border border-white/10 bg-[#07080b] p-5 space-y-2.5 flex flex-col justify-between"
                   >
                     <div className="space-y-2">
                       <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider inline-block ${
                         pt.tag.includes('ERREURS') || pt.tag.includes('MISTAKES') || pt.tag.includes('ERRORES')
                           ? 'bg-red-950/80 text-red-300 border border-red-500/30'
                           : pt.tag.includes('SUCCÈS') || pt.tag.includes('WINS') || pt.tag.includes('ACIERTOS')
-                          ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-white/5 text-zinc-200 border border-white/10'
                           : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
                       }`}>
                         {pt.tag}
@@ -1434,13 +1418,13 @@ export function MarketingSite({
               {/* Grille 2 Colonnes : Vente Rapide vs Enchères Clandestines */}
               <div className="grid gap-6 sm:grid-cols-2 font-mono text-xs">
                 {/* Vente Rapide */}
-                <div className="border border-emerald-500/30 bg-[#09110d] p-6 rounded-xl space-y-4 flex flex-col justify-between">
+                <div className="border border-white/10 bg-[#0a0b0f] p-6 space-y-4 flex flex-col justify-between">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                      <span className="font-bold text-sm text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="font-bold text-sm text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
                         {copy.arbitrageFastTitle}
                       </span>
-                      <span className="text-[11px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
+                      <span className="text-[11px] text-amber-400 font-bold px-2 py-0.5 rounded bg-white/5 border border-white/10">
                         {locale === 'en' ? '-5% Heat · Unlimited' : locale === 'es' ? '-5% Heat · Ilimitada' : '-5% Heat · Illimitée'}
                       </span>
                     </div>
@@ -1448,13 +1432,13 @@ export function MarketingSite({
                       {copy.arbitrageFastDesc}
                     </p>
                   </div>
-                  <div className="border-t border-emerald-500/10 pt-3 text-[11px] text-emerald-400/80">
-                    ✓ {locale === 'en' ? 'Instant liquidity for midnight rent' : locale === 'es' ? 'Liquidez inmediata para el alquiler nocturno' : 'Liquidité immédiate pour régler le loyer'}
+                  <div className="border-t border-white/10 pt-3 text-[11px] text-zinc-400">
+                    {locale === 'en' ? 'Instant liquidity for midnight rent' : locale === 'es' ? 'Liquidez inmediata para el alquiler nocturno' : 'Liquidité immédiate pour régler le loyer'}
                   </div>
                 </div>
 
                 {/* Enchères Clandestines */}
-                <div className="border border-amber-500/30 bg-[#120e08] p-6 rounded-xl space-y-4 flex flex-col justify-between">
+                <div className="border border-amber-500/30 bg-[#0a0b0f] p-6 space-y-4 flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                       <span className="font-bold text-sm text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -1469,7 +1453,7 @@ export function MarketingSite({
                     </p>
                   </div>
                   <div className="border-t border-amber-500/10 pt-3 text-[11px] text-amber-400/80">
-                    ⚠️ {locale === 'en' ? 'Market crashes by -25% on 2nd auction' : locale === 'es' ? 'El mercado se hunde un -25% en la 2ª subasta' : 'Le marché sature à -25% dès la 2e pièce'}
+                    {locale === 'en' ? 'Market crashes by -25% on 2nd auction' : locale === 'es' ? 'El mercado se hunde un -25% en la 2ª subasta' : 'Le marché sature à -25% dès la 2e pièce'}
                   </div>
                 </div>
               </div>
@@ -1550,7 +1534,7 @@ export function MarketingSite({
                           <span className="text-zinc-400 mr-2">#{idx + 1}</span>
                           {row.pseudo}
                         </span>
-                        <span className="font-bold text-emerald-400">
+                        <span className="font-bold text-amber-400">
                           +{row.margin.toLocaleString('fr-FR')} $
                         </span>
                       </div>
@@ -1608,6 +1592,7 @@ export function MarketingSite({
                   >
                     {checkoutBusy ? copy.vipBusy : copy.vipBtn}
                   </button>
+                  {checkoutError && <p role="alert" className="text-xs text-red-300">{checkoutError}</p>}
                 </div>
               </div>
             </div>
@@ -1716,7 +1701,7 @@ export function MarketingSite({
                       : (locale === 'en' ? 'Send to hello@cashnoir.app' : locale === 'es' ? 'Enviar a hello@cashnoir.app' : 'Envoyer à hello@cashnoir.app')}
                   </button>
                   {contactStatus === 'sent' && (
-                    <span className="text-emerald-400">
+                    <span className="text-amber-400">
                       {locale === 'en' ? '✓ Message sent.' : locale === 'es' ? '✓ Mensaje enviado.' : '✓ Message transmis.'}
                     </span>
                   )}

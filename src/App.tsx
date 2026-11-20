@@ -300,7 +300,7 @@ export default function App() {
   const [routePath, setRoutePath] = useState<string>(() => {
     if (typeof window === 'undefined') return '/play';
     const params = new URLSearchParams(window.location.search);
-    if (params.get('auth') === 'ok' || params.get('pass') === 'claim') return '/play';
+    if (params.get('auth') === 'ok' || params.get('pass') === 'claim' || params.get('pass') === 'ok') return '/play';
     return window.location.pathname || '/';
   });
 
@@ -468,6 +468,8 @@ export default function App() {
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [hasPass, setHasPass] = useState(false);
   const [passOpen, setPassOpen] = useState(false);
+  const [passManageable, setPassManageable] = useState(false);
+  const [passWelcome, setPassWelcome] = useState(false);
   const [passBusy, setPassBusy] = useState(false);
 
   // Méta-Empire Persistant (survit même au Game Over)
@@ -806,7 +808,7 @@ export default function App() {
     trackPageView(routePath);
     if (typeof window !== 'undefined') {
       const qs = new URLSearchParams(window.location.search);
-      if (qs.get('checkout') === 'success' || qs.get('pass') === 'success') {
+      if (qs.get('checkout') === 'success' || qs.get('pass') === 'success' || qs.get('pass') === 'ok') {
         trackEvent('purchase', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9 });
       }
     }
@@ -1149,9 +1151,27 @@ export default function App() {
         const data = await res.json();
         setHasPass(Boolean(data.pass));
         setPassOpen(data.mode === 'open');
+        setPassManageable(Boolean(data.manageable));
       }
     } catch {
       // Backend hors-ligne : pas de Pass.
+    }
+  };
+
+  const openBillingPortal = async () => {
+    setPassBusy(true);
+    try {
+      const res = await fetch('/api/pass/portal', { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.url) {
+        setError(data?.error || tt('Portail de paiement indisponible.', 'Billing portal unavailable.', 'Portal de pago no disponible.'));
+        return;
+      }
+      window.location.assign(data.url as string);
+    } catch {
+      setError(tt('Serveur de paiement hors-ligne.', 'Payment server offline.', 'Servidor de pago sin conexión.'));
+    } finally {
+      setPassBusy(false);
     }
   };
 
@@ -1180,6 +1200,10 @@ export default function App() {
     if (params.get('pass') === 'claim' && sid) {
       window.location.replace(`/api/pass/claim?session_id=${encodeURIComponent(sid)}`);
       return;
+    }
+    if (params.get('pass') === 'ok') {
+      setPassWelcome(true);
+      window.setTimeout(() => setPassWelcome(false), 8000);
     }
     if (params.has('pass')) {
       window.history.replaceState({}, '', window.location.pathname);
@@ -3457,14 +3481,16 @@ export default function App() {
       </main>
     );
   }
-  if (!authUser && showFirstDeal) {
+  // A paying guest plays right away; Google login stays optional (cloud save).
+  const paidGuest = hasPass && !passOpen;
+  if (!authUser && !paidGuest && showFirstDeal) {
     return <FirstDeal t={tt} onExit={() => setShowFirstDeal(false)} onContinue={() => {
       setShowFirstDeal(false);
       if (oauthConfigured) startGoogleLogin();
       else retryConnection();
     }} />;
   }
-  if (!authUser) {
+  if (!authUser && !paidGuest) {
     return (
       <div className="login-scene min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 max-sm:items-end max-sm:pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
         <div className="w-full max-w-md space-y-6 p-2 sm:border sm:border-white/15 sm:bg-[#0b0c10] sm:p-8 sm:shadow-[0_0_60px_rgba(0,0,0,0.9)]">
@@ -3577,6 +3603,14 @@ export default function App() {
         tab === 'counter' || tab === 'daily' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
       } bg-[#09090b] text-zinc-100 flex flex-col pt-[env(safe-area-inset-top)] sm:pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
     >
+      {passWelcome && (
+        <div role="status" className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[60] mx-auto w-[min(92vw,26rem)] border border-amber-400/60 bg-[#0b0c10] px-4 py-3 text-sm text-zinc-100 shadow-lg" onClick={() => setPassWelcome(false)}>
+          <strong className="text-amber-300">{tt('Pass Syndicat activé.', 'Syndicate Pass activated.', 'Pase del Sindicato activado.')}</strong>{' '}
+          {authUser
+            ? tt('IA sans limite et classement mondial débloqués.', 'Unlimited AI and world leaderboard unlocked.', 'IA sin límite y ranking mundial desbloqueados.')
+            : tt('Connecte-toi avec Google (menu Compte) pour le garder sur tous tes appareils.', 'Sign in with Google (Account menu) to keep it on all your devices.', 'Inicia sesión con Google (menú Cuenta) para conservarlo en todos tus dispositivos.')}
+        </div>
+      )}
       {/* Top Bar : Responsive iOS/Android & Desktop */}
       <header className="relative z-30 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 bg-[#090a0f]/95 px-2.5 py-1.5 sm:px-6 w-full max-w-full overflow-hidden">
         {/* Gauche : Logo SVG minimaliste + Identité CASH NOIR */}
@@ -6776,6 +6810,24 @@ export default function App() {
                 {tt('Un compte sauvegarde ta progression dans le cloud et te permet de publier ton score.', 'An account saves your progress in the cloud and lets you publish your score.', 'Una cuenta guarda tu progreso en la nube y te permite publicar tu puntuación.')}
               </p>
             </div>
+
+            {hasPass && !passOpen && (
+              <div className="space-y-1">
+                <span className="text-[11px] uppercase text-zinc-500 tracking-wider">
+                  {tt('Pass Syndicat', 'Syndicate Pass', 'Pase del Sindicato')}
+                </span>
+                {!authUser && (
+                  <p className="border-l-2 border-amber-400 pl-2 text-[11px] leading-snug text-amber-200">
+                    {tt('Actif sur ce navigateur seulement. Connecte-toi avec Google pour le lier à ton compte.', 'Active on this browser only. Sign in with Google to tie it to your account.', 'Activo solo en este navegador. Inicia sesión con Google para vincularlo a tu cuenta.')}
+                  </p>
+                )}
+                {passManageable && !isNative && (
+                  <button type="button" disabled={passBusy} onClick={openBillingPortal} className="w-full rounded border border-white/15 bg-white/5 px-2.5 py-2 text-[11px] text-zinc-200 hover:bg-white/10 disabled:opacity-50">
+                    {tt('Gérer ou résilier mon abonnement', 'Manage or cancel my subscription', 'Gestionar o cancelar mi suscripción')}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Language Segmented Pill */}
             <div className="space-y-1">

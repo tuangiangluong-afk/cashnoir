@@ -168,7 +168,7 @@ try {
 }
 // Abonnement Pass lié au compte : achat, renouvellement, résiliation programmée, annulation.
 {
-  const { applyStripeEvent, passKey, isActive } = await import('../server/entitlements.mjs');
+  const { applyStripeEvent, passKey, isActive, bindPass } = await import('../server/entitlements.mjs');
   const m = new Map();
   const store = { get: async (k) => m.get(k) ?? null, set: async (k, v) => void m.set(k, v) };
   const T = 1_700_000_000_000;
@@ -182,6 +182,16 @@ try {
   await applyStripeEvent({ type: 'customer.subscription.deleted', data: { object: { id: 'sub_1', object: 'subscription' } } }, store, T + 35 * DAY);
   check('abonnement : annulation/remboursement → Pass retiré aussitôt', !isActive(m.get(passKey('u1')), T + 35 * DAY + 1));
   check('abonnement : événement d’un inconnu ignoré', (await applyStripeEvent({ type: 'invoice.paid', data: { object: { subscription: 'sub_zzz' } } }, store, T)) === null);
+  // Invité : achat unique, liaison au compte Google, puis remboursement → retiré partout.
+  await applyStripeEvent({ type: 'checkout.session.completed', data: { object: { client_reference_id: 'g_1', mode: 'payment', payment_status: 'paid', payment_intent: 'pi_1', customer: 'cus_g' } } }, store, T);
+  check('invité : achat → Pass actif côté serveur', isActive(m.get(passKey('g_1')), T + DAY));
+  await bindPass(store, 'g_1', 'u2');
+  check('invité : connexion Google → Pass suit le compte', isActive(m.get(passKey('u2')), T + DAY) && m.get(passKey('g_1')).movedTo === 'u2');
+  check('invité : liaison non rejouable', (await bindPass(store, 'g_1', 'u3')) === null);
+  await applyStripeEvent({ type: 'charge.refunded', data: { object: { payment_intent: 'pi_1', refunded: false } } }, store, T + DAY);
+  check('remboursement partiel → accès conservé', isActive(m.get(passKey('u2')), T + 2 * DAY));
+  await applyStripeEvent({ type: 'charge.refunded', data: { object: { payment_intent: 'pi_1', refunded: true } } }, store, T + 2 * DAY);
+  check('remboursement total → Pass retiré du compte lié', !isActive(m.get(passKey('u2')), T + 2 * DAY + 1));
 }
 // Vertex : compte 1 en panne → compte 2 ; échec total → null sans exception.
 {
