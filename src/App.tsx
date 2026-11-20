@@ -1,3 +1,5 @@
+import { FirstDeal, readFirstDeal, clearFirstDeal } from './components/FirstDeal';
+import { GameDialog } from './components/GameDialog';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -52,7 +54,7 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
-import { startGoogleLogin, clearNativeSession, isNative, openSitePage } from './services/nativeApi';
+import { consumeLoginError, startGoogleLogin, clearNativeSession, isNative, openSitePage } from './services/nativeApi';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { track } from './services/telemetry';
 import { trackEvent, trackPageView } from './services/analytics';
@@ -258,7 +260,7 @@ function getTodayStr(): string {
 function getSecondsUntilMidnight(): number {
   const now = new Date();
   const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
+  midnight.setUTCHours(24, 0, 0, 0);
   return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
 }
 
@@ -271,8 +273,29 @@ function formatCountdown(secs: number, compact = false): string {
   return `${h}:${m}:${s}`;
 }
 
+function DailyClock({ compact = false }: { compact?: boolean }) {
+  const [seconds, setSeconds] = useState(getSecondsUntilMidnight);
+  useEffect(() => {
+    let timer: number | undefined;
+    const sync = () => {
+      window.clearInterval(timer);
+      if (document.hidden) return;
+      const tick = () => setSeconds(getSecondsUntilMidnight());
+      tick();
+      timer = window.setInterval(tick, 1000);
+    };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, []);
+  return <>{formatCountdown(seconds, compact)}</>;
+}
+
 export default function App() {
-  const todayStr = getTodayStr();
+  const [todayStr, setTodayStr] = useState(getTodayStr);
 
   const [routePath, setRoutePath] = useState<string>(() => {
     if (typeof window === 'undefined') return '/play';
@@ -298,7 +321,9 @@ export default function App() {
   const isGameRoute = routePath === '/play' || routePath.startsWith('/play/');
   const [gameLocale, setGameLocale] = useState<Locale>(() => {
     const saved = localStorage.getItem('fence_locale');
-    return saved === 'fr' || saved === 'es' || saved === 'en' ? saved : 'en';
+    if (saved === 'fr' || saved === 'es' || saved === 'en') return saved;
+    const preferred = navigator.language.split('-')[0];
+    return preferred === 'fr' || preferred === 'es' ? preferred : 'en';
   });
   const tt = (fr: string, en: string, es: string) => (gameLocale === 'en' ? en : gameLocale === 'es' ? es : fr);
   const hitLoc = (label: string) => {
@@ -588,6 +613,9 @@ export default function App() {
     picture: string;
   } | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState(false);
+  const [showFirstDeal, setShowFirstDeal] = useState(false);
+  const [profileFailed, setProfileFailed] = useState(false);
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>('idle');
   const cloudReadyRef = useRef(false);
@@ -677,13 +705,21 @@ export default function App() {
   // OAuth session & Cloud Profile hydration
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
     (async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const res = await fetch('/api/auth/me', { credentials: 'include', signal: controller.signal });
         if (!res.ok || cancelled) return;
         const data = await res.json();
+        if (cancelled) return;
         setOauthConfigured(Boolean(data.oauthConfigured));
-        if (!data.authenticated || !data.user) return;
+        if (!data.authenticated || !data.user) {
+          setAuthUser(null);
+          setProfileFailed(false);
+          cloudReadyRef.current = false;
+          return;
+        }
         setAuthUser(data.user);
         try {
           const known = localStorage.getItem('fence_known_user');
@@ -695,10 +731,19 @@ export default function App() {
           }
         } catch {}
 
-        const profRes = await fetch('/api/profile', { credentials: 'include' });
-        if (!profRes.ok || cancelled) return;
+        const intro = readFirstDeal();
+        const importDeal = intro?.stage === 'bought';
+        const profRes = await fetch(importDeal ? '/api/profile/first-deal' : '/api/profile', {
+          credentials: 'include',
+          signal: controller.signal,
+          ...(importDeal ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: intro.price }) } : {}),
+        });
+        if (cancelled) return;
+        if (!profRes.ok) throw new Error('Profile unavailable');
         const profData = await profRes.json();
+        if (cancelled) return;
         const p = profData?.profile;
+        if (importDeal && !p) throw new Error('First deal unavailable');
         if (p) {
           if (typeof p.day === 'number') setDay(p.day);
           if (typeof p.cash === 'number') setCash(p.cash);
@@ -735,18 +780,26 @@ export default function App() {
             });
           }
         }
+        if (importDeal) {
+          clearFirstDeal();
+          if (p.inventory?.some((item: BoughtItem) => item.id === 'first-dock-watch')) setTab('night');
+        }
+        setProfileFailed(false);
         cloudReadyRef.current = true;
         setCloudStatus('saved');
       } catch {
-        // Offline / backend absent : localStorage reste actif
+        if (!cancelled) setProfileFailed(true);
       } finally {
+        window.clearTimeout(timeout);
         if (!cancelled) setAuthChecked(true);
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeout);
     };
-  }, []);
+  }, [authAttempt]);
 
   // Tracking GA4 / GTM : vues de page + achat Pass Syndicat confirmé au retour Stripe
   useEffect(() => {
@@ -777,49 +830,59 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Debounced auto-save to Cloud Profile when authenticated
+  const saveQueue = useRef(Promise.resolve());
   useEffect(() => {
-    if (!authUser || !cloudReadyRef.current) return;
-    const timer = setTimeout(async () => {
-      setCloudStatus('syncing');
-      try {
-        const res = await fetch('/api/profile', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            day,
-            cash,
-            totalProfit,
-            cityHeat,
-            swissBank,
-            streak,
-            lastContractDate,
-            dailyDoneDate,
-            districtId,
-            ascensionLevel,
-            maxDaySurvived,
-            seasonXp,
-            lastMemory,
-            inventory,
-            upgrades,
-            jokerIds,
-            cityAssets,
-            arcNotes,
-            vengeance,
-            codexDiscovered,
-            factionRep,
-            historyLog,
-          }),
-        });
-        setCloudStatus(res.ok ? 'saved' : 'error');
-      } catch {
-        setCloudStatus('error');
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
+    if (!authUser || !authChecked || !cloudReadyRef.current) return;
+    const body = JSON.stringify({
+      day, cash, totalProfit, cityHeat, swissBank, streak, lastContractDate, dailyDoneDate,
+      districtId, ascensionLevel, maxDaySurvived, seasonXp, lastMemory, inventory,
+      upgrades, jokerIds, cityAssets, arcNotes, vengeance, codexDiscovered, factionRep, historyLog,
+    });
+    let current = true;
+    let queued = false;
+    let saved = false;
+    let timer: number;
+    const flush = () => {
+      if (!current || queued || saved) return;
+      queued = true;
+      window.clearTimeout(timer);
+      saveQueue.current = saveQueue.current.then(async () => {
+        if (!current || !cloudReadyRef.current) return;
+        setCloudStatus('syncing');
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 12000);
+        try {
+          const res = await fetch('/api/profile', {
+            method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body, signal: controller.signal,
+            keepalive: new Blob([body]).size < 60000,
+          });
+          if (!res.ok) throw new Error('Save unavailable');
+          saved = true;
+          if (current) setCloudStatus('saved');
+        } catch {
+          if (current) {
+            setCloudStatus('error');
+            if (navigator.onLine && !document.hidden) timer = window.setTimeout(flush, 15000);
+          }
+        } finally {
+          queued = false;
+          window.clearTimeout(timeout);
+        }
+      });
+    };
+    timer = window.setTimeout(flush, 1200);
+    window.addEventListener('online', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+      window.removeEventListener('online', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
   }, [
     authUser,
+    authChecked,
     day,
     cash,
     totalProfit,
@@ -845,8 +908,18 @@ export default function App() {
   ]);
 
   // UI & FOMO countdown
-  const [tab, setTab] = useState<TabMode>('counter');
-  const [countdown, setCountdown] = useState<number>(getSecondsUntilMidnight);
+  const [tab, selectTab] = useState<TabMode>('counter');
+  const dailyOpening = useRef<AbortController | null>(null);
+  const [openingDaily, setOpeningDaily] = useState(false);
+  const setTab = (next: TabMode) => {
+    if (next !== 'daily' && dailyOpening.current) {
+      dailyOpening.current.abort();
+      dailyOpening.current = null;
+      setOpeningDaily(false);
+    }
+    selectTab(next);
+  };
+  useEffect(() => () => dailyOpening.current?.abort(), []);
   const [clientsServedToday, setClientsServedToday] = useState(saved?.clientsServedToday ?? 0);
   const dailyRunRef = useRef<{ runId: string; ticket: string } | null>(null);
   const lastArcStep2DayRef = useRef<number>(-1);
@@ -856,7 +929,21 @@ export default function App() {
   const lastHoldupDayRef = useRef<number>(-99);
   const [telemetryOn, setTelemetryOn] = useState<boolean>(() => localStorage.getItem('fence_telemetry') !== '0');
   const scriptedNoticeRef = useRef(false);
+  const gameScreen = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const screen = gameScreen.current;
+    if (!screen || !viewport) return;
+    const resize = () => {
+      if (viewport.scale === 1) screen.style.setProperty('--visible-game-height', `${viewport.height}px`);
+      else screen.style.removeProperty('--visible-game-height');
+    };
+    resize();
+    viewport.addEventListener('resize', resize);
+    return () => viewport.removeEventListener('resize', resize);
+  }, [authUser, authChecked, isGameRoute]);
   const threadRef = useRef<HTMLDivElement>(null);
+  const followThread = useRef(true);
   const [showItemSheet, setShowItemSheet] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showClientSheet, setShowClientSheet] = useState(false);
@@ -865,12 +952,19 @@ export default function App() {
   // Prix demandé à l'acheteur (-1 = valeur de rue par défaut).
   const [buyerAsk, setBuyerAsk] = useState<number>(-1);
   const [gameOverReason, setGameOverReason] = useState<string | null>(null);
-  const [showBrief, setShowBrief] = useState<boolean>(false);
+  const [showBrief, setShowBrief] = useState(() =>
+    !localStorage.getItem('fence_brief_seen') && day === 1 && !saved?.clientsServedToday && (saved?.history.length ?? 0) <= 1
+  );
 
   useEffect(() => {
-    const timer = setInterval(() => setCountdown(getSecondsUntilMidnight()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const refreshDay = () => setTodayStr(getTodayStr());
+    const timer = window.setTimeout(refreshDay, (getSecondsUntilMidnight() + 1) * 1000);
+    document.addEventListener('visibilitychange', refreshDay);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', refreshDay);
+    };
+  }, [todayStr]);
 
   // Active case state
   const [currentCase, setCurrentCase] = useState<ProceduralCase>(() =>
@@ -918,9 +1012,10 @@ export default function App() {
     triggerHaptic(20);
     setGameLocale(newLoc);
     localStorage.setItem('fence_locale', newLoc);
-    if (tab === 'daily' || currentCase.isDailyContract) {
-      void openDailyContract(newLoc);
-    } else if (currentCase.isBoss) {
+    // Preserve a deal already in progress when changing the interface language.
+    if (dailyOpening.current || currentCase.isDailyContract || currentCase.special ||
+        outcome !== 'active' || history.length > 1 || inspected || uvScanned) return;
+    if (currentCase.isBoss) {
       startNewCase(generateBossCase(day, cityHeat, currentDistrict.multiplier, newLoc));
     } else {
       startNewCase(
@@ -952,6 +1047,14 @@ export default function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const showError = () => {
+      if (consumeLoginError()) setError(tt('La connexion a expiré ou a été interrompue. Réessaie avec Google.', 'Sign-in expired or was interrupted. Try Google again.', 'La conexión caducó o se interrumpió. Vuelve a intentarlo con Google.'));
+    };
+    showError();
+    window.addEventListener('cashnoir-login-error', showError);
+    return () => window.removeEventListener('cashnoir-login-error', showError);
+  }, [gameLocale]);
 
   // Settings / Debug
   const [debugMode, setDebugMode] = useState(false);
@@ -1280,11 +1383,17 @@ export default function App() {
     setPlayerCashHint(cash);
   }, [cash]);
 
-  // Le fil de discussion mobile reste calé sur le dernier message (on peut remonter à la main).
+  useEffect(() => {
+    followThread.current = true;
+  }, [currentCase.id, tab]);
+
   useEffect(() => {
     const el = threadRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [history.length, loading, tell, error]);
+    if (el && (followThread.current || history[history.length - 1]?.role === 'player')) {
+      el.scrollTop = el.scrollHeight;
+      followThread.current = true;
+    }
+  }, [currentCase.id, tab, history, loading, tell, authUser]);
 
   // Sauvegarde du client en cours (jamais le contrat quotidien, qui a sa propre règle côté serveur).
   useEffect(() => {
@@ -1933,9 +2042,26 @@ export default function App() {
     startNewCase(spawnNextCase(clientsServedToday >= maxClientsPerDay - 1));
   };
 
-  const openDailyContract = async (targetLocale?: Locale) => {
-    const loc = targetLocale || gameLocale;
+  const openDailyContract = async () => {
+    if (dailyOpening.current || loading) return;
     setTab('daily');
+    if (currentCase.isDailyContract && currentCase.id.startsWith(`daily-${todayStr}-`)) return;
+    const request = new AbortController();
+    dailyOpening.current = request;
+    setOpeningDaily(true);
+    const timeout = window.setTimeout(() => request.abort(), 12000);
+    try {
+      await startDailyContract(gameLocale, request);
+    } finally {
+      window.clearTimeout(timeout);
+      if (dailyOpening.current === request) {
+        dailyOpening.current = null;
+        setOpeningDaily(false);
+      }
+    }
+  };
+
+  const startDailyContract = async (loc: Locale, request: AbortController) => {
     setScoreSubmitted(false);
     void fetchLeaderboard();
     fetch('/api/leaderboard/highlight')
@@ -1949,45 +2075,36 @@ export default function App() {
     // Le serveur ouvre la partie dès le début : il compte les tours de négociation.
     dailyRunRef.current = null;
     try {
-      const r = await fetch('/api/run/start', { method: 'POST' });
+      const r = await fetch('/api/run/start', { method: 'POST', signal: request.signal });
       if (r.status === 409) {
         const e = await r.json().catch(() => ({}));
+        if (dailyOpening.current !== request) return;
         setError(e?.error || tt('Contrat quotidien déjà tenté aujourd’hui.', 'Daily contract already attempted today.', 'Contrato diario ya intentado hoy.'));
         setTab('counter');
         return;
       }
       if (r.ok) {
         const { runId, ticket } = await r.json();
+        if (dailyOpening.current !== request) return;
         dailyRunRef.current = { runId, ticket };
       }
     } catch {
       // Hors-ligne : pas de run, donc pas de publication au classement.
     }
 
-    // Prix officiels du contrat du jour : c'est le serveur qui les fixe.
-    let priceOverride: { initialPrice: number; floorPrice: number; streetValue: number } | undefined;
-    try {
-      const res = await fetch('/api/daily');
-      if (res.ok) {
-        const contract = await res.json();
-        if (
-          Number.isFinite(contract?.initialPrice) &&
-          Number.isFinite(contract?.floorPrice) &&
-          Number.isFinite(contract?.streetValue)
-        ) {
-          priceOverride = {
-            initialPrice: contract.initialPrice,
-            floorPrice: contract.floorPrice,
-            streetValue: contract.streetValue,
-          };
-        }
-      }
-    } catch {
-      // Hors-ligne : on garde le contrat généré localement.
-    }
-
-    startNewCase(generateDailyContract(todayStr, priceOverride, loc));
+    if (dailyOpening.current !== request) return;
+    startNewCase(generateDailyContract(todayStr, undefined, loc));
   };
+
+  const dailyRouteOpened = useRef(false);
+  useEffect(() => {
+    if (routePath !== '/play/daily') {
+      dailyRouteOpened.current = false;
+    } else if (authChecked && !profileFailed && authUser && !dailyRouteOpened.current) {
+      dailyRouteOpened.current = true;
+      void openDailyContract();
+    }
+  }, [routePath, authUser, authChecked, profileFailed]);
 
   const resetEmpire = () => {
     setDay(1);
@@ -2949,7 +3066,7 @@ export default function App() {
         hasExistingSave={day > 1 || totalProfit !== 0 || swissBank > 0 || cash !== 2500}
         savedDay={day}
         savedCash={cash}
-        countdownText={formatCountdown(countdown)}
+        countdownText={<DailyClock />}
         onPlay={() => {
           const nextLoc: Locale =
             routePath === '/fr' || routePath.startsWith('/fr/')
@@ -2978,7 +3095,6 @@ export default function App() {
           setGameLocale(nextLoc);
           document.title = 'CASH NOIR — Daily Contract';
           navigateTo('/play/daily');
-          openDailyContract();
         }}
       />
     );
@@ -3099,6 +3215,10 @@ export default function App() {
                     ),
                   );
                 }
+  };
+  const useFallbackPortrait = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const fallback = `${PORTRAIT_DIR}cast/${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`;
+    if (event.currentTarget.getAttribute('src') !== fallback) event.currentTarget.src = fallback;
   };
   const loupeOff = Boolean(weeklyChallenge.modifier.disableLoupe && !currentCase.isDailyContract);
   const uvOff = Boolean(nightEvent?.disableUv && !currentCase.isDailyContract);
@@ -3324,9 +3444,29 @@ export default function App() {
     );
   }
 
+  const retryConnection = () => {
+    setAuthChecked(false);
+    setAuthAttempt((attempt) => attempt + 1);
+  };
+  if (authUser && profileFailed) {
+    return (
+      <main className="grid min-h-[100dvh] place-content-center gap-4 px-6 text-center">
+        <h1 className="text-xl font-semibold">{tt('Ta boutique est indisponible', 'Your shop is unavailable', 'Tu tienda no está disponible')}</h1>
+        <p>{tt('Reconnecte-toi au réseau pour retrouver ta partie.', 'Reconnect to the network to resume your game.', 'Vuelve a conectarte a la red para retomar tu partida.')}</p>
+        <button onClick={retryConnection} className="rounded-lg bg-amber-300 py-3 font-bold text-zinc-950">{tt('Réessayer', 'Try again', 'Reintentar')}</button>
+      </main>
+    );
+  }
+  if (!authUser && showFirstDeal) {
+    return <FirstDeal t={tt} onExit={() => setShowFirstDeal(false)} onContinue={() => {
+      setShowFirstDeal(false);
+      if (oauthConfigured) startGoogleLogin();
+      else retryConnection();
+    }} />;
+  }
   if (!authUser) {
     return (
-      <div className="min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 max-sm:items-end max-sm:pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
+      <div className="login-scene min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 max-sm:items-end max-sm:pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
         <div className="w-full max-w-md space-y-6 p-2 sm:border sm:border-white/15 sm:bg-[#0b0c10] sm:p-8 sm:shadow-[0_0_60px_rgba(0,0,0,0.9)]">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2.5">
@@ -3353,28 +3493,28 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <span className="font-mono text-[11px] uppercase tracking-widest text-amber-400/90">
-                03:14 AM
-              </span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-              {tt('Accès Arrière-Boutique', 'Backroom Access', 'Acceso a la Trastienda')}
-            </p>
             <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-wider text-zinc-100 leading-none">
-              {tt('IDENTIFIE-TOI POUR ENTRER', 'SIGN IN TO OPEN THE COUNTER', 'IDENTIFÍCATE PARA ENTRAR')}
+              {tt('Derrière le comptoir', 'Behind the counter', 'Tras el mostrador')}
             </h2>
-            <p className="text-xs leading-relaxed text-zinc-400">
+            <p className="text-base leading-relaxed text-zinc-300">
               {tt(
-                'Crée un compte ou connecte-toi avec Google pour sauvegarder ta caisse dans le cloud, débloquer les dossiers secrets et jouer le Contrat 24h.',
-                'Create an account or sign in with Google to save your bankroll in the cloud, unlock character dossiers, and compete in the Daily Contract.',
-                'Crea una cuenta o inicia sesión con Google para guardar tu progreso en la nube, desbloquear expedientes y competir en el Contrato Diario.',
+                'Un client entre avec une pièce à vendre. Lis ses réactions, négocie le prix et garde assez de cash pour le loyer de ce soir.',
+                'A client walks in with something to sell. Read their reactions, negotiate a price and keep enough cash for tonight’s rent.',
+                'Entra un cliente con algo que vender. Lee sus reacciones, negocia el precio y guarda suficiente dinero para el alquiler de esta noche.',
               )}
             </p>
           </div>
 
+          <button type="button" onClick={() => {
+            trackEvent('first_deal_open');
+            setShowFirstDeal(true);
+          }} className="w-full rounded-lg bg-amber-300 px-4 py-3.5 text-base font-bold text-zinc-950">
+            {readFirstDeal() ? tt('Retrouver mon premier deal', 'Resume my first deal', 'Retomar mi primer trato') : tt('Jouer mon premier deal', 'Play my first deal', 'Jugar mi primer trato')}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -3382,19 +3522,27 @@ export default function App() {
                 trackEvent('login_attempt', { method: 'google' });
                 startGoogleLogin();
               } else {
-                setError(tt('Google OAuth non configuré sur ce serveur.', 'Google OAuth is not configured on this server.', 'Google OAuth no está configurado en este servidor.'));
+                retryConnection();
               }
             }}
             className="flex w-full items-center justify-center gap-3 bg-white px-4 py-3.5 font-mono text-xs font-bold uppercase tracking-wider text-zinc-950 transition-colors hover:bg-amber-300 cursor-pointer"
           >
-            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden>
+            {oauthConfigured && <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden>
               <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
               <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z" />
               <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z" />
               <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z" />
-            </svg>
-            <span>{tt('Continuer avec Google', 'Continue with Google', 'Continuar con Google')}</span>
+            </svg>}
+            <span>{oauthConfigured
+              ? tt('Continuer avec Google', 'Continue with Google', 'Continuar con Google')
+              : tt('Réessayer la connexion', 'Retry connection', 'Reintentar la conexión')}</span>
           </button>
+
+          {!oauthConfigured && (
+            <p role="status" className="text-sm text-amber-200">
+              {tt('Connexion au comptoir indisponible pour le moment.', 'The counter is currently unavailable.', 'La conexión con el mostrador no está disponible por el momento.')}
+            </p>
+          )}
 
           {error && (
             <p className="font-mono text-[11px] text-red-400 border border-red-500/30 bg-red-950/30 p-2.5">
@@ -3424,7 +3572,8 @@ export default function App() {
 
   return (
     <div
-      className={`${
+      ref={gameScreen}
+      className={`game-screen ${
         tab === 'counter' || tab === 'daily' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
       } bg-[#09090b] text-zinc-100 flex flex-col pt-[env(safe-area-inset-top)] sm:pb-[env(safe-area-inset-bottom)] ${shaking ? 'animate-shake' : ''}`}
     >
@@ -3598,8 +3747,8 @@ export default function App() {
               }`}
             >
               <Clock className="h-3 w-3 shrink-0" />
-              <span className="sm:hidden">{formatCountdown(countdown, true)}</span>
-              <span className="hidden sm:inline">{formatCountdown(countdown)}</span>
+              <span className="sm:hidden"><DailyClock compact /></span>
+              <span className="hidden sm:inline"><DailyClock /></span>
             </button>
           </nav>
 
@@ -4545,7 +4694,12 @@ export default function App() {
       )}
 
       {/* TAB: COUNTER (DAY) OR DAILY CONTRACT (FOMO) */}
-      {(tab === 'counter' || tab === 'daily') && (
+      {openingDaily && tab === 'daily' && (
+        <main role="status" className="flex flex-1 items-center justify-center gap-3 text-base text-amber-200">
+          <Clock className="size-5" />{tt('Ouverture du contrat…', 'Opening contract…', 'Abriendo el contrato…')}
+        </main>
+      )}
+      {(tab === 'counter' || (tab === 'daily' && !openingDaily)) && (
         <main className="relative min-h-0 flex-1 overflow-hidden bg-black select-none">
           <ShopBackdrop
             districtId={districtId}
@@ -4567,7 +4721,7 @@ export default function App() {
                     <img
                       src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                       alt=""
-                      onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
+                      onError={useFallbackPortrait}
                       className="h-12 w-12 rounded-full border border-amber-500/40 object-cover object-[50%_18%]"
                     />
                   </button>
@@ -5124,13 +5278,13 @@ export default function App() {
                     <div className="flex items-center justify-between text-amber-300">
                       <span className="font-bold">{t.dailyContractHeader}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-zinc-400">{formatCountdown(countdown)}</span>
+                        <span className="text-zinc-400"><DailyClock /></span>
                         <button
                           type="button"
                           onClick={() => setShowDailyScores((v) => !v)}
                           className="lg:hidden border border-amber-400/40 bg-amber-500/10 px-1.5 py-0.5 text-[11px] uppercase tracking-wider text-amber-200 hover:bg-amber-500/20 active:scale-95 transition-transform"
                         >
-                          {showDailyScores ? 'Masquer ▲' : 'Scores ▼'}
+                          {showDailyScores ? tt('Masquer ▲', 'Hide ▲', 'Ocultar ▲') : tt('Scores ▼', 'Scores ▼', 'Resultados ▼')}
                         </button>
                       </div>
                     </div>
@@ -5245,10 +5399,10 @@ export default function App() {
               </div>
             </div>
 
-            {/* Guide tutoriel flottant si activé */}
-            {showBrief && (
-              <div className="z-30 mx-auto flex w-[min(92vw,500px)] items-center justify-between gap-3 border border-amber-400/60 bg-black/90 px-4 py-2 backdrop-blur-md">
-                <p className="font-mono text-xs text-zinc-200">
+            {/* Guide de première négociation */}
+            {showBrief && tab === 'counter' && day === 1 && clientsServedToday === 0 && !currentCase.special && (
+              <div className="first-deal-guide z-30 mx-auto flex w-[min(92vw,500px)] items-center justify-between gap-3 border border-amber-400/60 bg-black/90 px-4 py-2 backdrop-blur-md">
+                <p className="font-mono text-sm leading-snug text-zinc-200">
                   <strong className="text-amber-400">
                     {inventory.length > 0
                       ? t.briefStep3
@@ -5326,32 +5480,31 @@ export default function App() {
                   return (
                     <div className="space-y-1.5 max-lg:flex max-lg:min-h-0 max-lg:flex-col bg-gradient-to-t from-black/90 via-black/50 to-transparent px-3 py-2.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] lg:rounded-sm lg:border lg:border-white/10 lg:bg-black/70 lg:bg-none lg:backdrop-blur-sm">
                       {/* Mobile : fil de discussion (3 derniers messages), le visage reste visible au-dessus */}
-                      <div ref={threadRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [&>*]:shrink-0 lg:hidden">
+                      <div ref={threadRef} role="log" aria-label={tt('Négociation', 'Negotiation', 'Negociación')}
+                        onScroll={(e) => {
+                          const el = e.currentTarget;
+                          followThread.current = el.scrollHeight - el.clientHeight - el.scrollTop < 24;
+                        }} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [&>*]:shrink-0 lg:hidden">
                         <div className="mt-auto" />
                         {history.length <= 1 && (
-                          <button type="button" onClick={() => setShowClientSheet(true)} className="mx-auto mb-1 shrink-0">
+                          <button type="button" onClick={() => setShowClientSheet(true)} aria-label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')} className="mx-auto mb-1 shrink-0">
                             <img
                               src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                               alt=""
-                              onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
-                              onLoad={() => { const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }}
+                              onError={useFallbackPortrait}
+                              onLoad={() => { const el = threadRef.current; if (el && followThread.current) el.scrollTop = el.scrollHeight; }}
                               className="h-[10vh] max-h-20 sm:h-[15vh] sm:max-h-28 w-auto rounded-xl border border-amber-500/30 object-cover shadow-2xl"
                             />
                           </button>
                         )}
-                        {history.map((turn, i, arr) => {
-                          const isLastNpc = turn.role === 'npc' && i === arr.length - 1 && !loading;
+                        {history.map((turn, i) => {
                           return turn.role === 'player' ? (
-                            <p key={`${history.length}-${i}`} className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-amber-500/15 px-2.5 py-1.5 font-mono text-xs text-amber-200">
+                            <p key={`${currentCase.id}-${i}`} className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-amber-500/15 px-3 py-2 text-[0.9375rem] leading-snug break-words text-amber-100">
                               {turn.content}
                             </p>
                           ) : (
-                            <p key={`${history.length}-${i}`} className="mr-auto max-w-[92%] rounded-lg rounded-bl-sm bg-white/10 px-2.5 py-1.5 text-sm leading-snug text-zinc-100">
-                              {isLastNpc ? (
-                                <Typewriter text={turn.content.slice(0, 420)} onChar={() => { sound.playType(); const el = threadRef.current; if (el) el.scrollTop = el.scrollHeight; }} />
-                              ) : (
-                                turn.content
-                              )}
+                            <p key={`${currentCase.id}-${i}`} className="mr-auto max-w-[92%] rounded-lg rounded-bl-sm bg-zinc-900/95 px-3 py-2 text-base leading-normal break-words text-zinc-100">
+                              {turn.content}
                             </p>
                           );
                         })}
@@ -5362,7 +5515,7 @@ export default function App() {
                           </p>
                         )}
                         {tell && !loading && (
-                          <p className="line-clamp-1 font-mono text-[11px] italic text-zinc-400">* {tell}</p>
+                          <p className="font-mono text-xs leading-relaxed italic text-zinc-300">* {tell}</p>
                         )}
                       </div>
                       <div className="hidden space-y-1.5 lg:block">
@@ -5411,7 +5564,7 @@ export default function App() {
                             {currentCase.name} :
                           </span>
                           <Typewriter
-                            text={(lastNpcTurn?.content || currentCase.openingLine).slice(0, 420)}
+                            text={lastNpcTurn?.content || currentCase.openingLine}
                             onChar={() => sound.playType()}
                           />
                         </p>
@@ -5526,7 +5679,7 @@ export default function App() {
             </div>
 
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
-            <div className="felt sticky bottom-0 z-30 border-t-2 border-amber-900/70 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
+            <div className="counter-controls felt sticky bottom-0 z-30 border-t-2 border-amber-900/70 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
                 {outcome !== 'active' && !currentCase.special && !currentCase.isDailyContract && (() => {
                   const castD = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
@@ -5543,8 +5696,8 @@ export default function App() {
                   });
                   if (!points.length) return null;
                   return (
-                    <details className="mb-2 border border-violet-400/30 bg-violet-950/20 font-mono text-[11px] text-zinc-200">
-                      <summary className="cursor-pointer px-2 py-1.5 uppercase tracking-wider text-violet-200">🧠 {tt('Autopsie du deal', 'Deal autopsy', 'Autopsia del trato')} ({points.length})</summary>
+                    <details className="mb-2 border border-violet-400/30 bg-violet-950/20 text-sm text-zinc-200">
+                      <summary className="cursor-pointer px-3 py-3 font-medium text-violet-200">🧠 {tt('Autopsie du deal', 'Deal autopsy', 'Autopsia del trato')} ({points.length})</summary>
                       <ul className="space-y-1.5 px-2 pb-2 leading-snug">
                         {points.map((pt, i) => (
                           <li key={i} className={pt.kind === 'good' ? 'text-emerald-300' : pt.kind === 'warn' ? 'text-amber-300' : 'text-sky-300'}>
@@ -5880,7 +6033,7 @@ export default function App() {
                       </div>
 
                       {/* Compteur mécanique de billets + Boutons */}
-                      
+
                       <div className="max-sm:contents flex flex-wrap items-center gap-2">
                         <div className="flex items-center border border-amber-500/40 bg-black/80 max-sm:order-4">
                           <button
@@ -5908,6 +6061,8 @@ export default function App() {
                               <div className="flex items-baseline justify-center gap-1">
                                 <input
                                   type="number"
+                                  inputMode="numeric"
+                                  aria-label={tt('Ton offre', 'Your offer', 'Tu oferta')}
                                   min={100}
                                   max={cash}
                                   step={10}
@@ -6011,7 +6166,7 @@ export default function App() {
                               triggerHaptic(10);
                               q.run();
                             }}
-                            className={`shrink-0 rounded-full border px-3 py-1 font-mono text-[11px] active:scale-95 transition-transform disabled:opacity-40 ${
+                            className={`shrink-0 rounded-full border px-3 py-1 text-sm font-medium active:scale-95 transition-transform disabled:opacity-40 ${
                               q.tone === 'amber'
                                 ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
                                 : q.tone === 'red'
@@ -6055,7 +6210,7 @@ export default function App() {
                           type="button"
                           onClick={() => setShowActions(true)}
                           aria-label={tt('Actions', 'Actions', 'Acciones')}
-                          className="hidden shrink-0 items-center justify-center rounded-full bg-white/10 text-zinc-200 active:scale-95 max-sm:flex max-sm:h-9 max-sm:w-9"
+                          className="hidden shrink-0 items-center justify-center rounded-full bg-white/10 text-zinc-200 active:scale-95 max-sm:flex max-sm:size-11"
                         >
                           <Ellipsis className="h-5 w-5" />
                         </button>
@@ -6063,6 +6218,8 @@ export default function App() {
                         <input
                           type="text"
                           value={input}
+                          aria-label={t.inputPlaceholder}
+                          enterKeyHint="send"
                           onChange={(e) => setInput(e.target.value)}
                           disabled={loading}
                           placeholder={
@@ -6080,8 +6237,8 @@ export default function App() {
                         <button
                           type="submit"
                           disabled={loading || !input.trim()}
-                          title="Envoyer"
-                          className="p-1 text-amber-400 hover:text-amber-300 disabled:opacity-40 max-sm:flex max-sm:h-9 max-sm:w-9 max-sm:items-center max-sm:justify-center max-sm:rounded-full max-sm:bg-amber-400 max-sm:text-zinc-950 max-sm:disabled:bg-white/10 max-sm:disabled:text-zinc-500"
+                          aria-label={tt('Envoyer', 'Send', 'Enviar')}
+                          className="p-1 text-amber-400 hover:text-amber-300 disabled:opacity-40 max-sm:flex max-sm:size-11 max-sm:items-center max-sm:justify-center max-sm:rounded-full max-sm:bg-amber-400 max-sm:text-zinc-950 max-sm:disabled:bg-white/10 max-sm:disabled:text-zinc-500"
                         >
                           {loading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -6133,13 +6290,17 @@ export default function App() {
 
       {/* Menu d'actions mobile (feuille du bas façon iOS) : tout ce qui n'est pas « parler » ou « payer » */}
       {showActions && (
-        <div className="fixed inset-0 z-50 sm:hidden" onClick={() => setShowActions(false)}>
+        <GameDialog label={tt('Actions', 'Actions', 'Acciones')} onDismiss={() => setShowActions(false)}>
+        <div className="fixed inset-0 z-50" onClick={() => setShowActions(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
             className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-[#14151b] px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/25" />
+            <button type="button" onClick={() => setShowActions(false)} className="float-right px-3 text-sm text-zinc-300">
+              {tt('Fermer', 'Close', 'Cerrar')}
+            </button>
             {(() => {
               const close = (fn: () => void) => () => {
                 setShowActions(false);
@@ -6198,10 +6359,12 @@ export default function App() {
             })()}
           </div>
         </div>
+        </GameDialog>
       )}
 
       {/* Aide : règles, jauges et atouts actifs */}
       {showHelp && (
+        <GameDialog label={tt('Comment jouer', 'How to play', 'Cómo jugar')} onDismiss={() => setShowHelp(false)}>
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowHelp(false)}>
           <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
           <div
@@ -6211,9 +6374,9 @@ export default function App() {
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-widest text-amber-300">{tt('Comment jouer', 'How to play', 'Cómo jugar')}</h3>
-              <button type="button" onClick={() => setShowHelp(false)} className="p-1 text-zinc-500 hover:text-zinc-200">✕</button>
+              <button type="button" aria-label={tt('Fermer', 'Close', 'Cerrar')} onClick={() => setShowHelp(false)} className="min-w-11 p-1 text-zinc-300 hover:text-zinc-200">✕</button>
             </div>
-            <ol className="space-y-1.5 text-xs leading-relaxed text-zinc-300">
+            <ol className="space-y-1.5 text-sm leading-relaxed text-zinc-300">
               <li><span className="text-amber-400">1.</span> {tt('Négocie avec tes mots (ou les boutons) : achète sous la valeur de rue.', 'Negotiate in your own words (or with the buttons): buy under street value.', 'Negocia con tus palabras (o con los botones): compra por debajo del valor de calle.')}</li>
               <li><span className="text-amber-400">2.</span> {tt('Loupe, UV et Radio révèlent la pièce et le piège. Un infiltré démasqué rapporte une prime.', 'Magnifier, UV and Radio reveal the piece and the trap. Exposing an undercover agent pays a bounty.', 'Lupa, UV y Radio revelan la pieza y la trampa. Desenmascarar a un infiltrado da una prima.')}</li>
               <li><span className="text-amber-400">3.</span> {tt('Au Coffre : nettoie, revends, paie le loyer du soir (affiché en haut).', 'In the Vault: clean, resell, pay tonight’s rent (shown at the top).', 'En la Caja: limpia, revende, paga el alquiler de esta noche (arriba).')}</li>
@@ -6222,7 +6385,7 @@ export default function App() {
               <p className="mt-4 border border-amber-500/40 bg-amber-950/40 px-2 py-1.5 text-xs leading-snug text-amber-200"><span className="font-bold">{tt('Ascension', 'Ascension', 'Ascensión')} {ROMAN[ascMod.level - 1]} · {ascMod.title[gameLocale]}</span> — {ascMod.desc[gameLocale]}</p>
             )}
             <h4 className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Les jauges', 'The gauges', 'Los medidores')}</h4>
-            <ul className="space-y-1 text-xs leading-relaxed text-zinc-300">
+            <ul className="space-y-1 text-sm leading-relaxed text-zinc-300">
               <li><span className="text-amber-300">{t.fear}</span> — {tt('plus elle monte, plus son prix plancher baisse.', 'the higher it goes, the lower his floor price.', 'cuanto más sube, más baja su precio mínimo.')}</li>
               <li><span className="text-orange-400">{t.anger}</span> — {tt('trop haute, il claque la porte.', 'too high and he walks out.', 'demasiado alta y se va dando un portazo.')}</li>
               <li><span className="text-sky-300">{t.suspicion}</span> — {tt('trop haute, il flaire le piège ou part.', 'too high and he smells a trap or leaves.', 'demasiado alta y huele la trampa o se va.')}</li>
@@ -6257,6 +6420,7 @@ export default function App() {
             )}
           </div>
         </div>
+        </GameDialog>
       )}
 
       {/* Fiche du client (mobile) : avatar, profil, tempérament, historique des jauges */}
@@ -6265,7 +6429,8 @@ export default function App() {
         const temp = temperamentOf(currentCase.castId);
         const playerTurns = history.filter((h) => h.role === 'player').length;
         return (
-          <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" onClick={() => setShowClientSheet(false)}>
+          <GameDialog label={tt('Fiche du client', 'Client profile', 'Ficha del cliente')} onDismiss={() => setShowClientSheet(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" onClick={() => setShowClientSheet(false)}>
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
             <div
               className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0c0d12] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 font-mono shadow-2xl lg:relative lg:inset-x-auto lg:bottom-auto lg:w-full lg:max-w-md lg:rounded-xl lg:border lg:pt-4"
@@ -6276,7 +6441,7 @@ export default function App() {
                 <img
                   src={`${PORTRAIT_DIR}${resolveCastPortrait(currentCase.portraitOverride ?? currentCase.castId, currentCase.gender, currentCase.name, currentCase.displayArchetype ?? currentCase.archetype)}.webp`}
                   alt=""
-                  onError={(e) => { e.currentTarget.src = `${PORTRAIT_DIR}${currentCase.gender === 'f' ? 'c001' : 'c002'}.webp`; }}
+                  onError={useFallbackPortrait}
                   className="h-28 w-24 shrink-0 rounded-lg border border-amber-500/40 object-cover object-[50%_18%]"
                 />
                 <div className="min-w-0 flex-1">
@@ -6287,7 +6452,7 @@ export default function App() {
                   <p className="mt-1 text-[11px] text-zinc-500">{localizeFaction(currentCase.faction, gameLocale)}</p>
                   {tell && <p className="mt-2 text-[11px] italic leading-snug text-zinc-300">* {tell}</p>}
                 </div>
-                <button type="button" onClick={() => setShowClientSheet(false)} className="p-1 text-zinc-500">✕</button>
+                <button type="button" aria-label={tt('Fermer', 'Close', 'Cerrar')} onClick={() => setShowClientSheet(false)} className="min-w-11 p-1 text-zinc-300">✕</button>
               </div>
               <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs">
                 <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">{tt('Profil', 'Profile', 'Perfil')}</div>
@@ -6338,12 +6503,14 @@ export default function App() {
               )}
             </div>
           </div>
+        </GameDialog>
         );
       })()}
 
       {/* Fiche objet : feuille du bas façon iOS / Android (mobile) */}
       {showItemSheet && (
-        <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setShowItemSheet(false)}>
+        <GameDialog label={tt('Fiche de l’objet', 'Item details', 'Ficha del objeto')} onDismiss={() => setShowItemSheet(false)}>
+        <div className="fixed inset-0 z-50" onClick={() => setShowItemSheet(false)}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div
             className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0c0d12] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 font-mono shadow-2xl"
@@ -6355,11 +6522,11 @@ export default function App() {
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-bold uppercase leading-tight tracking-wider text-amber-300">{localizeItemName(currentCase.item.name, gameLocale)}</h3>
                 <p className="mt-1 text-[11px] text-zinc-400">{currentCase.item.category} · {localizeFaction(currentCase.faction, gameLocale)}</p>
-                <p className="mt-1 text-[11px] font-semibold text-emerald-400">{tt('Valeur de rue', 'Street value', 'Valor de calle')} ~{mny(currentCase.streetValue)}</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-300">{tt('Valeur de rue', 'Street value', 'Valor de calle')} ~{mny(currentCase.streetValue)}</p>
               </div>
-              <button type="button" onClick={() => setShowItemSheet(false)} className="p-1 text-zinc-500">✕</button>
+              <button type="button" aria-label={tt('Fermer', 'Close', 'Cerrar')} onClick={() => setShowItemSheet(false)} className="min-w-11 p-1 text-zinc-300">✕</button>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-zinc-300">{localizeItemText(currentCase.item.surfaceDesc, gameLocale)}</p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-300">{localizeItemText(currentCase.item.surfaceDesc, gameLocale)}</p>
             {outcome === 'active' && !currentCase.special && (
               <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
                 <button
@@ -6404,7 +6571,7 @@ export default function App() {
                   <span className="flex items-center gap-1"><Search className="h-3 w-3" /> {t.loupe}</span>
                   {inspected && <span className="text-[11px] text-amber-300">✓ {tt('Révélé', 'Revealed', 'Revelado')}</span>}
                 </div>
-                <p className="mt-1 text-[11px] leading-relaxed">
+                <p className="mt-1 text-sm leading-relaxed">
                   {inspected ? localizeItemText(currentCase.item.hiddenClue, gameLocale) : tt('Pas encore examinée. Touche le bouton Loupe ci-dessus.', 'Not examined yet. Tap the Magnifier button above.', 'Aún sin examinar. Toca el botón Lupa arriba.')}
                 </p>
                 {inspected && outcome === 'active' && (
@@ -6427,7 +6594,7 @@ export default function App() {
                   <span className="flex items-center gap-1"><Flashlight className="h-3 w-3" /> {t.uv}</span>
                   {uvScanned && <span className="text-[11px] text-sky-300">✓ {tt('Scanné', 'Scanned', 'Escaneado')}</span>}
                 </div>
-                <p className="mt-1 text-[11px] leading-relaxed">
+                <p className="mt-1 text-sm leading-relaxed">
                   {uvScanned ? localizeItemText(currentCase.item.uvClue, gameLocale) : tt('Pas encore passée à la lampe UV. Touche le bouton UV ci-dessus.', 'Not swept with the UV lamp yet. Tap the UV button above.', 'Aún sin pasar la lámpara UV. Toca el botón UV arriba.')}
                 </p>
                 {uvScanned && outcome === 'active' && (
@@ -6447,12 +6614,13 @@ export default function App() {
             </div>
           </div>
         </div>
+        </GameDialog>
       )}
 
       {/* Balatro-style Syndicate Atout Draft Modal */}
       {jokerDraft && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="max-w-3xl w-full bg-[#111114] border border-amber-500/40 rounded-xl p-6 space-y-5">
+          <div className="max-h-[85dvh] overflow-y-auto overscroll-contain max-w-3xl w-full bg-[#111114] border border-amber-500/40 rounded-xl p-6 space-y-5">
             <div className="text-center space-y-1">
               <span className="text-[11px] font-mono uppercase tracking-widest text-amber-400">
                 {t.jokerDraftTax(day)}
@@ -6518,8 +6686,9 @@ export default function App() {
 
       {/* Profil & Préférences Modal (Ultra-épuré, zéro bruit) */}
       {showProfileModal && (
+        <GameDialog label={tt('Préférences', 'Preferences', 'Ajustes')} onDismiss={() => setShowProfileModal(false)}>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#0c0d12] p-5 shadow-2xl space-y-4 font-mono animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-sm max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#0c0d12] p-5 shadow-2xl space-y-4 font-mono animate-in fade-in zoom-in-95 duration-150">
             {/* Top Bar */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
@@ -6534,7 +6703,8 @@ export default function App() {
                   triggerHaptic(10);
                   setShowProfileModal(false);
                 }}
-                className="text-zinc-500 hover:text-zinc-200 text-xs transition-colors p-1"
+                aria-label={tt('Fermer', 'Close', 'Cerrar')}
+                className="min-w-11 p-1 text-zinc-300"
               >
                 ✕
               </button>
@@ -6566,7 +6736,7 @@ export default function App() {
               </span>
               {authUser ? (
                 <div className="flex items-center justify-between gap-2 rounded border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1.5 text-[11px] text-emerald-300">
-                  <span className="min-w-0 truncate" title={authUser.email}>{authUser.name || authUser.email} <span className="text-[11px] uppercase text-zinc-500">({cloudStatus})</span></span>
+                  <span className="min-w-0 truncate" title={authUser.email}>{authUser.name || authUser.email} <span className="text-[11px] uppercase text-zinc-500">({cloudStatus === 'saved' ? tt('sauvegardé', 'saved', 'guardado') : cloudStatus === 'syncing' ? tt('sauvegarde…', 'saving…', 'guardando…') : cloudStatus === 'error' ? tt('à synchroniser', 'sync pending', 'pendiente') : tt('local', 'local', 'local')})</span></span>
                   <button
                     type="button"
                     onClick={async () => {
@@ -6693,6 +6863,7 @@ export default function App() {
             </div>
           </div>
         </div>
+        </GameDialog>
       )}
 
       {/* Modal Confirmation de Liquidation Pièce d'Enquête (Bespoke Dark Neo-Noir, Zéro Prompt Natif) */}
@@ -6991,6 +7162,7 @@ export default function App() {
                 triggerHaptic(10);
                 it.go();
               }}
+              aria-current={active ? 'page' : undefined}
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 active:bg-white/5 ${active ? 'text-amber-300' : 'text-zinc-400'}`}
             >
               <Icon className="h-5 w-5" />

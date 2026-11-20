@@ -1,5 +1,5 @@
 import { PORTRAIT_OF } from '../data/cast';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Gauges } from '../services/types';
 
 /* ------------------------------------------------------------------ */
@@ -725,6 +725,13 @@ export function ClientBust({
 
 /*  Texte lettre par lettre                                            */
 /* ------------------------------------------------------------------ */
+const dialogueMotionQuery = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
+function subscribeDialogueMotion(update: () => void) {
+  const query = window.matchMedia(dialogueMotionQuery);
+  query.addEventListener('change', update);
+  return () => query.removeEventListener('change', update);
+}
+
 export function Typewriter({
   text,
   speed = 22,
@@ -736,6 +743,7 @@ export function Typewriter({
   onChar?: () => void;
   className?: string;
 }) {
+  const animate = useSyncExternalStore(subscribeDialogueMotion, () => window.matchMedia(dialogueMotionQuery).matches, () => false);
   const [n, setN] = useState(0);
   const cbRef = useRef(onChar);
   cbRef.current = onChar;
@@ -745,13 +753,15 @@ export function Typewriter({
   }, [text]);
 
   useEffect(() => {
-    if (n >= text.length) return;
+    if (!animate || n >= text.length) return;
     const id = window.setTimeout(() => {
       setN((v) => v + 1);
       if (n % 2 === 0) cbRef.current?.();
     }, speed);
     return () => window.clearTimeout(id);
-  }, [n, text, speed]);
+  }, [animate, n, text, speed]);
+
+  if (!animate) return <span className={className}>{text}</span>;
 
   return (
     <span

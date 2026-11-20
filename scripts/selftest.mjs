@@ -11,7 +11,8 @@ const outfile = join(outDir, 'selftest.cjs');
 
 await build({ entryPoints: [join(root, 'scripts/selftest.ts')], bundle: true, platform: 'node', format: 'cjs', outfile, logLevel: 'error' });
 const game = spawnSync(process.execPath, [outfile], { stdio: 'inherit', cwd: root });
-let failed = game.status !== 0;
+const intro = spawnSync(process.execPath, ['--test', 'scripts/test-first-deal.mjs'], { stdio: 'inherit', cwd: root });
+let failed = game.status !== 0 || intro.status !== 0;
 
 // ----- serveur : une partie "quotidienne" avec un modèle factice (NPC_MOCK=1, jamais actif en production)
 const PORT = 3098;
@@ -271,12 +272,17 @@ try {
   };
 
   // 1) Safari iOS sans cookie : state signé valide -> passe le filtre anti-CSRF (échoue plus loin sur l'échange token Google avec fetch réseau mocké)
-  await mockCallback(stateInAuthUrl, '');
-  check('oauth callback : state signé accepté même sans cookie fence_oauth_tx', callbackCode !== 403);
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 400 });
+    await mockCallback(stateInAuthUrl, '');
+    check('oauth callback : state signé accepté même sans cookie fence_oauth_tx', callbackCode !== 403);
 
-  // 2) Faux state altéré sans cookie -> rejeté 403
-  await mockCallback(stateInAuthUrl + 'corrupted', '');
-  check('oauth callback : state corrompu rejeté 403', callbackCode === 403);
+    await mockCallback(stateInAuthUrl + 'corrupted', '');
+    check('oauth callback : state corrompu rejeté 403', callbackCode === 403);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 }
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);

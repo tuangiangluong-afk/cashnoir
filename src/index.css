@@ -282,3 +282,71 @@
   -webkit-user-select: text;
   user-select: text;
 }
+
+@media (max-width: 1023px) {
+  .counter-controls {
+    max-height: 48dvh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+}
+
+@media (max-width: 639px) {
+  .game-screen:has(.counter-controls input:focus) > nav {
+    display: none;
+  }
+  .game-screen :focus-visible {
+    outline: 2px solid #f5c46d;
+    outline-offset: -2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-screen *,
+  .game-screen *::before,
+  .game-screen *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .game-screen button:active { transform: none; }
+}
+
+.game-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  color: inherit;
+}
+.game-dialog::backdrop { background: transparent; }
+
+@media (max-width: 639px) {
+  .game-screen:has(.counter-controls input:focus) {
+    height: var(--visible-game-height, 100dvh);
+  }
+  .game-screen:has(.counter-controls input:focus) .first-deal-guide {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .login-scene {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    background-image: linear-gradient(0deg, #07080c 12%, rgba(7, 8, 12, .97) 42%, rgba(7, 8, 12, .12) 80%),
+      url('/assets/vault/vault-room.webp');
+    background-size: cover, 100% auto;
+    background-position: center, center top;
+    background-repeat: no-repeat;
+  }
+  .login-scene a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: #b5b5bd;
+  }
+}

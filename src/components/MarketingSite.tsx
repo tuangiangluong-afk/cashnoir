@@ -59,7 +59,7 @@ export function MarketingSite({
   hasExistingSave: boolean;
   savedDay: number;
   savedCash: number;
-  countdownText: string;
+  countdownText: React.ReactNode;
 }) {
   const locale = detectLocale(pathname);
   const subPath = stripLocalePrefix(pathname);

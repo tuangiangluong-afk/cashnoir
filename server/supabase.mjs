@@ -61,19 +61,34 @@ export async function saveEcosystemOverridesToSupabase(data) {
 /* ------------------------------------------------------------------ */
 /* 2. Profils Joueurs (Google OAuth, Pass VIP, Progression)          */
 /* ------------------------------------------------------------------ */
-export async function getUserProfileFromSupabase(userId) {
+export async function getUserProfileFromSupabase(userId, { strict = false } = {}) {
   if (!isSupabaseConfigured()) return null;
   try {
     const res = await fetch(
       `${getUrl()}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(userId)}&select=profile`,
       { headers: getHeaders() },
     );
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error('Could not read player profile');
     const rows = await res.json();
     return rows?.[0]?.profile || null;
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return null;
   }
+}
+
+export async function createUserProfileIfMissing(userId, profile) {
+  const res = await fetch(`${getUrl()}/rest/v1/player_profiles?on_conflict=user_id`, {
+    method: 'POST',
+    headers: { ...getHeaders(), Prefer: 'resolution=ignore-duplicates,return=representation' },
+    body: JSON.stringify({ user_id: userId, profile, updated_at: new Date().toISOString() }),
+  });
+  if (!res.ok) throw new Error('Could not initialize player profile');
+  const [created] = await res.json();
+  if (created) return created.profile;
+  const existing = await getUserProfileFromSupabase(userId);
+  if (!existing) throw new Error('Could not load existing player profile');
+  return existing;
 }
 
 export async function saveUserProfileToSupabase(userId, profile) {

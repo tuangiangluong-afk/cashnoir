@@ -10,8 +10,18 @@ const getToken = () => {
 };
 
 /** Connexion Google : navigation classique sur le web, navigateur système + deep link `cashnoir://` en natif (Google bloque OAuth dans une WebView). */
+let loginFailed = false;
+function reportLoginFailure() {
+  loginFailed = true;
+  window.dispatchEvent(new Event('cashnoir-login-error'));
+}
+export function consumeLoginError() {
+  const failed = loginFailed;
+  loginFailed = false;
+  return failed;
+}
 export function startGoogleLogin() {
-  if (isNative) void Browser.open({ url: `${API}/api/auth/google?native=1`, toolbarColor: '#050507', presentationStyle: 'popover' });
+  if (isNative) void Browser.open({ url: `${API}/api/auth/google?native=1`, toolbarColor: '#050507', presentationStyle: 'popover' }).catch(reportLoginFailure);
   else window.location.href = '/api/auth/google';
 }
 
@@ -39,9 +49,13 @@ if (isNative) {
     return orig(API + input, { ...init, headers, credentials: 'include' });
   };
 
-  void App.addListener('appUrlOpen', async ({ url }) => {
-    const ticket = new URL(url).searchParams.get('ticket');
-    if (!url.startsWith('cashnoir://auth') || !ticket) return;
+  let lastTicket = '';
+  const finishLogin = async (url: string) => {
+    const callback = new URL(url);
+    if (callback.protocol !== 'cashnoir:' || callback.host !== 'auth') return;
+    const ticket = callback.searchParams.get('ticket');
+    if (!ticket || ticket === lastTicket) return;
+    lastTicket = ticket;
     void Browser.close().catch(() => {});
     try {
       const res = await fetch('/api/auth/native', {
@@ -50,10 +64,13 @@ if (isNative) {
         body: JSON.stringify({ ticket }),
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token);
-        window.location.reload();
-      }
-    } catch { /* l'utilisateur peut relancer la connexion */ }
-  });
+      if (!res.ok || typeof data.token !== 'string' || !data.token) throw new Error('Login exchange failed');
+      localStorage.setItem(TOKEN_KEY, data.token);
+      window.location.reload();
+    } catch { reportLoginFailure(); }
+  };
+  void App.addListener('appUrlOpen', ({ url }) => finishLogin(url)).then(async () => {
+    const launch = await App.getLaunchUrl();
+    if (launch?.url) await finishLogin(launch.url);
+  }).catch(() => {});
 }

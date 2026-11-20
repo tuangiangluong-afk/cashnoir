@@ -4,6 +4,7 @@ import path from 'node:path';
 import { kvGet, kvSet } from './store.mjs';
 import {
   getUserProfileFromSupabase,
+  createUserProfileIfMissing,
   saveUserProfileToSupabase,
   isSupabaseConfigured,
 } from './supabase.mjs';
@@ -191,28 +192,31 @@ function profilePath(userId) {
 
 async function readUserProfile(userId) {
   if (isSupabaseConfigured()) {
-    const remote = await getUserProfileFromSupabase(userId);
+    const remote = await getUserProfileFromSupabase(userId, { strict: true });
     if (remote) return remote;
   }
   const file = profilePath(userId);
   try {
-    if (!fs.existsSync(file)) return null;
     return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
-    return null;
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
   }
 }
 
 async function writeUserProfile(userId, profile) {
   if (isSupabaseConfigured()) {
-    await saveUserProfileToSupabase(userId, profile).catch(() => {});
+    if (!await saveUserProfileToSupabase(userId, profile)) throw new Error('Could not save player profile');
+    return;
   }
+  const file = profilePath(userId);
+  const tmp = `${file}.${crypto.randomUUID()}.tmp`;
   try {
-    const file = profilePath(userId);
-    const tmp = `${file}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(profile, null, 2), 'utf8');
     fs.renameSync(tmp, file);
-  } catch {}
+  } finally {
+    fs.rmSync(tmp, { force: true });
+  }
 }
 
 export async function handleAuthAndProfileRoutes({
@@ -414,6 +418,43 @@ export async function handleAuthAndProfileRoutes({
       return true;
     }
     sendJson(res, 200, { token });
+    return true;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/profile/first-deal') {
+    const user = getAuthUser(req, verifyToken);
+    if (!user) {
+      sendJson(res, 401, { error: 'Authentication required' });
+      return true;
+    }
+    const { price } = await readJson(req) || {};
+    if (price !== 600 && price !== 800) {
+      sendJson(res, 400, { error: 'Invalid first deal' });
+      return true;
+    }
+    const opening = sanitizeProfilePayload({
+      cash: 2500 - price,
+      inventory: [{ id: 'first-dock-watch', name: 'Montre des docks', faction: 'Horlogers',
+        category: 'Joaillerie', paid: price, streetValue: 1000, hotLevel: 'TIÈDE', cleaned: false }],
+    });
+    let profile;
+    if (isSupabaseConfigured()) {
+      profile = await readUserProfile(user.id) ?? await createUserProfileIfMissing(user.id, opening);
+    } else {
+      const file = profilePath(user.id);
+      const tmp = `${file}.${crypto.randomUUID()}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(opening));
+      try {
+        // Publish a complete file only if this player has no existing shop.
+        fs.linkSync(tmp, file);
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+      } finally {
+        fs.unlinkSync(tmp);
+      }
+      profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+    }
+    sendJson(res, 200, { user, profile });
     return true;
   }
 

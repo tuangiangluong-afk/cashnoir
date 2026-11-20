@@ -40,6 +40,7 @@ const ITEM_BASE_TRANSLATIONS: Record<string, { en: string; es: string }> = {
   'Œuf Fabergé miniature': { en: 'Miniature Imperial Fabergé Egg', es: 'Huevo Fabergé Miniatura' },
   'Icône byzantine dorée': { en: 'Gilded Byzantine Icon', es: 'Icono Bizantino Dorado' },
   'Katana artisanal forgé': { en: 'Hand-Forged Antique Katana', es: 'Katana Artesanal Forjada' },
+  'Montre des docks': { en: 'Dockside watch', es: 'Reloj del muelle' },
   'Montre Patek Philippe volée': { en: 'Stolen Patek Philippe Watch', es: 'Reloj Patek Philippe Robado' },
   'Téléphone chiffré de Député': { en: 'Classified Encrypted Smartphone', es: 'Teléfono Cifrado de Diputado' },
   'Bague Cartier panthère volée': { en: 'Stolen Cartier Panther Ring', es: 'Anillo Pantera Cartier Robado' },
