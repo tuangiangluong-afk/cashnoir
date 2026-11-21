@@ -221,6 +221,8 @@ const secureFlag = (req) =>
 const passClaims = new Map();
 const MAX_CLAIMS_PER_SESSION = 3;
 const PASS_DURATION_MS = 30 * 24 * 3600 * 1000;
+// Cookie carrying a server uid: it only identifies the buyer, the KV record decides access (renewals, cancel, refund).
+const PASS_ID_COOKIE_MS = 400 * 24 * 3600 * 1000;
 let cachedStripePriceMode = null;
 
 // Modèles Ollama autorisés : on ne laisse pas le navigateur choisir n'importe quoi.
@@ -408,7 +410,7 @@ async function resolvePass(req) {
     if (rec?.movedTo) rec = await kvGet(passKey(rec.movedTo)).catch(() => null);
   }
   // A server record wins over the cookie: refunds and cancellations revoke at once.
-  req._pass = rec ? isActive(rec) : Boolean(claims);
+  req._pass = rec ? isActive(rec) : Boolean(claims) && (!claims.uid || Date.now() - (claims.iat || 0) < PASS_DURATION_MS + 3 * 24 * 3600 * 1000);
   req._passRec = rec;
   return req._pass;
 }
@@ -1289,11 +1291,12 @@ export async function handleRequest(req, res) {
         kind: 'pass',
         session: sessionId,
         uid: ref || undefined,
-        exp: Date.now() + PASS_DURATION_MS,
+        iat: Date.now(),
+        exp: Date.now() + (ref ? PASS_ID_COOKIE_MS : PASS_DURATION_MS),
       });
       baseHeaders(res);
       res.writeHead(302, {
-        'Set-Cookie': `syndicate_pass=${encodeURIComponent(passToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${PASS_DURATION_MS / 1000}${secureFlag(req)}`,
+        'Set-Cookie': `syndicate_pass=${encodeURIComponent(passToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${(ref ? PASS_ID_COOKIE_MS : PASS_DURATION_MS) / 1000}${secureFlag(req)}`,
         Location: '/play?pass=ok',
       });
       res.end();

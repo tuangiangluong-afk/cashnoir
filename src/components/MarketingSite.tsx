@@ -92,7 +92,7 @@ export function MarketingSite({
   const startPassCheckout = async () => {
     setCheckoutBusy(true);
     setCheckoutError('');
-    trackEvent('begin_checkout', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9, locale });
+    trackEvent('begin_checkout', { item_name: 'Syndicate Pass', currency: 'EUR', value: 3.99, locale });
     try {
       const res = await fetch('/api/pass/checkout', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
@@ -269,7 +269,10 @@ export function MarketingSite({
               gamePlatform: 'Web Browser / PWA',
               inLanguage: ['en', 'fr', 'es'],
               description: copy.metaDesc,
-              offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+              offers: [
+                { '@type': 'Offer', price: '0', priceCurrency: 'EUR', name: 'Free play' },
+                { '@type': 'Offer', price: '3.99', priceCurrency: 'EUR', name: 'Syndicate Pass (monthly)', category: 'subscription' },
+              ],
             },
             {
               '@type': 'FAQPage',
@@ -466,7 +469,7 @@ export function MarketingSite({
                 <path d="M10.5 3.5L3 12L10.5 20.5" stroke="#f4f4f5" strokeWidth="2" strokeLinecap="square" />
                 <path d="M13.5 3.5L21 12L13.5 20.5V3.5Z" fill="#fbbf24" />
               </svg>
-              <span className="font-[family-name:var(--font-display)] text-lg tracking-[0.22em] text-zinc-100">
+              <span className="whitespace-nowrap font-[family-name:var(--font-display)] text-lg tracking-[0.22em] text-zinc-100">
                 CASH <span className="text-amber-400">NOIR</span>
               </span>
             </a>
@@ -539,7 +542,7 @@ export function MarketingSite({
               }}
               className="bg-amber-400 px-3.5 py-1.5 font-bold uppercase tracking-wider text-zinc-950 transition-colors hover:bg-amber-300"
             >
-              {hasExistingSave ? `${copy.ctaResume} (${locale === 'fr' ? 'J' : 'D'}${savedDay})` : copy.navPlay}
+              {hasExistingSave ? (<><span className="sm:hidden">{copy.navPlay}</span><span className="hidden sm:inline">{`${copy.ctaResume} (${locale === 'fr' ? 'J' : 'D'}${savedDay})`}</span></>) : copy.navPlay}
             </a>
           </div>
         </div>
@@ -702,7 +705,7 @@ export function MarketingSite({
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl tracking-wide text-zinc-100 group-hover:text-amber-300">
                   {v.title}
                 </h2>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{v.metaDesc}</p>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{v.metaDesc}</p>
               </a>
             ))}
           </div>
@@ -905,7 +908,7 @@ export function MarketingSite({
                   >
                     <span>
                       {hasExistingSave
-                        ? `${copy.ctaResume} (${savedCash.toLocaleString('fr-FR')} $)`
+                        ? `${copy.ctaResume} (${locale === 'en' ? `$${savedCash.toLocaleString('en-US')}` : `${savedCash.toLocaleString(locale === 'es' ? 'es-ES' : 'fr-FR')} $`})`
                         : copy.ctaPrimary}
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0" />
@@ -960,7 +963,7 @@ export function MarketingSite({
                             {teaserStep === 'bluff' ? copy.simBroken : copy.simAsked}
                           </span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-zinc-200">
+                        <p className="font-sans text-sm leading-relaxed text-zinc-200">
                           {teaserStep === 'idle' && copy.simQuoteIdle}
                           {teaserStep === 'uv' && copy.simQuoteUv}
                           {teaserStep === 'bluff' && copy.simQuoteBluff}
@@ -1010,19 +1013,19 @@ export function MarketingSite({
           {/* UN COMPTOIR SANS SCRIPT — ÉDITORIAL SEC SANS TICK AI */}
           <section className="border-b border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-16">
             <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-12 items-start">
-              <div className="lg:col-span-5 space-y-3">
+              <div className="min-w-0 lg:col-span-5 space-y-3">
                 <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-[0.06em] sm:text-5xl">
                   {copy.aiTitle}
                 </h2>
                 <p className="text-sm sm:text-base leading-relaxed text-zinc-400">{copy.aiLead}</p>
               </div>
-              <div className="lg:col-span-7 divide-y divide-white/10 font-mono">
+              <div className="min-w-0 lg:col-span-7 divide-y divide-white/10 font-mono">
                 {copy.aiPoints.map((pt) => (
                   <div key={pt.label} className="py-4 first:pt-0 last:pb-0 space-y-1">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300">
                       {pt.label}
                     </h3>
-                    <p className="text-xs leading-relaxed text-zinc-300">{pt.text}</p>
+                    <p className="text-sm leading-relaxed text-zinc-300">{pt.text}</p>
                   </div>
                 ))}
               </div>
@@ -1041,13 +1044,13 @@ export function MarketingSite({
                     {copy.sagasTitle}
                   </h2>
                 </div>
-                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.sagasSub}</p>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-400">{copy.sagasSub}</p>
               </div>
 
               {/* Le Dilemme Irréversible : Carte Visuelle Interactive */}
               <div className="grid gap-6 lg:grid-cols-12 items-stretch">
                 {/* Exemple de pièce clé d'enquête */}
-                <div className="lg:col-span-5 border border-white/10 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
+                <div className="min-w-0 lg:col-span-5 border border-white/10 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-200 uppercase tracking-wider min-w-0">
@@ -1074,7 +1077,7 @@ export function MarketingSite({
                         <p className="text-xs font-bold text-amber-200 truncate">
                           {locale === 'en' ? 'Rose Gold Rolex Daytona' : locale === 'es' ? 'Rolex Daytona de Oro Rosa' : 'Rolex Daytona en Or Rose'}
                         </p>
-                        <p className="text-[11px] text-zinc-400">
+                        <p className="font-sans text-sm leading-snug text-zinc-400">
                           {locale === 'en' ? 'Stolen from an oligarch. Serial number matches an active mob lead in your Notebook.' : locale === 'es' ? 'Robada a un oligarca. El número de serie coincide con una pista activa de tu Cuaderno.' : 'Volée à un oligarque. Numéro de série lié à une intrigue active dans ton Carnet.'}
                         </p>
                       </div>
@@ -1082,12 +1085,12 @@ export function MarketingSite({
 
                     <div className="space-y-2 text-xs">
                       <div className="border-l-2 border-zinc-600 pl-3 py-1 space-y-1">
-                        <p className="font-bold text-zinc-200 text-[11px] uppercase tracking-wider">
+                        <p className="font-sans font-semibold text-sm leading-snug text-zinc-200">
                           {copy.sagasDilemmaVault}
                         </p>
                       </div>
                       <div className="border-l-2 border-red-500 pl-3 py-1 space-y-1">
-                        <p className="font-bold text-red-300 text-[11px] uppercase tracking-wider">
+                        <p className="font-sans font-semibold text-sm leading-snug text-red-300">
                           {copy.sagasDilemmaSell}
                         </p>
                       </div>
@@ -1096,7 +1099,7 @@ export function MarketingSite({
                 </div>
 
                 {/* Les 3 piliers narratifs des Sagas */}
-                <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono text-xs">
+                <div className="min-w-0 lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono text-xs">
                   <div className="border border-white/10 bg-[#07080b] p-5 space-y-2 flex flex-col justify-between">
                     <div className="space-y-2">
                       <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest">
@@ -1105,7 +1108,7 @@ export function MarketingSite({
                       <h3 className="text-sm font-bold text-zinc-100">
                         {locale === 'en' ? 'Recurring Grudges & Memory' : locale === 'es' ? 'Rencor y Memoria Viva' : 'Rancune Vivante & Mémoire'}
                       </h3>
-                      <p className="text-zinc-400 leading-relaxed font-sans text-xs">
+                      <p className="text-zinc-400 leading-relaxed font-sans text-sm">
                         {locale === 'en'
                           ? 'Sell a mob relic to the police and the underworld marks you. The character who brought it returns nights later with demands... or armed muscle.'
                           : locale === 'es'
@@ -1123,7 +1126,7 @@ export function MarketingSite({
                       <h3 className="text-sm font-bold text-zinc-100">
                         {locale === 'en' ? 'Shifting Territory War' : locale === 'es' ? 'Guerra Territorial' : 'Guerre de Territoire'}
                       </h3>
-                      <p className="text-zinc-400 leading-relaxed font-sans text-xs">
+                      <p className="text-zinc-400 leading-relaxed font-sans text-sm">
                         {locale === 'en'
                           ? 'Dock Cartel, Eastern Oligarchs, Financial Squad, Night Barons. Your reputation with each faction unlocks hidden black-market auctions and lower trap rates.'
                           : locale === 'es'
@@ -1142,7 +1145,7 @@ export function MarketingSite({
                         {locale === 'en' ? 'Magnifier & UV Lamp' : locale === 'es' ? 'Lupa y Luz UV' : 'Loupe Horlogère & Lampe UV'}
                       </span>
                     </div>
-                    <p className="text-zinc-300 leading-relaxed font-sans text-xs">
+                    <p className="text-zinc-300 leading-relaxed font-sans text-sm">
                       {locale === 'en'
                         ? 'Double bottoms, pickable locks, scraped serial numbers, secret microfilms. Inspecting the physical hardware reveals blackmail leverage before you speak a single word.'
                         : locale === 'es'
@@ -1168,13 +1171,13 @@ export function MarketingSite({
                     {copy.seasonHeroTitle}
                   </h2>
                 </div>
-                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.seasonHeroSub}</p>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-400">{copy.seasonHeroSub}</p>
               </div>
 
               {/* Grille : Portrait du Boss de Saison + Dossier Noir en 3 Paliers */}
               <div className="grid gap-6 lg:grid-cols-12 items-stretch">
                 {/* Carte Personnage du Héros */}
-                <div className="lg:col-span-5 border border-amber-500/30 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
+                <div className="min-w-0 lg:col-span-5 border border-amber-500/30 bg-[#0a0b0f] p-5 space-y-4 font-mono flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
                       <span className="text-[11px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
@@ -1206,7 +1209,7 @@ export function MarketingSite({
                             ? 'Mecánico de cargueros fantasma (46 años)'
                             : 'Mécanicien de cargos fantômes (46 ans)'}
                         </p>
-                        <p className="text-[11px] text-zinc-400 italic">
+                        <p className="font-sans text-sm text-zinc-300 italic leading-snug">
                           {locale === 'en'
                             ? '« Real steel, no junk. Lifted from the hold last night. $1,800 net for my crew. »'
                             : locale === 'es'
@@ -1217,13 +1220,13 @@ export function MarketingSite({
                     </div>
 
                     <div className="rounded border border-white/10 bg-black/40 p-3 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-[11px] text-zinc-300">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs text-zinc-300">
                         <span className="text-amber-400 font-bold">
                           {locale === 'en' ? 'Saga Arc: The Container 47 Ultimatum' : locale === 'es' ? 'Arco de Saga: El Ultimátum del Contenedor 47' : 'Arc Narratif : L’Ultimatum du Conteneur 47'}
                         </span>
                         <span className="text-[11px] text-zinc-400">5 {locale === 'en' ? 'episodes' : locale === 'es' ? 'episodios' : 'épisodes'}</span>
                       </div>
-                      <p className="text-[11px] text-zinc-400">
+                      <p className="font-sans text-sm leading-snug text-zinc-400">
                         {locale === 'en'
                           ? 'Boris returns across multiple nights. Each conversation deepens the investigation or brings down the Bratva hammer.'
                           : locale === 'es'
@@ -1233,14 +1236,14 @@ export function MarketingSite({
                     </div>
                   </div>
 
-                  <div className="border-t border-amber-500/10 pt-3 text-[11px] text-amber-300/80 flex items-center justify-between">
+                  <div className="border-t border-amber-500/10 pt-3 text-xs text-amber-300/80 flex flex-wrap items-center justify-between gap-2">
                     <span>{locale === 'en' ? 'Counter boost: ~12% appearance' : locale === 'es' ? 'Aparición en mostrador: ~12%' : 'Boost comptoir : ~12% d’apparition'}</span>
                     <span className="text-amber-400 font-bold">+2 200 $ {locale === 'en' ? 'Bounty' : locale === 'es' ? 'Recompensa' : 'Prime'}</span>
                   </div>
                 </div>
 
                 {/* Dossier Noir en 3 Paliers */}
-                <div className="lg:col-span-7 flex flex-col justify-between space-y-3 font-mono">
+                <div className="min-w-0 lg:col-span-7 flex flex-col justify-between space-y-3 font-mono">
                   <div className="border border-white/10 bg-[#0a0b0f] p-5">
                     <p className="text-xs uppercase text-zinc-200 font-bold tracking-widest border-b border-white/10 pb-3">
                       {copy.seasonHeroDossierTitle}
@@ -1264,19 +1267,19 @@ export function MarketingSite({
 
                   {/* Partage Viral de la Punchline Choc */}
                   <div className="border border-white/10 bg-[#0a0b0f] p-5 space-y-3 font-mono">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-[11px] uppercase text-amber-400 font-bold tracking-widest flex items-center gap-1.5">
                         <Share2 className="h-3.5 w-3.5 text-amber-400" />
                         {copy.viralShareEyebrow}
                       </span>
-                      <span className="shrink-0 whitespace-nowrap text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-200 border border-white/10 font-bold">
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-200 border border-white/10 font-bold">
                         {locale === 'en' ? 'PNG Card · −20% / Weapon Drawn' : locale === 'es' ? 'Tarjeta PNG · −20% / Arma Sacada' : 'Carte PNG · −20% / Arme Dégainée'}
                       </span>
                     </div>
 
                     <div>
                       <h4 className="text-sm font-bold text-zinc-100">{copy.viralShareTitle}</h4>
-                      <p className="mt-1 text-zinc-400 font-sans text-xs leading-relaxed">{copy.viralShareSub}</p>
+                      <p className="mt-1 text-zinc-400 font-sans text-sm leading-relaxed">{copy.viralShareSub}</p>
                     </div>
 
                     <div className="bg-black/70 p-3 rounded border border-white/10 text-xs text-zinc-200 italic">
@@ -1300,7 +1303,7 @@ export function MarketingSite({
                     {copy.ascensionTitle}
                   </h2>
                 </div>
-                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.ascensionSub}</p>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-400">{copy.ascensionSub}</p>
               </div>
 
               {/* 4 Paliers représentatifs sur les 10 */}
@@ -1320,7 +1323,7 @@ export function MarketingSite({
                         </span>
                       </div>
                       <h3 className="text-sm font-bold text-zinc-100">{tier.name}</h3>
-                      <p className="text-zinc-400 font-sans text-xs leading-relaxed">{tier.rule}</p>
+                      <p className="text-zinc-400 font-sans text-sm leading-relaxed">{tier.rule}</p>
                     </div>
                     <div className="pt-2 border-t border-white/5 text-[11px] text-zinc-400 uppercase flex items-center gap-1.5">
                       {tier.level === 'X' ? (
@@ -1342,10 +1345,10 @@ export function MarketingSite({
                   <span className="h-2 w-2 rounded-full bg-amber-400" />
                   <span>
                     {locale === 'en'
-                      ? 'Benchmark: 300 automated 40-day Monte-Carlo runs per tier (scripts/econ-sim.ts).'
+                      ? 'Benchmark: 300 automated 40-day Monte-Carlo runs per tier.'
                       : locale === 'es'
-                      ? 'Benchmark: 300 partidas simuladas de 40 días por rango (scripts/econ-sim.ts).'
-                      : 'Benchmark : 300 parties simulées de 40 jours par niveau (scripts/econ-sim.ts).'}
+                      ? 'Benchmark: 300 partidas simuladas de 40 días por rango.'
+                      : 'Benchmark : 300 parties simulées de 40 jours par niveau.'}
                   </span>
                 </div>
                 <button
@@ -1353,7 +1356,7 @@ export function MarketingSite({
                   onClick={onPlay}
                   className="bg-amber-400 px-4 py-2 font-bold uppercase tracking-wider text-zinc-950 hover:bg-amber-300 transition-colors cursor-pointer text-[11px]"
                 >
-                  {locale === 'en' ? 'Test Your Survival (/play) →' : locale === 'es' ? 'Pruébate en /play →' : 'Tester ta survie sur /play →'}
+                  {locale === 'en' ? 'Test your survival →' : locale === 'es' ? 'Pon a prueba tu supervivencia →' : 'Tester ta survie →'}
                 </button>
               </div>
             </div>
@@ -1371,7 +1374,7 @@ export function MarketingSite({
                     {copy.autopsyTitle}
                   </h2>
                 </div>
-                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.autopsySub}</p>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-400">{copy.autopsySub}</p>
               </div>
 
               {/* 3 Blocs de l'Autopsie */}
@@ -1392,7 +1395,7 @@ export function MarketingSite({
                         {pt.tag}
                       </span>
                       <h3 className="text-sm font-bold text-zinc-100">{pt.title}</h3>
-                      <p className="text-zinc-400 font-sans text-xs leading-relaxed">{pt.desc}</p>
+                      <p className="text-zinc-400 font-sans text-sm leading-relaxed">{pt.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -1412,7 +1415,7 @@ export function MarketingSite({
                     {copy.arbitrageTitle}
                   </h2>
                 </div>
-                <p className="max-w-md font-mono text-xs text-zinc-400">{copy.arbitrageSub}</p>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-400">{copy.arbitrageSub}</p>
               </div>
 
               {/* Grille 2 Colonnes : Vente Rapide vs Enchères Clandestines */}
@@ -1428,7 +1431,7 @@ export function MarketingSite({
                         {locale === 'en' ? '-5% Heat · Unlimited' : locale === 'es' ? '-5% Heat · Ilimitada' : '-5% Heat · Illimitée'}
                       </span>
                     </div>
-                    <p className="text-zinc-300 font-sans text-xs leading-relaxed">
+                    <p className="text-zinc-300 font-sans text-sm leading-relaxed">
                       {copy.arbitrageFastDesc}
                     </p>
                   </div>
@@ -1448,7 +1451,7 @@ export function MarketingSite({
                         {locale === 'en' ? '+20% Price · 1/Night' : locale === 'es' ? '+20% Precio · 1/Noche' : '+20% Cote · 1/Nuit'}
                       </span>
                     </div>
-                    <p className="text-zinc-300 font-sans text-xs leading-relaxed">
+                    <p className="text-zinc-300 font-sans text-sm leading-relaxed">
                       {copy.arbitrageAuctionDesc}
                     </p>
                   </div>
@@ -1472,7 +1475,7 @@ export function MarketingSite({
                     {copy.castTitle}
                   </h2>
                 </div>
-                <span className="font-mono text-xs text-zinc-400">{copy.castSub}</span>
+                <span className="text-sm text-zinc-400">{copy.castSub}</span>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -1491,7 +1494,7 @@ export function MarketingSite({
                     <div className="p-4 font-mono space-y-1.5">
                       <p className="text-[11px] uppercase text-amber-400">{c.role}</p>
                       <h3 className="text-sm font-bold text-zinc-100">{c.name}</h3>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{c.line}</p>
+                      <p className="font-sans text-sm text-zinc-400 leading-relaxed">{c.line}</p>
                     </div>
                   </div>
                 ))}
@@ -1504,7 +1507,7 @@ export function MarketingSite({
                     <div key={ep.id} className="border-l border-amber-500/40 pl-3 space-y-1">
                       <span className="text-[11px] uppercase text-zinc-400">{localizeFaction(ep.faction, locale)}</span>
                       <p className="text-xs font-bold text-zinc-200">{locEp.title}</p>
-                      <p className="text-[11px] text-zinc-400">{locEp.stakes}</p>
+                      <p className="font-sans text-sm leading-snug text-zinc-400">{locEp.stakes}</p>
                     </div>
                   );
                 })}
@@ -1515,7 +1518,7 @@ export function MarketingSite({
           {/* CLASSEMENT LIVE + PASS SYNDICAT */}
           <section className="border-b border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-14">
             <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-12">
-              <div className="lg:col-span-5 border border-white/10 bg-[#0b0c10] p-6 font-mono space-y-4">
+              <div className="min-w-0 lg:col-span-5 border border-white/10 bg-[#0b0c10] p-6 font-mono space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
                     {copy.topTitle}
@@ -1525,7 +1528,7 @@ export function MarketingSite({
                   </span>
                 </div>
                 {dailyTop.length === 0 ? (
-                  <p className="text-xs text-zinc-400 leading-relaxed">{copy.topEmpty}</p>
+                  <p className="font-sans text-sm text-zinc-400 leading-relaxed">{copy.topEmpty}</p>
                 ) : (
                   <div className="divide-y divide-white/5">
                     {dailyTop.map((row, idx) => (
@@ -1550,14 +1553,14 @@ export function MarketingSite({
                 </button>
               </div>
 
-              <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono">
+              <div className="min-w-0 lg:col-span-7 grid gap-4 sm:grid-cols-2 font-mono">
                 <div className="border border-white/10 bg-[#0b0c10] p-6 flex flex-col justify-between space-y-5">
                   <div className="space-y-3">
                     <span className="text-[11px] uppercase tracking-widest text-zinc-400">
                       {copy.freeLabel}
                     </span>
                     <div className="text-3xl font-bold text-zinc-100">{copy.freePrice}</div>
-                    <ul className="space-y-2 text-xs text-zinc-400">
+                    <ul className="space-y-2 font-sans text-sm leading-snug text-zinc-400">
                       {copy.freeBullets.map((b) => (
                         <li key={b}>· {b}</li>
                       ))}
@@ -1577,8 +1580,11 @@ export function MarketingSite({
                     <span className="text-[11px] uppercase tracking-widest text-amber-400">
                       {copy.vipLabel}
                     </span>
-                    <div className="text-3xl font-bold text-amber-300">{copy.vipPrice}</div>
-                    <ul className="space-y-2 text-xs text-zinc-300">
+                    <div>
+                      <div className="text-3xl font-bold text-amber-300">{copy.vipPrice.split(' · ')[0]}</div>
+                      <div className="mt-1 text-xs text-zinc-400">{copy.vipPrice.split(' · ')[1]}</div>
+                    </div>
+                    <ul className="space-y-2 font-sans text-sm leading-snug text-zinc-300">
                       {copy.vipBullets.map((b) => (
                         <li key={b}>· {b}</li>
                       ))}
@@ -1624,7 +1630,7 @@ export function MarketingSite({
           {/* CONTACT DIRECT -> hello@cashnoir.app */}
           <section id="contact" className="border-t border-white/10 bg-[#07080b] px-4 py-12 sm:px-6 sm:py-14">
             <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-12 items-start">
-              <div className="lg:col-span-5 space-y-3">
+              <div className="min-w-0 lg:col-span-5 space-y-3">
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-amber-400">
                   {locale === 'en' ? 'Direct Line · Syndicate Desk' : locale === 'es' ? 'Línea Directa · Mesa del Sindicato' : 'Ligne Directe · Bureau du Syndicat'}
                 </p>
@@ -1646,7 +1652,7 @@ export function MarketingSite({
                 </a>
               </div>
 
-              <form onSubmit={submitContact} className="lg:col-span-7 border border-white/10 bg-[#0b0c10] p-6 space-y-4 font-mono text-xs">
+              <form onSubmit={submitContact} className="min-w-0 lg:col-span-7 border border-white/10 bg-[#0b0c10] p-6 space-y-4 font-mono text-xs">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-[11px] uppercase tracking-wider text-zinc-400 mb-1.5">

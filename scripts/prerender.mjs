@@ -66,6 +66,16 @@ const trimMeta = (s, max) => {
   return `${sp > max * 0.6 ? cut.slice(0, sp) : cut}…`;
 };
 
+const fitTitle = (s, max) => {
+  let t = String(s).replace(/\s+/g, ' ').trim();
+  if (t.length > max) t = t.replace(/ — CASH NOIR$/, '');
+  if (t.length <= max) return t;
+  const seps = [' — ', ' : ', ': ', ' – ', ' | ', ', ', ' ou ', ' or ', ' o ', ' vs '];
+  const cut = Math.max(...seps.map((x) => t.lastIndexOf(x, max)).filter((i) => i > max * 0.5));
+  if (cut > 0) return t.slice(0, cut).trim();
+  return t.slice(0, t.lastIndexOf(' ', max)).trim();
+};
+
 function page(locale, sub) {
   const copy = SITE_COPY[locale];
   const [, kind, slug] = sub.split('/');
@@ -106,12 +116,14 @@ function page(locale, sub) {
       .join('')}</ol>${faqHtml(locale, guide.faq)}${relatedHtml(locale, guide.related, sub)}</article>`;
   } else if (kind === 'guides') {
     title = `${copy.navGuides} — CASH NOIR`;
+    desc = `${copy.navGuides} CASH NOIR : ${GUIDE_PAGES.slice(0, 3).map((g) => localizeGuide(g, locale).title).join(' · ')}.`;
     body = `<h1>${esc(copy.navGuides)}</h1><ul>${GUIDE_PAGES.map((g) => {
       const lg = localizeGuide(g, locale);
       return `<li><a href="${urlFor(locale, `/guides/${lg.slug}`)}">${esc(lg.title)}</a> — ${esc(lg.metaDesc)}</li>`;
     }).join('')}</ul>`;
   } else if (kind === 'vs') {
     title = `${copy.navVs} — CASH NOIR`;
+    desc = `CASH NOIR vs ${VERSUS_PAGES.map((v) => v.competitor).join(', ')}.`;
     body = `<h1>${esc(copy.navVs)}</h1><ul>${VERSUS_PAGES.map((v) => {
       const lv = localizeVersus(v, locale);
       return `<li><a href="${urlFor(locale, `/vs/${lv.slug}`)}">${esc(lv.title)}</a> — ${esc(lv.metaDesc)}</li>`;
@@ -134,6 +146,7 @@ function page(locale, sub) {
     body = `<h1>Privacy Policy — CASH NOIR</h1><p>Data controller: WeLink Tech SAS, 6 Rue des Bateliers, 92110 Clichy, France. Contact: hello@cashnoir.app. Google OAuth scopes are limited to openid, email and profile for cloud saves.</p>`;
   } else if (kind === 'blog') {
     title = `${copy.blogIndexTitle} — CASH NOIR`;
+    desc = blogs.slice(0, 3).map((b) => b.title).join(' · ');
     body = `<h1>${esc(copy.blogIndexTitle)}</h1><ul>${blogs.map(
       (a) => `<li><a href="${urlFor(locale, `/blog/${a.slug}`)}">${esc(a.title)}</a> — ${esc(a.excerpt)}</li>`,
     ).join('')}</ul>`;
@@ -239,7 +252,10 @@ function page(locale, sub) {
               inLanguage: ['en', 'fr', 'es'],
               description: copy.metaDesc,
               publisher: pub,
-              offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+              offers: [
+                { '@type': 'Offer', price: '0', priceCurrency: 'EUR', name: 'Free play' },
+                { '@type': 'Offer', price: '3.99', priceCurrency: 'EUR', name: 'Syndicate Pass (monthly)', category: 'subscription' },
+              ],
             },
             {
               '@type': 'FAQPage',
@@ -252,7 +268,7 @@ function page(locale, sub) {
           ],
         };
 
-  const finalTitle = trimMeta(title, 58);
+  const finalTitle = fitTitle(title, 65);
   const finalDesc = trimMeta(desc, 152);
   const canonical = `${BASE}${urlFor(locale, sub)}`;
   const head = [

@@ -1885,7 +1885,7 @@ export const EXPANSION_BLOG_I18N: Record<string, Partial<Record<'fr' | 'es', Blo
       "readTime": "8 min",
       "title": "GTA 6 et recel : simulateurs de marché noir expliqués",
       "excerpt": "Découvrez pourquoi les mondes ouverts banalisent le recel et comment les simulateurs de marché noir instaurent une véritable tension criminelle.",
-      "directAnswer": "Les jeux en monde ouvert comme GTA réduisent l'écoulement du butin à de simples points de repère pour un gain instantané. Les simulateurs dédiés font du recel le point culminant : interrogatoires poussés, expertise médico-légale et indice de recherche dynamique. CASH NOIR remplace ces marchands automatiques par des négociations IA non scriptées où le moindre faux pas entraîne une arrestation fédérale.",
+      "directAnswer": "Grand Theft Auto VI est sorti le 19 novembre 2026 sur PS5 et Xbox Series X|S, sans version PC annoncée à ce jour. Les jeux en monde ouvert comme GTA réduisent l'écoulement du butin à de simples points de repère pour un gain instantané. Les simulateurs dédiés font du recel le point culminant : interrogatoires poussés, expertise médico-légale et indice de recherche dynamique. CASH NOIR remplace ces marchands automatiques par des négociations IA non scriptées où le moindre faux pas entraîne une arrestation fédérale.",
       "keywords": [
             "gta 6 fence mechanics",
             "black market crime simulator",
@@ -1993,7 +1993,7 @@ export const EXPANSION_BLOG_I18N: Record<string, Partial<Record<'fr' | 'es', Blo
       "readTime": "8 min",
       "title": "GTA 6 y el Mercado Negro: Mecánicas de Perista al Detalle",
       "excerpt": "Descubre por qué los sandbox criminales trivializan vender botín robado y cómo los simuladores de mercado negro recrean el peligro del hampa.",
-      "directAnswer": "En sagas como GTA, colocar botín robado se reduce a conducir hacia iconos amarillos para cobrar al instante. Los simuladores dedicados convierten la venta ilegal en el verdadero clímax táctico: interrogatorios, peritaje forense y presión policial dinámica. Títulos como CASH NOIR sustituyen tenderos automáticos por IA impredecible donde un traspié desata redadas o represalias sindicales.",
+      "directAnswer": "Grand Theft Auto VI salió el 19 de noviembre de 2026 en PS5 y Xbox Series X|S, sin versión para PC anunciada por ahora. En sagas como GTA, colocar botín robado se reduce a conducir hacia iconos amarillos para cobrar al instante. Los simuladores dedicados convierten la venta ilegal en el verdadero clímax táctico: interrogatorios, peritaje forense y presión policial dinámica. Títulos como CASH NOIR sustituyen tenderos automáticos por IA impredecible donde un traspié desata redadas o represalias sindicales.",
       "keywords": [
             "gta 6 fence mechanics",
             "black market crime simulator",

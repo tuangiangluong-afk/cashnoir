@@ -809,7 +809,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const qs = new URLSearchParams(window.location.search);
       if (qs.get('checkout') === 'success' || qs.get('pass') === 'success' || qs.get('pass') === 'ok') {
-        trackEvent('purchase', { item_name: 'Syndicate Pass', currency: 'EUR', value: 9 });
+        trackEvent('purchase', { item_name: 'Syndicate Pass', currency: 'EUR', value: 3.99 });
       }
     }
   }, [routePath]);
@@ -1041,6 +1041,10 @@ export default function App() {
   const [offerAmount, setOfferAmount] = useState<number>(
     saved?.offerAmount ?? Math.max(150, Math.round((currentCase.initialPrice * 0.8) / 50) * 50),
   );
+  // The seller dropped below your bid: never show (or slap) more than they ask.
+  useEffect(() => {
+    if (askedPrice > 0) setOfferAmount((v) => Math.min(v, askedPrice));
+  }, [askedPrice]);
 
   // Chat state
   const [history, setHistory] = useState<ChatTurn[]>(
@@ -2580,7 +2584,7 @@ export default function App() {
   const slapCashOnCounter = () => {
     // Le compteur est plafonné par la caisse : l'offre réelle doit l'être aussi,
     // sinon le bouton annonce un montant que tu ne peux pas payer.
-    const amount = Math.min(offerAmount, cash);
+    const amount = Math.min(offerAmount, cash, askedPrice > 0 ? askedPrice : Infinity);
     if (amount < 100) {
       setError(
         gameLocale === 'en'

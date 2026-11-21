@@ -2,7 +2,7 @@
   "name": "CASH NOIR",
   "short_name": "CASH NOIR",
   "description": "Jeu de négociation psychologique et de recel noir.",
-  "start_url": "/",
+  "start_url": "/play",
   "scope": "/",
   "display": "standalone",
   "display_override": [

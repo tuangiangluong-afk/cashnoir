@@ -938,7 +938,7 @@ export const EXPANSION_BLOG_ARTICLES: BlogArticle[] = [
   "readTime": "8 min",
   "title": "GTA 6 Fence Mechanics & Black Market Simulators Explained",
   "excerpt": "Analyze why open-world crime games trivialize fencing stolen goods and how unscripted black-market simulators build genuine underworld risk.",
-  "directAnswer": "Open-world titles like GTA reduce stolen loot disposition to driving into yellow blips for instant payouts. Dedicated black-market simulators treat fencing as the high-stakes climax: player-driven interrogation, forensic inspection tools, and dynamic criminal Heat. Games like CASH NOIR replace automated vendors with unscripted AI negotiations where a single tactical misstep risks federal arrest or syndicate retaliation.",
+  "directAnswer": "Grand Theft Auto VI launched on November 19, 2026 for PS5 and Xbox Series X|S, with no PC version announced yet. Open-world titles like GTA reduce stolen loot disposition to driving into yellow blips for instant payouts. Dedicated black-market simulators treat fencing as the high-stakes climax: player-driven interrogation, forensic inspection tools, and dynamic criminal Heat. Games like CASH NOIR replace automated vendors with unscripted AI negotiations where a single tactical misstep risks federal arrest or syndicate retaliation.",
   "keywords": [
     "gta 6 fence mechanics",
     "black market crime simulator",
