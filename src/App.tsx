@@ -2338,7 +2338,8 @@ export default function App() {
       );
 
       if (res.quota) setQuota(res.quota);
-      else if (res.scripted) setQuota((q) => (q ? { ...q, remaining: 0, used: q.limit } : q));
+      // Vendeur scripté : panne réseau OU quota épuisé. On relit le vrai compteur au lieu d'afficher « épuisé » à tort.
+      else if (res.scripted) fetch('/api/quota').then((r) => (r.ok ? r.json() : null)).then((q) => { if (q && typeof q.remaining === 'number') setQuota(q as NpcQuota); }).catch(() => {});
       if (!res.scripted) track('llm_latency', Math.round(performance.now() - t0));
       if (res.scripted && !scriptedNoticeRef.current) {
         scriptedNoticeRef.current = true;
