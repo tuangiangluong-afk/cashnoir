@@ -875,6 +875,22 @@ export function MarketingSite({
               Under GDPR, you have the right to access, rectify, export or permanently delete your account and cloud save data at any time by emailing <a href="mailto:hello@cashnoir.app" className="text-amber-400 underline">hello@cashnoir.app</a>.
             </p>
           </section>
+
+          <section id="delete-account" className="space-y-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">5. Delete your account</h2>
+            <p>
+              <strong>In the app or on the web:</strong> open your profile (top right) → <em>Account</em> → <em>Delete</em>, then confirm. Deletion is immediate and cannot be undone.
+            </p>
+            <p>
+              <strong>What is deleted:</strong> your account, your cloud save and your progress. An active Syndicate Pass subscription is cancelled first, so you are not charged again. Every signed-in session is closed on all your devices.
+            </p>
+            <p>
+              <strong>What is kept:</strong> payment records required by law (kept by Stripe), and anonymous leaderboard nicknames already published. A game played without an account stays only on your device: uninstalling the app or clearing site data removes it.
+            </p>
+            <p>
+              <strong>No access to the app?</strong> Email <a href="mailto:hello@cashnoir.app?subject=Delete%20my%20account" className="text-amber-400 underline">hello@cashnoir.app</a> from the Google address you signed in with. We delete the account within 30 days.
+            </p>
+          </section>
         </main>
       )}
 

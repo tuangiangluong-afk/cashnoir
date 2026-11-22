@@ -89,6 +89,17 @@ export function computeDynamicFloor(initialPrice: number, floorPrice: number, pe
 
 const LOWBALL_RATIO = 0.65;
 
+/** Baisse maximale accordée en UNE réplique, selon le jour : généreux au début, tendu ensuite (sauf vendeur terrorisé). */
+export function turnDropCap(day: number): number {
+  return day <= 2 ? 0.45 : day <= 5 ? 0.32 : day <= 10 ? 0.24 : 0.18;
+}
+
+const CAP_LINES: Record<Locale, ((p: string) => string)[]> = {
+  fr: [(p) => `Pas si vite. ${p}, et on n’en parle plus.`, (p) => `Tu crois que je suis né hier ? ${p}, c’est mon dernier geste ce soir.`, (p) => `Doucement. Je descends à ${p}, pas un cent de moins pour l’instant.`],
+  en: [(p) => `Not so fast. ${p} and we’re done talking.`, (p) => `You think I was born yesterday? ${p}, that’s all I’ll give tonight.`, (p) => `Easy. I’ll come down to ${p}, not a cent lower for now.`],
+  es: [(p) => `No tan rápido. ${p} y no se habla más.`, (p) => `¿Crees que nací ayer? ${p}, es todo lo que cedo esta noche.`, (p) => `Despacio. Bajo a ${p}, ni un céntimo menos por ahora.`],
+};
+
 export function parseSpelledPrices(text: string): number[] {
   const t = text.toLowerCase();
   const patterns: [RegExp, number][] = [
@@ -238,6 +249,7 @@ export function parseNPCJson(
   gender: 'm' | 'f' = 'm',
   fearCap = 25,
   leaveGuard = true,
+  maxTurnDrop = 1,
 ): NPCResponse {
   const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
@@ -391,8 +403,18 @@ export function parseNPCJson(
     action = 'aucune';
   }
 
+  // Tension qui monte avec les jours : une seule réplique ne fait pas tomber le prix au plancher (sauf vendeur terrorisé).
+  const turnLimit = Math.round((currentPrice * (1 - maxTurnDrop)) / 50) * 50;
+  const turnCapped =
+    maxTurnDrop < 1 && !lowball && playerOffer !== undefined && offerOk && fallbackGauges.peur < 70 && playerOffer < turnLimit;
+  if (turnCapped) {
+    action = 'aucune';
+    nextPrice = Math.min(currentPrice, Math.max(turnLimit, dynamicFloor));
+  }
+
   if (
     !lowball &&
+    !turnCapped &&
     playerOffer !== undefined &&
     offerOk &&
     fallbackGauges.colere < 78
@@ -424,6 +446,13 @@ export function parseNPCJson(
 
   // Nettoie toute confusion 2000 vs 20000 ("vingt mille" -> "deux mille")
   dialogue = sanitizeSpelledOffer(dialogue, playerOffer, locale);
+  if (turnCapped) {
+    const lines = CAP_LINES[locale] || CAP_LINES.fr;
+    const p = locale === 'en' ? `$${nextPrice.toLocaleString('en-US')}` : `${nextPrice.toLocaleString(locale === 'es' ? 'es-ES' : 'fr-FR')} $`;
+    dialogue = lines[(currentPrice + (playerOffer ?? 0)) % lines.length](p);
+  }
+  // Un montant ne se coupe jamais en fin de ligne (« 2 / 300 $ ») : espaces insécables dans les milliers et avant $.
+  dialogue = dialogue.replace(/(\d)[  ](?=\d{3}\b)/g, '$1 ').replace(/(\d) (?=[$€])/g, '$1 ');
   let tell = sanitizeText(
     parsed.indice_comportemental,
     locale === 'en'
@@ -537,6 +566,7 @@ export async function queryNPC(
   gender: 'm' | 'f' = 'm',
   fearCap = 25,
   leaveGuard = true,
+  maxTurnDrop = 1,
 ): Promise<NPCResponse> {
   const dynamicFloor = computeDynamicFloor(initialPrice, floorPrice, currentGauges.peur);
   const jsonContract = JSON_CONTRACTS[locale] || JSON_CONTRACTS.fr;
@@ -682,6 +712,6 @@ ${jsonContract}`;
   }
 
   if (!raw) throw new Error(locale === 'en' ? 'Empty model response.' : locale === 'es' ? 'Respuesta vacía del modelo.' : 'Réponse du modèle vide.');
-  const parsed = parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, playerOffer, locale, gender, fearCap, leaveGuard);
+  const parsed = parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, playerOffer, locale, gender, fearCap, leaveGuard, maxTurnDrop);
   return { ...parsed, ...(scripted ? { scripted: true } : {}), ...(quota ? { quota } : {}) };
 }

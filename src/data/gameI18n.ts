@@ -228,7 +228,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     offerBtn: 'Offrir',
     inputPlaceholder: 'Négocie, bluffe ou cite un indice...',
     accountGoogle: 'Compte Google',
-    nextClient: 'Client suivant →',
+    nextClient: 'Client suivant',
     ranks: ['Fourmi de Quartier', 'Receleur Confirmé', 'Courtier de l’Ombre', 'Parrain du Marché Noir'],
     langPromptDirective: 'Réponds STRICTEMENT en français parlé sec et réaliste.',
 
@@ -490,7 +490,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     offerBtn: 'Offer',
     inputPlaceholder: 'Negotiate, bluff, or drop a clue...',
     accountGoogle: 'Google Sign-In',
-    nextClient: 'Next client →',
+    nextClient: 'Next client',
     ranks: ['Street Ant', 'Night Fence', 'Shadow Broker', 'Black-Market Baron'],
     langPromptDirective:
       'LANGUAGE OVERRIDE: You MUST respond STRICTLY in gritty, natural spoken English (street noir, short sentences). Translate your persona, opening tension, and micro-tell into English.',
@@ -753,7 +753,7 @@ export const GAME_UI: Record<Locale, GameUiCopy> = {
     offerBtn: 'Ofrecer',
     inputPlaceholder: 'Negocia, presiona o suelta una pista...',
     accountGoogle: 'Cuenta Google',
-    nextClient: 'Siguiente cliente →',
+    nextClient: 'Siguiente cliente',
     ranks: ['Hormiga de Barrio', 'Perista Nocturno', 'Corredor en la Sombra', 'Barón del Mercado Negro'],
     langPromptDirective:
       'LANGUAGE OVERRIDE: You MUST respond STRICTLY in gritty, natural spoken Spanish (cine negro, frases cortas). Translate your persona and micro-tell into Spanish.',

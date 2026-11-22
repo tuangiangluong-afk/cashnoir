@@ -54,7 +54,7 @@ import {
   localizeArcTitle,
   localizeArcNote,
 } from './data/noirLocalization';
-import { consumeLoginError, startGoogleLogin, clearNativeSession, isNative, openSitePage } from './services/nativeApi';
+import { consumeLoginError, startGoogleLogin, clearNativeSession, isNative, openSitePage, googleLoginAvailable, onAndroidBack, minimizeApp } from './services/nativeApi';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { track } from './services/telemetry';
 import { trackEvent, trackPageView } from './services/analytics';
@@ -114,6 +114,7 @@ import type { Gauges } from './services/types';
 import {
   queryNPC,
   computeDynamicFloor,
+  turnDropCap,
   type ChatTurn,
   type LLMConfig,
   type LLMProvider,
@@ -616,6 +617,10 @@ export default function App() {
   } | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState(false);
   const [showFirstDeal, setShowFirstDeal] = useState(false);
+  // Jouer sans compte : partie sauvegardée sur l'appareil, Google reste optionnel (sauvegarde cloud).
+  const [guestMode, setGuestMode] = useState(() => {
+    try { return localStorage.getItem('fence_guest') === '1'; } catch { return false; }
+  });
   const [profileFailed, setProfileFailed] = useState(false);
   const [authAttempt, setAuthAttempt] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
@@ -922,6 +927,14 @@ export default function App() {
     selectTab(next);
   };
   useEffect(() => () => dailyOpening.current?.abort(), []);
+  // Retour Android : une feuille ouverte se ferme d'elle-même (GameDialog) ; sinon on revient au comptoir, puis on quitte.
+  useEffect(() => onAndroidBack(() => {
+    if (document.querySelector('dialog[open]')) return;
+    if (showFirstDeal) setShowFirstDeal(false);
+    else if (tab !== 'counter') setTab('counter');
+    else minimizeApp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [tab, showFirstDeal]);
   const [clientsServedToday, setClientsServedToday] = useState(saved?.clientsServedToday ?? 0);
   const dailyRunRef = useRef<{ runId: string; ticket: string } | null>(null);
   const lastArcStep2DayRef = useRef<number>(-1);
@@ -2320,6 +2333,8 @@ export default function App() {
         currentCase.gender,
         isClueMacro ? 8 : repeated ? 5 : Math.max(10, 25 - 5 * playerTurnsSoFar),
         currentCase.arcStep !== 2, // un client de piste qui n'a plus sa pièce peut légitimement repartir
+        // Contrat du jour : règles identiques pour tous (vérifiées par le serveur), pas de durcissement par jour.
+        currentCase.isDailyContract ? 1 : turnDropCap(day),
       );
 
       if (res.quota) setQuota(res.quota);
@@ -3487,14 +3502,28 @@ export default function App() {
   }
   // A paying guest plays right away; Google login stays optional (cloud save).
   const paidGuest = hasPass && !passOpen;
-  if (!authUser && !paidGuest && showFirstDeal) {
-    return <FirstDeal t={tt} onExit={() => setShowFirstDeal(false)} onContinue={() => {
+  const startGuest = () => {
+    const intro = readFirstDeal();
+    if (intro?.stage === 'bought') {
+      // Même ouverture que le serveur pour un compte : 2 500 $ moins la montre, montre au coffre.
+      setCash(2500 - intro.price);
+      setInventory([{ id: 'first-dock-watch', name: 'Montre des docks', faction: 'Horlogers', category: 'Joaillerie', paid: intro.price, streetValue: 1000, hotLevel: 'TIÈDE', cleaned: false }]);
+      clearFirstDeal();
+      setTab('night');
+    }
+    try { localStorage.setItem('fence_guest', '1'); } catch { /* stockage indisponible : la partie reste jouable */ }
+    trackEvent('guest_start');
+    setShowFirstDeal(false);
+    setGuestMode(true);
+  };
+  if (!authUser && !paidGuest && !guestMode && showFirstDeal) {
+    return <FirstDeal t={tt} canLogin={googleLoginAvailable && oauthConfigured} onGuest={startGuest} onExit={() => setShowFirstDeal(false)} onContinue={() => {
       setShowFirstDeal(false);
       if (oauthConfigured) startGoogleLogin();
       else retryConnection();
     }} />;
   }
-  if (!authUser && !paidGuest) {
+  if (!authUser && !paidGuest && !guestMode) {
     return (
       <div className="login-scene min-h-[100dvh] bg-[#07080c] text-zinc-100 flex items-center justify-center p-4 max-sm:items-end max-sm:pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
         <div className="w-full max-w-md space-y-6 p-2 sm:border sm:border-white/15 sm:bg-[#0b0c10] sm:p-8 sm:shadow-[0_0_60px_rgba(0,0,0,0.9)]">
@@ -3545,7 +3574,10 @@ export default function App() {
           }} className="w-full rounded-lg bg-amber-300 px-4 py-3.5 text-base font-bold text-zinc-950">
             {readFirstDeal() ? tt('Retrouver mon premier deal', 'Resume my first deal', 'Retomar mi primer trato') : tt('Jouer mon premier deal', 'Play my first deal', 'Jugar mi primer trato')}
           </button>
-          <button
+          <button type="button" onClick={startGuest} className="w-full rounded-lg border border-white/20 px-4 py-3.5 text-base font-semibold text-zinc-100">
+            {tt('Jouer sans compte', 'Play without an account', 'Jugar sin cuenta')}
+          </button>
+          {googleLoginAvailable && <button
             type="button"
             onClick={() => {
               if (oauthConfigured) {
@@ -3566,7 +3598,7 @@ export default function App() {
             <span>{oauthConfigured
               ? tt('Continuer avec Google', 'Continue with Google', 'Continuar con Google')
               : tt('Réessayer la connexion', 'Retry connection', 'Reintentar la conexión')}</span>
-          </button>
+          </button>}
 
           {!oauthConfigured && (
             <p role="status" className="text-sm text-amber-200">
@@ -5440,15 +5472,15 @@ export default function App() {
             {/* Guide de première négociation */}
             {showBrief && tab === 'counter' && day === 1 && clientsServedToday === 0 && !currentCase.special && (
               <div className="first-deal-guide z-30 mx-auto flex w-[min(92vw,500px)] items-center justify-between gap-3 border border-amber-400/60 bg-black/90 px-4 py-2 backdrop-blur-md">
-                <p className="font-mono text-sm leading-snug text-zinc-200">
+                <p className="text-sm leading-snug text-zinc-200">
                   <strong className="text-amber-400">
-                    {inventory.length > 0
+                    {inventory.some((i) => i.id !== 'first-dock-watch')
                       ? t.briefStep3
                       : inspected || uvScanned
                         ? t.briefStep2
                         : t.briefStep1}
                   </strong>
-                  {inventory.length > 0
+                  {inventory.some((i) => i.id !== 'first-dock-watch')
                     ? t.briefDesc3
                     : inspected || uvScanned
                       ? t.briefDesc2
@@ -5553,7 +5585,7 @@ export default function App() {
                           </p>
                         )}
                         {tell && !loading && (
-                          <p className="font-mono text-xs leading-relaxed italic text-zinc-300">* {tell}</p>
+                          <p className="text-sm leading-relaxed italic text-zinc-400">{tell}</p>
                         )}
                       </div>
                       <div className="hidden space-y-1.5 lg:block">
@@ -5619,7 +5651,7 @@ export default function App() {
                 })()}
 
                 {(error || (cash < askedPrice && outcome === 'active' && !currentCase.isDailyContract && currentCase.arcStep !== 2)) && (
-                  <div className="mt-1 border border-amber-500/40 bg-[#16120d]/95 px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[11px] sm:text-xs text-amber-200 shadow-lg">
+                  <div className="kb-hide mt-1 border border-amber-500/40 bg-[#16120d]/95 px-2.5 py-1 sm:px-3 sm:py-1.5 font-mono text-[11px] sm:text-xs text-amber-200 shadow-lg max-sm:border-0 max-sm:bg-transparent max-sm:px-1 max-sm:py-0 max-sm:font-sans max-sm:shadow-none">
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-amber-400 font-bold shrink-0">⚠️</span>
@@ -5646,7 +5678,7 @@ export default function App() {
                               triggerHaptic(10);
                               setCashWarningCollapsed((v) => !v);
                             }}
-                            className="border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-300 hover:bg-amber-500/25 active:scale-95 transition-all"
+                            className="border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-300 hover:bg-amber-500/25 active:scale-95 transition-all max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-xs max-sm:normal-case max-sm:tracking-normal max-sm:underline max-sm:underline-offset-2"
                           >
                             {cashWarningCollapsed ? tt('Trouver du cash ▼', 'Raise cash ▼', 'Conseguir cash ▼') : tt('Réduire ▲', 'Collapse ▲', 'Reducir ▲')}
                           </button>
@@ -6073,7 +6105,7 @@ export default function App() {
                       {/* Compteur mécanique de billets + Boutons */}
 
                       <div className="max-sm:contents flex flex-wrap items-center gap-2">
-                        <div className="flex items-center border border-amber-500/40 bg-black/80 max-sm:order-4">
+                        <div className="kb-hide flex items-center border border-amber-500/40 bg-black/80 max-sm:order-4">
                           <button
                             type="button"
                             disabled={cash < 100}
@@ -6155,7 +6187,7 @@ export default function App() {
                         <button
                           onClick={slapCashOnCounter}
                           disabled={loading || cash < 100}
-                          className="brass max-sm:order-5 max-sm:min-w-0 max-sm:flex-1 max-sm:py-1.5 max-[359px]:text-sm max-[359px]:px-2 px-3 sm:px-4 py-1.5 font-[family-name:var(--font-display)] text-lg sm:text-xl tracking-wider uppercase text-[#1a1206] transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-40"
+                          className="kb-hide brass max-sm:order-5 max-sm:min-w-0 max-sm:flex-1 max-sm:py-1.5 max-[359px]:text-sm max-[359px]:px-2 px-3 sm:px-4 py-1.5 font-[family-name:var(--font-display)] text-lg sm:text-xl tracking-wider uppercase text-[#1a1206] transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-40"
                         >
                           {cash < 100 ? t.cashEmpty : t.slapCash}
                         </button>
@@ -6194,7 +6226,7 @@ export default function App() {
                     {/* Ligne 2 : 3 relances rapides tactiques + Saisie directe au clavier */}
                     <div className="flex flex-col gap-1.5 w-full">
                       {/* Pastilles tactiques défilables à l'horizontale au pouce sur mobile */}
-                      <div className="flex sm:hidden w-full items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+                      <div className="kb-hide flex sm:hidden w-full items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
                         {quickReplies().map((q) => (
                           <button
                             key={q.key}
@@ -6275,6 +6307,8 @@ export default function App() {
                         <button
                           type="submit"
                           disabled={loading || !input.trim()}
+                          // Garde le clavier ouvert : sinon le 1er tap ferme le clavier, la page bouge et l'envoi est raté.
+                          onPointerDown={(e) => e.preventDefault()}
                           aria-label={tt('Envoyer', 'Send', 'Enviar')}
                           className="p-1 text-amber-400 hover:text-amber-300 disabled:opacity-40 max-sm:flex max-sm:size-11 max-sm:items-center max-sm:justify-center max-sm:rounded-full max-sm:bg-amber-400 max-sm:text-zinc-950 max-sm:disabled:bg-white/10 max-sm:disabled:text-zinc-500"
                         >
@@ -6788,7 +6822,28 @@ export default function App() {
                   >
                     {t.logout}
                   </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm(tt('Supprimer définitivement ton compte, ta sauvegarde cloud et ton abonnement ? C’est irréversible.', 'Permanently delete your account, cloud save and subscription? This cannot be undone.', '¿Eliminar definitivamente tu cuenta, tu partida en la nube y tu suscripción? No se puede deshacer.'))) return;
+                      const r = await fetch('/api/account/delete', { method: 'POST', credentials: 'include' }).catch(() => null);
+                      if (!r?.ok) {
+                        const d = await r?.json().catch(() => ({}));
+                        setError(d?.error || tt('Suppression impossible pour le moment.', 'Deletion failed for now.', 'No se pudo eliminar por ahora.'));
+                        return;
+                      }
+                      clearNativeSession();
+                      cloudReadyRef.current = false;
+                      setAuthUser(null);
+                      setCloudStatus('idle');
+                    }}
+                    className="shrink-0 text-red-400 underline hover:text-red-300"
+                  >
+                    {tt('Supprimer', 'Delete', 'Eliminar')}
+                  </button>
                 </div>
+              ) : !googleLoginAvailable ? (
+                <p className="text-[11px] text-zinc-400">{tt('Partie sauvegardée sur cet appareil.', 'Game saved on this device.', 'Partida guardada en este dispositivo.')}</p>
               ) : (
                 <button
                   type="button"

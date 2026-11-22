@@ -91,6 +91,16 @@ export async function createUserProfileIfMissing(userId, profile) {
   return existing;
 }
 
+export async function deleteUserProfileFromSupabase(userId) {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const res = await fetch(`${getUrl()}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE', headers: getHeaders() });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function saveUserProfileToSupabase(userId, profile) {
   if (!isSupabaseConfigured()) return false;
   try {

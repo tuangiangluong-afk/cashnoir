@@ -9,6 +9,7 @@ const E = {
   'Contrat quotidien déjà tenté aujourd’hui depuis cette connexion. Reviens demain.': ['Daily contract already attempted today from this connection. Come back tomorrow.', 'Contrato diario ya intentado hoy desde esta conexión. Vuelve mañana.'],
   'Les vendeurs IA sont saturés. Réessaie dans un instant.': ['The AI sellers are overloaded. Try again in a moment.', 'Los vendedores IA están saturados. Inténtalo de nuevo en un momento.'],
   'Budget IA du jour épuisé. Reviens demain.': ['Today’s AI budget is used up. Come back tomorrow.', 'El presupuesto de IA de hoy se ha agotado. Vuelve mañana.'],
+  'Impossible d’arrêter l’abonnement. Réessaie dans un instant.': ['Could not stop the subscription. Try again in a moment.', 'No se pudo detener la suscripción. Inténtalo de nuevo en un momento.'],
   'Conversation invalide.': ['Invalid conversation.', 'Conversación no válida.'],
   'Conversation trop longue.': ['Conversation too long.', 'Conversación demasiado larga.'],
   'Format de date invalide.': ['Invalid date format.', 'Formato de fecha no válido.'],

@@ -79,6 +79,25 @@ for (const col of COLLECTIONS_DATA) {
   }
 }
 
+// Noms propres et marques : gardent leur majuscule quand le vendeur parle.
+const KEEP_CAPS = new Set(['Rolex', 'Patek', 'Philippe', 'Cartier', 'Fabergé', 'Byzantine', 'Daytona', 'Submariner', 'Luger', 'Colt', 'Python', 'Kevlar', 'Venetian', 'Swiss', 'Pre-Columbian', 'Geneva', 'Antwerp', 'Liberian', 'Marseille', 'Chinatown', 'Bratva', 'Yakuza', 'Iridium', 'Hardware', 'Wallet', 'Glock', 'Beretta', 'Stradivarius', 'Hermès']);
+
+/**
+ * Nom d'objet tel qu'un vendeur le dit à voix haute : la famille d'objet sans la fiche technique
+ * (« Violoncelle ancien verni ambre sans numéro de série » → « violoncelle ancien verni ambre »), en minuscules sauf marques.
+ */
+export function spokenItemName(frName: string, locale: Locale): string {
+  const base = Object.keys(ITEM_BASE_TRANSLATIONS).filter((k) => frName.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+  let s = base
+    ? locale === 'fr' ? base : ITEM_BASE_TRANSLATIONS[base][locale]
+    : localizeItemName(frName, locale).replace(/\s*\([^)]*\)\s*$/, '');
+  if (!base) s = s.split(/\s(?:sans|avec|en provenance|without|with|sin|con)\s/)[0];
+  return s
+    .split(' ')
+    .map((w) => (KEEP_CAPS.has(w) || !/^\p{Lu}\p{Ll}[\p{Ll}'’-]*$/u.test(w) ? w : w.toLowerCase()))
+    .join(' ');
+}
+
 export function localizeItemName(name: string, locale: Locale): string {
   if (locale === 'fr') return name;
 

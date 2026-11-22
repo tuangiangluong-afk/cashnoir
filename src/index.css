@@ -230,6 +230,17 @@
 .animate-stamp-slam {
   animation: stampSlam 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+@media (max-width: 1023px) {
+  .animate-stamp-slam {
+    animation: stampSlam 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards, stampOut 0.35s ease-in 1.3s forwards;
+  }
+}
+@keyframes stampOut {
+  to { opacity: 0; visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-stamp-slam { animation: stampOut 0.2s ease-in 1.3s forwards; }
+}
 
 /* ---------- Micro-tremblement quand le client panique ---------- */
 @keyframes tenseTremble {
@@ -328,9 +339,13 @@
   .game-screen:has(.counter-controls input:focus) > nav {
     display: none;
   }
-  .game-screen :focus-visible {
+  .game-screen :focus-visible:not(input[type='text']) {
     outline: 2px solid #f5c46d;
     outline-offset: -2px;
+  }
+  /* Champ de saisie : c'est la bulle entière qui s'allume, pas un rectangle dans la pilule. */
+  .game-screen .counter-controls form:focus-within {
+    border-color: rgb(245 196 109 / 0.7);
   }
 }
 
@@ -362,7 +377,8 @@
   .game-screen:has(.counter-controls input:focus) {
     height: var(--visible-game-height, 100dvh);
   }
-  .game-screen:has(.counter-controls input:focus) .first-deal-guide {
+  .game-screen:has(.counter-controls input:focus) .first-deal-guide,
+  .game-screen:has(.counter-controls input:focus) .kb-hide {
     display: none;
   }
 }

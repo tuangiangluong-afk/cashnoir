@@ -294,5 +294,14 @@ try {
     globalThis.fetch = originalFetch;
   }
 }
+// Suppression de compte : les sessions ouvertes avant la suppression sont refusées, une nouvelle connexion repart à zéro.
+{
+  const { sessionRevoked } = await import('../server/auth-profiles.mjs');
+  const { kvSet } = await import('../server/store.mjs');
+  await kvSet('gone:test-del', { at: 1_000_000 });
+  check('suppression : une session ouverte avant la suppression est refusée', (await sessionRevoked({ id: 'test-del', issuedAt: 999_999 })) === true);
+  check('suppression : une nouvelle connexion après la suppression fonctionne', (await sessionRevoked({ id: 'test-del', issuedAt: 1_000_001 })) === false);
+  check('suppression : un compte jamais supprimé n’est pas touché', (await sessionRevoked({ id: 'never-deleted', issuedAt: 5 })) === false);
+}
 console.log(`selftest serveur: ${passed} réussis`);
 process.exit(failed ? 1 : 0);

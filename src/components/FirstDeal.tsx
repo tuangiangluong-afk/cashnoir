@@ -20,10 +20,10 @@ export function clearFirstDeal() {
   localStorage.removeItem(key);
 }
 
-export function FirstDeal({ t, onExit, onContinue }: { t: Translate; onExit: () => void; onContinue: () => void }) {
+export function FirstDeal({ t, onExit, onContinue, onGuest, canLogin }: { t: Translate; onExit: () => void; onContinue: () => void; onGuest: () => void; canLogin: boolean }) {
   const [deal, setDeal] = useState<FirstDealState>(() => readFirstDeal() ?? { stage: 'arrival', price: 800 });
   const [storageFailed, setStorageFailed] = useState(false);
-  const money = (n: number) => t(`${n} $`, `$${n}`, `${n} $`);
+  const money = (n: number) => t(`${n.toLocaleString('fr-FR')} $`, `$${n.toLocaleString('en-US')}`, `${n.toLocaleString('es-ES')} $`);
   const move = (stage: Stage, price = deal.price) => {
     const next = { stage, price };
     try {
@@ -53,7 +53,7 @@ export function FirstDeal({ t, onExit, onContinue }: { t: Translate; onExit: () 
           {bought ? <>
             <h2 className="text-xl font-semibold text-amber-300">{t('Marché conclu.', 'Deal sealed.', 'Trato cerrado.')}</h2>
             <p>{t(`Tu empoches la montre pour ${money(deal.price)}. Sa valeur de rue est estimée à ${money(1000)}.`, `The watch is yours for ${money(deal.price)}. Its estimated street value is ${money(1000)}.`, `El reloj es tuyo por ${money(deal.price)}. Su valor estimado es de ${money(1000)}.`)}</p>
-            <p className="text-sm leading-relaxed text-zinc-300">{t('Ouvre une nouvelle boutique pour retrouver cette montre au coffre et choisir comment la revendre. Si tu as déjà une boutique, tu retrouveras ta partie.', 'Open a new shop to keep the watch in your vault and choose how to sell it. Returning players resume their existing shop.', 'Abre una tienda nueva para guardar el reloj en tu caja y decidir cómo venderlo. Si ya tienes tienda, retomarás tu partida.')}</p>
+            <p className="text-sm leading-relaxed text-zinc-300">{t('Ouvre ta boutique : la montre t’attend au coffre, à toi de choisir comment la revendre.', 'Open your shop: the watch is waiting in your vault, and you choose how to sell it.', 'Abre tu tienda: el reloj te espera en la caja y tú decides cómo venderlo.')}</p>
           </> : <>
             <div className="flex items-center gap-3">
               <img src="/assets/portraits/cast/c002.webp" alt="" className="size-12 rounded-full object-cover object-top" />
@@ -66,7 +66,10 @@ export function FirstDeal({ t, onExit, onContinue }: { t: Translate; onExit: () 
         </section>
         <div className="space-y-2">
           {storageFailed && <p role="alert">{t('Stockage local indisponible. La fermeture de cet écran perdra cet essai.', 'Local storage is unavailable. Leaving this screen will lose this trial.', 'El almacenamiento local no está disponible. Si sales perderás esta prueba.')}</p>}
-          {bought ? <button className={primary} onClick={onContinue}>{t('Continuer avec mon compte', 'Continue with my account', 'Continuar con mi cuenta')}</button> : <>
+          {bought ? <>
+            <button className={primary} onClick={onGuest}>{t('Ouvrir ma boutique', 'Open my shop', 'Abrir mi tienda')}</button>
+            {canLogin && <button className={secondary} onClick={onContinue}>{t('J’ai déjà une boutique (Google)', 'I already have a shop (Google)', 'Ya tengo una tienda (Google)')}</button>}
+          </> : <>
             {deal.stage === 'arrival' && <button className={primary} onClick={() => move('inspected')}><Search className="mr-2 inline size-5" />{t('Examiner la montre', 'Inspect the watch', 'Examinar el reloj')}</button>}
             {deal.stage === 'inspected' && <button className={primary} onClick={() => move('counter', 600)}>{t('Montrer le fermoir et proposer 600 $', 'Point out the clasp and offer $600', 'Señalar el cierre y ofrecer 600 $')}</button>}
             <button className={deal.stage === 'counter' ? primary : secondary} onClick={() => move('bought')}><Watch className="mr-2 inline size-5" />{t('Acheter', 'Buy', 'Comprar')} · {money(deal.price)}</button>

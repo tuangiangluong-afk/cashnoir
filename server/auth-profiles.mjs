@@ -6,6 +6,7 @@ import {
   getUserProfileFromSupabase,
   createUserProfileIfMissing,
   saveUserProfileToSupabase,
+  deleteUserProfileFromSupabase,
   isSupabaseConfigured,
 } from './supabase.mjs';
 
@@ -72,7 +73,15 @@ export function getAuthUser(req, verifyToken) {
     name: String(claims.name || 'Receleur').slice(0, 64),
     email: String(claims.email || '').slice(0, 128),
     picture: String(claims.picture || '').slice(0, 512),
+    issuedAt: Number(claims.exp) - SESSION_TTL_MS,
   };
+}
+
+/** Compte supprimé : toute session ouverte AVANT la suppression est refusée (une nouvelle connexion recrée un compte vierge). */
+export async function sessionRevoked(user) {
+  if (!user) return false;
+  const gone = await kvGet(`gone:${user.id}`).catch(() => null);
+  return Boolean(gone && user.issuedAt <= gone.at);
 }
 
 function sanitizeProfilePayload(input) {
@@ -240,6 +249,16 @@ export async function handleAuthAndProfileRoutes({
     process.env.OAUTH_REDIRECT_URI ||
     `${origin && allowedOrigins.includes(origin) ? origin : allowedOrigin}/api/auth/google/callback`;
 
+  // Session d'un compte supprimé : déconnexion forcée partout (profil, premier deal, suppression, statut).
+  if (url.pathname.startsWith('/api/profile') || url.pathname === '/api/auth/me' || url.pathname === '/api/account/delete') {
+    const u = getAuthUser(req, verifyToken);
+    if (u && (await sessionRevoked(u))) {
+      if (url.pathname === '/api/auth/me') sendJson(res, 200, { authenticated: false, oauthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && sessionSecret), user: null }, { 'Set-Cookie': `fence_session=; ${cookieFlags(req, 0)}` });
+      else sendJson(res, 401, { error: 'Authentification requise.' }, { 'Set-Cookie': `fence_session=; ${cookieFlags(req, 0)}` });
+      return true;
+    }
+  }
+
   /* ---------------- GET /api/auth/me ---------------- */
   if (req.method === 'GET' && url.pathname === '/api/auth/me') {
     const user = getAuthUser(req, verifyToken);
@@ -259,6 +278,38 @@ export async function handleAuthAndProfileRoutes({
       { ok: true },
       { 'Set-Cookie': `fence_session=; ${cookieFlags(req, 0)}` },
     );
+    return true;
+  }
+
+  /* ---------------- POST /api/account/delete : suppression définitive du compte ---------------- */
+  if (req.method === 'POST' && url.pathname === '/api/account/delete') {
+    const user = getAuthUser(req, verifyToken);
+    if (!user) {
+      sendJson(res, 401, { error: 'Authentification requise.' });
+      return true;
+    }
+    // Abonnement en cours : on l'arrête chez Stripe avant d'effacer le compte, sinon il continuerait d'être prélevé.
+    const pass = await kvGet(`pass:${user.id}`).catch(() => null);
+    if (pass?.sub && process.env.STRIPE_SECRET_KEY) {
+      const r = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(pass.sub)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` },
+      }).catch(() => null);
+      if (!r || (!r.ok && r.status !== 404)) {
+        sendJson(res, 502, { error: 'Impossible d’arrêter l’abonnement. Réessaie dans un instant.' });
+        return true;
+      }
+    }
+    if (pass) await kvSet(`pass:${user.id}`, { until: 0, status: 'deleted' });
+    await kvSet(`gone:${user.id}`, { at: Date.now() });
+    await kvSet(`q:u:${user.id}`, { day: '', n: 0 }).catch(() => {});
+    if (isSupabaseConfigured()) await deleteUserProfileFromSupabase(user.id);
+    try {
+      fs.unlinkSync(profilePath(user.id));
+    } catch {
+      /* pas de fichier local */
+    }
+    sendJson(res, 200, { ok: true }, { 'Set-Cookie': `fence_session=; ${cookieFlags(req, 0)}` });
     return true;
   }
 

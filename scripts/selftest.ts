@@ -2,7 +2,7 @@
 // Lancés par `npm run selftest` (scripts/selftest.mjs bundle ce fichier avec esbuild puis l'exécute avec node).
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseNPCJson, computeDynamicFloor, sanitizeSpelledOffer } from '../src/services/llm';
+import { parseNPCJson, turnDropCap, computeDynamicFloor, sanitizeSpelledOffer } from '../src/services/llm';
 import { scriptedNpcRaw } from '../src/services/scriptedNpc';
 import { chapterStart, checkpointCash, RENT_BASE, RENT_SLOPE } from '../src/data/checkpoints';
 import { campaignSeasonOf, seasonHero, SEASON_EPISODES } from '../src/data/seasons';
@@ -16,11 +16,11 @@ import { applyEncounter, applyFavor, isDue, pickDue, trustTone, SAGA_EPISODES, t
 import { sagaOpening, sagaTell, sagaChapter, sagaEnding, sagaFacts, sagaKnows } from '../src/data/sagaText';
 import { isInjection, evaluatePsychoTriggers } from '../src/data/psychology';
 import { localizeCastText, localizeSecret } from '../src/data/castI18n';
-import { localizeArchetype, localizeItemName, localizeFaction } from '../src/data/noirLocalization';
+import { localizeArchetype, localizeItemName, localizeFaction, spokenItemName } from '../src/data/noirLocalization';
 import { localizeItemText } from '../src/data/itemsI18n';
 import { CAST_ROSTER, PORTRAIT_OF } from '../src/data/cast';
 import { checkSecret, secretContent, rollSecretId, secretAnswer, secretReward } from '../src/data/secrets';
-import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint, setAscensionHint, setFeaturedCast } from '../src/data/generator';
+import { generateProceduralCase, generateDailyContract, generateWindfallCase, setPlayerCashHint, setAscensionHint, setFeaturedCast, sentenceCase, formatItemInSpeech } from '../src/data/generator';
 import { SEASON_EPISODES, episodesUnlocked, daysUntilEpisode } from '../src/data/seasons';
 import { COLLECTIONS_DATA } from '../src/data/codex';
 import { localizeSeasonEpisode } from '../src/data/noirLocalization';
@@ -503,6 +503,36 @@ for (const msg of [
   check('carte de partage : les lignes tiennent dans la largeur', lines.every((l) => m(l) <= 100 || !l.includes(' ')), JSON.stringify(lines));
   check('carte de partage : trop long = coupé avec « … »', lines.length === 3 && lines[2].endsWith('…'));
   check('carte de partage : un mot plus long que la ligne ne boucle pas', wrapByWidth(m, 'extraordinairement', 50, 2).length === 1 && wrapByWidth(m, '', 50, 2).length === 0);
+}
+
+{
+  check('réplique : majuscule après un point quand le nom d’objet commence la phrase', sentenceCase('Je ne négocie pas par plaisir. ce violoncelle vaut cher. 600 $ net.') === 'Je ne négocie pas par plaisir. Ce violoncelle vaut cher. 600 $ net.' && sentenceCase('écoute, ça presse') === 'Écoute, ça presse');
+}
+
+{
+  const r = parseNPCJson('{"dialogue":"Je ne le brade pas. 2 300 $, pas moins.","indice_comportemental":"x","jauges":{"peur":20,"colere":20,"mefiance":20},"prix_actuel_demande":2300,"action_speciale":"aucune"}', { peur: 20, colere: 20, mefiance: 20 }, 2500, 2500, 1200, undefined, 'fr');
+  check('réplique : un montant ne se coupe pas en fin de ligne (espaces insécables)', r.dialogue.includes('2\u00a0300\u00a0$'), JSON.stringify(r.dialogue));
+}
+
+// Durcissement des négos avec les jours : -42 % en une phrase possible au jour 1, plus au jour 6.
+{
+  const raw = '{"dialogue":"Marché conclu pour 350 $.","indice_comportemental":"x","jauges":{"peur":40,"colere":35,"mefiance":80},"prix_actuel_demande":350,"action_speciale":"deal_accepte"}';
+  const g = { peur: 20, colere: 30, mefiance: 78 };
+  const d1 = parseNPCJson(raw, g, 600, 600, 150, 350, 'fr', 'f', 25, true, turnDropCap(1));
+  const d6 = parseNPCJson(raw, g, 600, 600, 150, 350, 'fr', 'f', 25, true, turnDropCap(6));
+  check('négo : au jour 1, une faille bien jouée peut conclure d’un coup', d1.action_speciale === 'deal_accepte' && d1.prix_actuel_demande === 350, JSON.stringify(d1));
+  check('négo : au jour 6, pas de -42 % en une réplique (contre-offre à la place)', d6.action_speciale === 'aucune' && d6.prix_actuel_demande >= 450 && d6.prix_actuel_demande < 600 && !/conclu/i.test(d6.dialogue), JSON.stringify(d6));
+  const scared = parseNPCJson(raw, { peur: 75, colere: 30, mefiance: 60 }, 600, 600, 150, 350, 'fr', 'f', 25, true, turnDropCap(12));
+  check('négo : un vendeur terrorisé peut encore craquer d’un coup', scared.action_speciale === 'deal_accepte', JSON.stringify(scared));
+  check('négo : la baisse max par réplique diminue avec les jours', turnDropCap(1) > turnDropCap(4) && turnDropCap(4) > turnDropCap(8) && turnDropCap(8) > turnDropCap(20));
+}
+
+// Le vendeur dit le nom de l'objet comme on le dit à voix haute, avec le bon genre.
+{
+  check('parole : la fiche technique disparaît du nom dit à voix haute', spokenItemName('Violoncelle ancien verni ambre sans numéro de série', 'fr') === 'violoncelle ancien verni ambre', spokenItemName('Violoncelle ancien verni ambre sans numéro de série', 'fr'));
+  check('parole : les marques gardent leur majuscule', /Patek Philippe/.test(spokenItemName('Montre Patek Philippe vintage', 'fr')) && /^montre/.test(spokenItemName('Montre Patek Philippe vintage', 'fr')));
+  check('parole : bon genre en français', formatItemInSpeech('liasse de billets', 'fr').startsWith('cette ') && formatItemInSpeech('œuf émaillé impérial', 'fr').startsWith('cet ') && formatItemInSpeech('chevalière en or', 'fr').startsWith('cette ') && formatItemInSpeech('violoncelle', 'fr').startsWith('ce '));
+  check('parole : anglais en minuscules hors noms propres', spokenItemName('Icône byzantine dorée', 'en') === spokenItemName('Icône byzantine dorée', 'en').replace(/\b(?!Byzantine)([A-Z])([a-z])/g, (_m, a, b) => a.toLowerCase() + b), spokenItemName('Icône byzantine dorée', 'en'));
 }
 
 console.log(`selftest: ${passed} réussis, ${failed} échoués`);

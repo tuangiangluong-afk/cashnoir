@@ -1,8 +1,11 @@
 import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { Keyboard } from '@capacitor/keyboard';
 
 export const isNative = Capacitor.isNativePlatform();
+// shortcut: Google seul est refusé par l'App Store (règle 4.8, Sign in with Apple obligatoire) ; sur iOS on joue sans compte tant que Sign in with Apple n'est pas branché.
+export const googleLoginAvailable = !(isNative && Capacitor.getPlatform() === 'ios');
 const API = 'https://cashnoir.app';
 const TOKEN_KEY = 'fence_native_token';
 const getToken = () => {
@@ -30,6 +33,18 @@ export function openSitePage(path: string) {
   void Browser.open({ url: `${API}${path}`, toolbarColor: '#050507' });
 }
 
+/** Bouton retour Android : renvoie de quoi retirer l'écouteur (sans effet ailleurs). */
+export function onAndroidBack(fn: () => void): () => void {
+  if (!isNative || Capacitor.getPlatform() !== 'android') return () => {};
+  const listener = App.addListener('backButton', fn);
+  return () => void listener.then((l) => l.remove());
+}
+
+/** Comme une app native : retour à l'écran d'accueil du téléphone, la partie reste en mémoire. */
+export function minimizeApp() {
+  void App.minimizeApp().catch(() => {});
+}
+
 export function clearNativeSession() {
   try { localStorage.removeItem(TOKEN_KEY); } catch { /* stockage indisponible */ }
 }
@@ -40,6 +55,8 @@ if (isNative) {
   // L'app native ouvre directement le comptoir (le site marketing reste réservé au web).
   if (window.location.pathname === '/') window.history.replaceState(null, '', '/play');
   void SystemBars.setStyle({ style: SystemBarsStyle.Dark }).catch(() => {});
+  // Pas de barre « ˄ ˅ ✓ » au-dessus du clavier iOS : une app de chat n'en a pas.
+  if (Capacitor.getPlatform() === 'ios') void Keyboard.setAccessoryBarVisible({ isVisible: false }).catch(() => {});
   const orig = window.fetch.bind(window);
   window.fetch = (input, init) => {
     if (typeof input !== 'string' || !input.startsWith('/api')) return orig(input, init);

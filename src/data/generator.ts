@@ -5,7 +5,7 @@ import { CAST_ROSTER, PORTRAIT_OF, type CastCharacter } from './cast';
 import { PROCEDURAL_ITEMS_CATALOG } from './itemsCatalog';
 import { GAME_UI } from './gameI18n';
 import type { Locale } from './seoContent';
-import { localizeItemName, localizeFaction, localizeArchetype } from './noirLocalization';
+import { localizeItemName, localizeFaction, localizeArchetype, spokenItemName } from './noirLocalization';
 
 /** État aléatoire d'une pièce : change la décision, pas juste la valeur. */
 export type ItemModifier = 'traceur' | 'collection' | 'contrefacon';
@@ -75,6 +75,9 @@ const FIRST_NAMES = [
   'Kévin', 'Sonia', 'Marek', 'Driss', 'Inès', 'Vance', 'Léon', 'Nora',
   'Tarik', 'Olga', 'Milo', 'Chloé', 'Rico', 'Zara', 'Yanis', 'Benoît',
 ];
+
+/** Majuscule en début de phrase (« plaisir. ce violoncelle » → « plaisir. Ce violoncelle ») après insertion du nom d'objet. */
+export const sentenceCase = (t: string): string => t.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
 
 export function getGenderFromName(name: string): 'm' | 'f' {
   const n = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -577,12 +580,12 @@ export function buildCase(
       ? trapOpenings[hashString(`THE-FENCE-OPENING-${options.idSuffix}`) % trapOpenings.length]
       : trapOpenings[Math.floor(rand() * trapOpenings.length)];
   } else if (castChar) {
-    const itemInSpeech = formatItemInSpeech(itemName, locale);
+    const itemInSpeech = formatItemInSpeech(spokenItemName(itemTpl.name, locale), locale);
     openingLine = castChar.openingTemplate
       .replace('{item}', itemInSpeech)
       .replace('{price}', formattedPrice);
   } else if (arch.openings && arch.openings.length > 0) {
-    const itemInSpeech = formatItemInSpeech(itemName, locale);
+    const itemInSpeech = formatItemInSpeech(spokenItemName(itemTpl.name, locale), locale);
     const profileOpenings =
       gender === 'f' && arch.femaleOpenings && arch.femaleOpenings.length > 0
         ? arch.femaleOpenings
@@ -592,7 +595,7 @@ export function buildCase(
       : profileOpenings[Math.floor(rand() * profileOpenings.length)];
     openingLine = rawOpening.replace('{item}', itemInSpeech).replace('{price}', formattedPrice);
   } else {
-    const itemInSpeech = formatItemInSpeech(itemName, locale);
+    const itemInSpeech = formatItemInSpeech(spokenItemName(itemTpl.name, locale), locale);
     const normalOpenings = [
       `Il est 3h du mat', j'ai pas le temps. Je te vends ${itemInSpeech}. J'en veux ${formattedPrice} $ en liquide maintenant.`,
       `Pose le rideau. J'ai ${itemInSpeech} sur moi, propre ou presque. ${formattedPrice} $ cash et tu me revois plus.`,
@@ -713,7 +716,7 @@ TES RÈGLES STRICTES :
     faction: factionName,
     archetype,
     displayArchetype: localizeArchetype(archetypeLabel, locale),
-    openingLine,
+    openingLine: sentenceCase(openingLine),
     openingTell,
     initialPrice,
     floorPrice,
@@ -879,8 +882,8 @@ export function formatItemInSpeech(itemName: string, locale: Locale = 'fr'): str
     return isFemEs ? `esta ${itemName}` : `este ${itemName}`;
   }
   const lower = itemName.trim().toLowerCase();
-  const isFem = /^(montre|icône|toile|valise|mallette|clé|bague|lettre|malette|statuette|parure|bouteille|dague|preuve)/i.test(lower);
-  const startsWithVowel = /^[aeiouyéèêëàâîïôûù]/i.test(lower);
+  const isFem = /^(montre|icône|toile|valise|mallette|clé|bague|lettre|malette|statuette|parure|bouteille|dague|preuve|chevalière|plaque|émeraude|liasse|rivière|broche|tiare|couronne|médaille|pièce|boîte|carte|enveloppe|partition|bible|sculpture|figurine|pendule|horloge|caisse|valise|sacoche|bourse|épée|gourmette|photo|bobine|cassette|puce)/i.test(lower);
+  const startsWithVowel = /^[aeiouyéèêëàâîïôûùœh]/i.test(lower) && !/^h(?:ache|ublot|ibou)/i.test(lower);
   if (isFem) return `cette ${itemName}`;
   if (startsWithVowel) return `cet ${itemName}`;
   return `ce ${itemName}`;
