@@ -168,7 +168,13 @@ function page(locale, sub) {
     .map(([p, label]) => `<a href="${p === '/play' ? p : urlFor(locale, p === '/' ? '' : p)}">${esc(label)}</a>`)
     .join(' · ');
 
-  const pub = { '@type': 'Organization', name: 'WeLink Tech SAS', url: BASE };
+  const sameAs = [
+    'https://www.instagram.com/cashnoir.app/',
+    'https://www.youtube.com/@CashNoir-f6z',
+    'https://www.facebook.com/cashnoir.game/',
+    'https://www.tiktok.com/@cash.noir1',
+  ];
+  const pub = { '@type': 'Organization', name: 'WeLink Tech SAS', url: BASE, sameAs };
   const todayIso = new Date().toISOString().slice(0, 10);
   const ld = blog
     ? {
@@ -246,6 +252,7 @@ function page(locale, sub) {
               '@type': 'VideoGame',
               name: 'CASH NOIR',
               url: `${BASE}/`,
+              sameAs,
               image: OG_IMAGE,
               genre: 'Noir Simulation / Real-Time AI Interrogation',
               gamePlatform: 'Web Browser / PWA',

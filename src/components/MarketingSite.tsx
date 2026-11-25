@@ -11,6 +11,7 @@ import {
   type Locale,
 } from '../data/seoContent';
 import { getCurrentSeason, SEASON_EPISODES } from '../data/seasons';
+import { InterrogatoiresShowcase } from './InterrogatoiresShowcase';
 
 function detectLocale(pathname: string): Locale {
   if (pathname === '/fr' || pathname.startsWith('/fr/')) return 'fr';
@@ -177,6 +178,12 @@ export function MarketingSite({
   // Dynamic SEO / AEO / GEO Head Tags + Hreflang (EN default on /) + JSON-LD
   useEffect(() => {
     const base = 'https://cashnoir.app';
+    const sameAs = [
+      'https://www.instagram.com/cashnoir.app/',
+      'https://www.youtube.com/@CashNoir-f6z',
+      'https://www.facebook.com/cashnoir.game/',
+      'https://www.tiktok.com/@cash.noir1',
+    ];
     const cleanSub = subPath === '/' ? '' : subPath;
     const canonicalPath = locale === 'en' ? (cleanSub || '/') : `/${locale}${cleanSub}`;
 
@@ -243,7 +250,7 @@ export function MarketingSite({
               datePublished: activeBlog.publishedAt,
               inLanguage: copy.htmlLang,
               description: activeBlog.excerpt,
-              publisher: { '@type': 'Organization', name: 'CASH NOIR' },
+              publisher: { '@type': 'Organization', name: 'CASH NOIR', sameAs },
             },
             ...(activeBlog.faq?.length
               ? [
@@ -265,6 +272,7 @@ export function MarketingSite({
             {
               '@type': 'VideoGame',
               name: 'CASH NOIR',
+              sameAs,
               genre: 'Noir Simulation / Real-Time AI Interrogation',
               gamePlatform: 'Web Browser / PWA',
               inLanguage: ['en', 'fr', 'es'],
@@ -1048,6 +1056,9 @@ export function MarketingSite({
             </div>
           </section>
 
+          {/* INTERROGATOIRES RÉELS & GAMEPLAY EN DIRECT */}
+          <InterrogatoiresShowcase locale={locale} onPlay={onPlay} />
+
           {/* SAGAS & INTRIGUES RAMIFIÉES — LE DILEMME DU COFFRE */}
           <section className="border-b border-white/10 bg-[#0a0b0f] px-4 py-12 sm:px-6 sm:py-16">
             <div className="mx-auto max-w-6xl space-y-8">
@@ -1765,6 +1776,19 @@ export function MarketingSite({
             </a>
             <a href="/sitemap.xml" className="hover:text-zinc-200">
               sitemap.xml
+            </a>
+            <span aria-hidden="true" className="text-zinc-700">·</span>
+            <a href="https://www.instagram.com/cashnoir.app/" target="_blank" rel="noopener noreferrer me" className="hover:text-amber-300">
+              Instagram
+            </a>
+            <a href="https://www.tiktok.com/@cash.noir1" target="_blank" rel="noopener noreferrer me" className="hover:text-amber-300">
+              TikTok
+            </a>
+            <a href="https://www.youtube.com/@CashNoir-f6z" target="_blank" rel="noopener noreferrer me" className="hover:text-amber-300">
+              YouTube
+            </a>
+            <a href="https://www.facebook.com/cashnoir.game/" target="_blank" rel="noopener noreferrer me" className="hover:text-amber-300">
+              Facebook
             </a>
           </div>
         </div>
