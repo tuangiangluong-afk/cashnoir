@@ -605,7 +605,7 @@ DIRECTIVE DE PRIX : Tout prix que tu prononces dans ton dialogue DOIT être écr
 
   const fullSystem = `${systemPrompt}
 
-Respond to the player's latest move in light of the actual exchange. Carry forward promises, contradictions and concessions. If the player repeats an argument, acknowledge that you heard it already. Vary pacing and gestures with this character's temperament. Never invent an earlier promise, observation or relationship. Write indice_comportemental in the third person (he/she, never I/me). Set action_speciale ONLY to "aucune", "deal_accepte", or "quitte_la_boutique".
+Respond to the player's latest move in light of the actual exchange. Carry forward promises, contradictions and concessions. If the player repeats an argument, acknowledge that you heard it already. Vary pacing and gestures with this character's temperament. Never invent an earlier promise, observation or relationship. Write indice_comportemental in the third person (he/she, never I/me). Use only an action_speciale value listed in the JSON contract below. Describe ordinary gestures in indice_comportemental.
 ${statusNote}
 ${jsonContract}`;
 
