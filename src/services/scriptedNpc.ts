@@ -42,7 +42,7 @@ const TELL: Record<Loc, Record<Situation, string>> = {
   es: { accept: 'Guarda el trato sin mirarte.', counter: 'Duda y se encoge de hombros.', hold: 'Tamborilea el mostrador, impaciente.', insulted: 'Se le tensa la mandíbula.', pressured: 'Mira de reojo hacia la puerta.', bluffed: 'Una sonrisa apenas visible.', chat: 'Vigila la calle con un ojo.' },
 };
 
-const INSULT = /connard|idiot|imb[eé]cile|merde|ta gueule|d[eé]gage|pigeon|clochard|escroc|voleur|fuck|idiot|stupid|asshole|shut up|scam|thief|gilipollas|idiota|estafador|ladr[oó]n|cabr[oó]n|imb[eé]cil/i;
+export const INSULT = /connard|idiot|imb[eé]cile|merde|ta gueule|d[eé]gage|pigeon|clochard|escroc|voleur|fuck|idiot|stupid|asshole|shut up|scam|thief|gilipollas|idiota|estafador|ladr[oó]n|cabr[oó]n|imb[eé]cil/i;
 const PRESSURE = /police|flic|patrouille|brigade|radio|scanner|coffr|menace|indic|cops?|patrol|arrest|threat|polic[ií]a|patrulla|arresto|amenaza/i;
 const BLUFF = /faux|contrefa|invendable|sans valeur|worthless|fake|forg|unsellable|falso|falsific|invendible|sin valor/i;
 
@@ -67,7 +67,9 @@ export function scriptedNpcRaw(args: {
 }): string {
   const { history, gauges, currentPrice, dynamicFloor, playerOffer, locale, gender } = args;
   const loc: Loc = locale in T ? locale : 'fr';
-  const lastPlayer = [...history].reverse().find((h) => h.role === 'player')?.content ?? '';
+  const playerTurns = history.filter(turn => turn.role === 'player');
+  const lastPlayer = playerTurns[playerTurns.length - 1]?.content ?? '';
+  const previousPlayer = playerTurns[playerTurns.length - 2]?.content ?? '';
   const insulted = INSULT.test(lastPlayer);
   const pressured = PRESSURE.test(lastPlayer);
   const bluffed = BLUFF.test(lastPlayer);
@@ -77,7 +79,11 @@ export function scriptedNpcRaw(args: {
   let action: 'aucune' | 'deal_accepte' | 'quitte_la_boutique' = 'aucune';
   let { peur, colere, mefiance } = gauges;
 
-  if (playerOffer !== undefined && playerOffer >= dynamicFloor && !insulted) {
+  if (insulted) {
+    situation = 'insulted';
+    colere += 12;
+    mefiance += 6;
+  } else if (playerOffer !== undefined && playerOffer >= dynamicFloor) {
     situation = 'accept';
     price = Math.min(currentPrice, playerOffer);
     action = 'deal_accepte';
@@ -86,9 +92,8 @@ export function scriptedNpcRaw(args: {
     const target = Math.max(dynamicFloor, playerOffer);
     price = Math.max(dynamicFloor, Math.min(currentPrice, round50(currentPrice - (currentPrice - target) * 0.4)));
     situation = price < currentPrice ? 'counter' : 'hold';
-  } else if (insulted) {
-    situation = 'insulted';
-    colere += 12;
+  } else if (pressured && PRESSURE.test(previousPlayer)) {
+    situation = 'hold';
     mefiance += 6;
   } else if (pressured) {
     situation = 'pressured';

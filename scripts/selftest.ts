@@ -283,6 +283,12 @@ for (const msg of [
     }
   }
   check('vendeur scripté : prix borné, jamais de deal sous le plancher (FR/EN/ES)', bad === 0, `anomalies=${bad}`);
+  for (const [locale, insult] of [['fr', 'connard'], ['en', 'idiot'], ['es', 'idiota']] as const) {
+    const turn = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: insult }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, playerOffer: 1300, locale }));
+    check('offre insultante : prix maintenu et colère en hausse (' + locale + ')', turn.action_speciale === 'aucune' && turn.prix_actuel_demande === 1500 && turn.jauges.colere > g.colere);
+  }
+  const pressure = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'la police arrive' }, { role: 'npc', content: '1400 $' }, { role: 'player', content: 'la police arrive' }], gauges: g, currentPrice: 1400, dynamicFloor: 1000, locale: 'fr' }));
+  check('répéter la pression sans offre ne donne pas une seconde remise', pressure.prix_actuel_demande === 1400 && pressure.jauges.mefiance > g.mefiance);
   const acc = parseNPCJson(scriptedNpcRaw({ history: [{ role: 'player', content: 'Deal' }], gauges: g, currentPrice: 1500, dynamicFloor: computeDynamicFloor(1500, 600, 30), playerOffer: 1300, locale: 'en' }), g, 1500, 1500, 600, 1300, 'en', 'm');
   check('vendeur scripté : une offre au-dessus du plancher est acceptée', acc.action_speciale === 'deal_accepte', JSON.stringify(acc));
   const femFr = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'Bonjour' }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, locale: 'fr', gender: 'f' }));

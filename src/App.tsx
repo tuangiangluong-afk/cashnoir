@@ -1,3 +1,4 @@
+import { DealReplay } from './components/DealReplay';
 import { FirstDeal, readFirstDeal, clearFirstDeal } from './components/FirstDeal';
 import { GameDialog } from './components/GameDialog';
 import { useState, useRef, useEffect } from 'react';
@@ -3329,6 +3330,7 @@ export default function App() {
           <ShieldAlert className="w-10 h-10 text-red-500 mx-auto" />
           <h1 className="text-xl font-semibold text-red-400">{t.gameOverCurtain(day)}</h1>
           <p className="text-sm text-zinc-300 leading-relaxed">{gameOverReason}</p>
+          <DealReplay key={currentCase.id} history={history} name={currentCase.name} t={tt} />
           <div className="border border-white/10 bg-black/40 p-3 text-left font-mono text-[11px] leading-relaxed text-zinc-400">
             <p className="mb-1 uppercase tracking-wider text-amber-300">
               {gameLocale === 'en' ? 'How to last longer' : gameLocale === 'es' ? 'Cómo durar más' : 'Comment tenir plus longtemps'}
@@ -5752,6 +5754,7 @@ export default function App() {
             {/* ==================== BAS : COMPTOIR FEUTRE & TIROIR-CAISSE ==================== */}
             <div className="counter-controls felt sticky bottom-0 z-30 border-t-2 border-amber-900/70 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] px-2.5 py-1.5 max-sm:pb-1.5 sm:px-6 sm:py-3 lg:static lg:col-span-3 lg:row-start-2 lg:-mx-6">
               <div className="mx-auto max-w-5xl">
+                {outcome !== 'active' && <DealReplay key={currentCase.id} history={history} name={currentCase.name} t={tt} />}
                 {outcome !== 'active' && !currentCase.special && !currentCase.isDailyContract && (() => {
                   const castD = currentCase.castId ? CAST_ROSTER.find((c) => c.id === currentCase.castId) : undefined;
                   const points = dealDebrief(psychoAudit, {

@@ -485,7 +485,7 @@ export function buildCase(
       : arch.trait;
 
   // À partir du Jour 2 (ou si Heat >= 40), les infiltrés apparaissent et durcissent au fil des jours
-  const trapChance = (options.day >= 4 ? 0.36 : options.day === 3 ? 0.22 : 0.15) + (options.isDaily ? 0 : ascTrap);
+  const trapChance = ([0.10, 0.10, 0.18, 0.24, 0.30][options.day - 1] ?? 0.36) + (options.isDaily ? 0 : ascTrap);
   const isTrap = !options.isDaily && !options.windfall && (options.day >= 2 || options.cityHeat >= 40) && rand() < trapChance;
   const subtleTrap = isTrap && options.day >= 4 && rand() < 0.5;
 
