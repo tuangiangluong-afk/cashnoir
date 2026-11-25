@@ -45,6 +45,11 @@ const TELL: Record<Loc, Record<Situation, string>> = {
 export const INSULT = /connard|idiot|imb[eé]cile|merde|ta gueule|d[eé]gage|pigeon|clochard|escroc|voleur|fuck|idiot|stupid|asshole|shut up|scam|thief|gilipollas|idiota|estafador|ladr[oó]n|cabr[oó]n|imb[eé]cil/i;
 const PRESSURE = /police|flic|patrouille|brigade|radio|scanner|coffr|menace|indic|cops?|patrol|arrest|threat|polic[ií]a|patrulla|arresto|amenaza/i;
 const BLUFF = /faux|contrefa|invendable|sans valeur|worthless|fake|forg|unsellable|falso|falsific|invendible|sin valor/i;
+const REPEAT_BLUFF: Record<Loc, string> = {
+  fr: 'Tu m’as déjà dit qu’elle était fausse. Qu’est-ce que tu as vu dessus ? {p} $.',
+  en: 'You already called it fake. What did you actually spot on it? {p}.',
+  es: 'Ya me dijiste que era falsa. ¿Qué le has visto exactamente? {p} $.',
+};
 
 const round50 = (n: number) => Math.round(n / 50) * 50;
 
@@ -112,8 +117,10 @@ export function scriptedNpcRaw(args: {
   const said = new Set(history.filter((h) => h.role === 'npc').map((h) => h.content));
   const render = (line: string) => line.replace('{p}', price.toLocaleString(loc === 'en' ? 'en-US' : loc === 'es' ? 'es-ES' : 'fr-FR').replace(/[\u202f\u00a0]/g, ' '));
   const seed = history.length * 7 + Math.round(currentPrice / 50);
+  const repeatLine = situation === 'bluffed' && BLUFF.test(previousPlayer) ? render(REPEAT_BLUFF[loc]) : '';
   return JSON.stringify({
     dialogue: (() => {
+      if (repeatLine && !said.has(repeatLine)) return repeatLine;
       // Évite de répéter une réplique déjà dite à ce client.
       for (let k = 0; k < pool.length; k++) {
         const line = render(pool[(seed + k) % pool.length]);

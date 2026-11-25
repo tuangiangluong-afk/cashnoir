@@ -289,6 +289,10 @@ for (const msg of [
   }
   const pressure = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'la police arrive' }, { role: 'npc', content: '1400 $' }, { role: 'player', content: 'la police arrive' }], gauges: g, currentPrice: 1400, dynamicFloor: 1000, locale: 'fr' }));
   check('répéter la pression sans offre ne donne pas une seconde remise', pressure.prix_actuel_demande === 1400 && pressure.jauges.mefiance > g.mefiance);
+  for (const [locale, msg, needle] of [['fr', "c'est faux", 'déjà dit'], ['en', 'this is fake', 'already called'], ['es', 'es falso', 'Ya me dijiste']] as const) {
+    const rBluff = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: msg }, { role: 'npc', content: '1500' }, { role: 'player', content: msg }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, locale }));
+    check('répéter le bluff déclenche une réplique dédiée (' + locale + ')', rBluff.dialogue.includes(needle) && rBluff.prix_actuel_demande === 1500 && rBluff.jauges.mefiance > g.mefiance);
+  }
   const acc = parseNPCJson(scriptedNpcRaw({ history: [{ role: 'player', content: 'Deal' }], gauges: g, currentPrice: 1500, dynamicFloor: computeDynamicFloor(1500, 600, 30), playerOffer: 1300, locale: 'en' }), g, 1500, 1500, 600, 1300, 'en', 'm');
   check('vendeur scripté : une offre au-dessus du plancher est acceptée', acc.action_speciale === 'deal_accepte', JSON.stringify(acc));
   const femFr = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'Bonjour' }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, locale: 'fr', gender: 'f' }));
