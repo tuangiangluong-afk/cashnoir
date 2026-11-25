@@ -1,7 +1,7 @@
 import type { Gauges } from './types';
 import type { Locale } from '../data/seoContent';
 import { formatMoney } from '../data/gameI18n';
-import { INSULT, scriptedNpcRaw } from './scriptedNpc';
+import { isInsult, scriptedNpcRaw } from './scriptedNpc';
 
 export type LLMProvider = 'ollama' | 'gemini' | 'groq' | 'deepseek' | 'openrouter';
 
@@ -605,7 +605,7 @@ DIRECTIVE DE PRIX : Tout prix que tu prononces dans ton dialogue DOIT être écr
 
   const fullSystem = `${systemPrompt}
 
-Respond to the player's latest move in light of the actual exchange. Carry forward promises, contradictions and concessions. If the player repeats an argument, acknowledge that you heard it already. Vary pacing and gestures with this character's temperament. Never invent an earlier promise, observation or relationship.
+Respond to the player's latest move in light of the actual exchange. Carry forward promises, contradictions and concessions. If the player repeats an argument, acknowledge that you heard it already. Vary pacing and gestures with this character's temperament. Never invent an earlier promise, observation or relationship. Write indice_comportemental in the third person (he/she, never I/me). Set action_speciale ONLY to "aucune", "deal_accepte", or "quitte_la_boutique".
 ${statusNote}
 ${jsonContract}`;
 
@@ -714,7 +714,7 @@ ${jsonContract}`;
 
   if (!raw) throw new Error(locale === 'en' ? 'Empty model response.' : locale === 'es' ? 'Respuesta vacía del modelo.' : 'Réponse du modèle vide.');
   const lastPlayer = history.filter(turn => turn.role === 'player').pop();
-  const eligibleOffer = scripted && INSULT.test(lastPlayer?.content ?? '') ? undefined : playerOffer;
+  const eligibleOffer = scripted && isInsult(lastPlayer?.content ?? '') ? undefined : playerOffer;
   const parsed = parseNPCJson(raw, currentGauges, currentPrice, initialPrice, floorPrice, eligibleOffer, locale, gender, fearCap, leaveGuard, maxTurnDrop);
   return { ...parsed, ...(scripted ? { scripted: true } : {}), ...(quota ? { quota } : {}) };
 }

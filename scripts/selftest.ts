@@ -287,6 +287,8 @@ for (const msg of [
     const turn = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: insult }], gauges: g, currentPrice: 1500, dynamicFloor: 1200, playerOffer: 1300, locale }));
     check('offre insultante : prix maintenu et colère en hausse (' + locale + ')', turn.action_speciale === 'aucune' && turn.prix_actuel_demande === 1500 && turn.jauges.colere > g.colere);
   }
+  const idiom = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'Arrête de me prendre pour un idiot, 1500 $' }], gauges: g, currentPrice: 1600, dynamicFloor: 1200, playerOffer: 1500, locale: 'fr' }));
+  check('tournure « me prendre pour un idiot » non traitée comme insulte', idiom.action_speciale === 'deal_accepte' && idiom.prix_actuel_demande === 1500);
   const pressure = JSON.parse(scriptedNpcRaw({ history: [{ role: 'player', content: 'la police arrive' }, { role: 'npc', content: '1400 $' }, { role: 'player', content: 'la police arrive' }], gauges: g, currentPrice: 1400, dynamicFloor: 1000, locale: 'fr' }));
   check('répéter la pression sans offre ne donne pas une seconde remise', pressure.prix_actuel_demande === 1400 && pressure.jauges.mefiance > g.mefiance);
   for (const [locale, msg, needle] of [['fr', "c'est faux", 'déjà dit'], ['en', 'this is fake', 'already called'], ['es', 'es falso', 'Ya me dijiste']] as const) {

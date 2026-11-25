@@ -43,6 +43,8 @@ const TELL: Record<Loc, Record<Situation, string>> = {
 };
 
 export const INSULT = /connard|idiot|imb[eé]cile|merde|ta gueule|d[eé]gage|pigeon|clochard|escroc|voleur|fuck|idiot|stupid|asshole|shut up|scam|thief|gilipollas|idiota|estafador|ladr[oó]n|cabr[oó]n|imb[eé]cil/i;
+const SELF_IDIOM = /(?:me|m'|myself)\s+(?:prendre|prends|prend|take|taking|tomas|tomar)\s+(?:pour|for|por)\s+(?:un\s+|an?\s+)?(?:idiot|imb[eé]cile|pigeon|idiota)|(?:prendre|prends|take|tomas|tomar)\s+(?:me\s+)?(?:pour|for|por)\s+(?:un\s+|an?\s+)?(?:idiot|imb[eé]cile|pigeon|idiota)/gi;
+export const isInsult = (text: string) => INSULT.test(text.replace(SELF_IDIOM, ''));
 const PRESSURE = /police|flic|patrouille|brigade|radio|scanner|coffr|menace|indic|cops?|patrol|arrest|threat|polic[ií]a|patrulla|arresto|amenaza/i;
 const BLUFF = /faux|contrefa|invendable|sans valeur|worthless|fake|forg|unsellable|falso|falsific|invendible|sin valor/i;
 const REPEAT_BLUFF: Record<Loc, string> = {
@@ -75,7 +77,7 @@ export function scriptedNpcRaw(args: {
   const playerTurns = history.filter(turn => turn.role === 'player');
   const lastPlayer = playerTurns[playerTurns.length - 1]?.content ?? '';
   const previousPlayer = playerTurns[playerTurns.length - 2]?.content ?? '';
-  const insulted = INSULT.test(lastPlayer);
+  const insulted = isInsult(lastPlayer);
   const pressured = PRESSURE.test(lastPlayer);
   const bluffed = BLUFF.test(lastPlayer);
 
